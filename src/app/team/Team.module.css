@@ -1,0 +1,78 @@
+.container {
+    padding-bottom: var(--spacing-xxl);
+}
+
+.addInputWrapper {
+    display: flex;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-xl);
+}
+
+.addInput {
+    flex: 1;
+    min-width: 0;
+}
+
+.memberCard {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-md);
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--spacing-sm);
+    transition: background-color 0.2s;
+}
+
+.memberCard:hover {
+    background-color: var(--bg-card-hover);
+}
+
+.memberName {
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.editInput {
+    background-color: transparent;
+    border: none;
+    border-bottom: 1px solid var(--accent-purple);
+    color: var(--text-primary);
+    font-size: 16px;
+    font-weight: 500;
+    outline: none;
+    width: 100%;
+    max-width: 200px;
+}
+
+.memberActions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.actionBtn {
+    color: var(--text-secondary);
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    background: none;
+    border: none;
+}
+
+.actionBtn:hover {
+    color: white;
+}
+
+.emptyState {
+    text-align: center;
+    color: var(--text-secondary);
+    padding: 40px 0;
+    border: 1px dashed var(--border-color);
+    border-radius: var(--border-radius-lg);
+    font-size: 14px;
+}

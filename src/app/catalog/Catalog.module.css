@@ -1,0 +1,120 @@
+.headerRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-lg);
+}
+
+.manageGroupsBtn {
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 500;
+    transition: opacity 0.2s;
+}
+
+.manageGroupsBtn:hover {
+    opacity: 0.8;
+}
+
+.addInputWrapper {
+    display: flex;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-lg);
+}
+
+.addInput {
+    flex: 1;
+}
+
+.filterScroll {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding-bottom: var(--spacing-sm);
+    margin-bottom: var(--spacing-lg);
+}
+
+.filterScroll::-webkit-scrollbar {
+    display: none;
+}
+
+.filterBadge {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.filterBadge.active {
+    background-color: white;
+    color: black;
+    border-color: white;
+}
+
+.dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.groupHeader {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-md);
+    margin-top: var(--spacing-xl);
+}
+
+.itemCard {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-md);
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--spacing-sm);
+    transition: background-color 0.2s;
+    cursor: pointer;
+}
+
+.itemCard:hover {
+    background-color: var(--bg-card-hover);
+}
+
+.itemContent {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    padding: 16px;
+}
+
+.itemColorBar {
+    width: 4px;
+    height: 24px;
+    border-radius: 4px;
+    margin-right: 16px;
+}
+
+.itemName {
+    font-size: 16px;
+    font-weight: 500;
+}
+
+.itemIcon {
+    padding: 16px;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+}
