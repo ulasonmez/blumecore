@@ -1,0 +1,11 @@
+[debug] [2026-03-06T18:44:56.551Z] ----------------------------------------------------------------------
+[debug] [2026-03-06T18:44:56.553Z] Command:       /usr/local/bin/firebase /Users/ulassonmez/.cache/firebase/tools/lib/node_modules/firebase-tools/lib/bin/firebase deploy --only firestore:rules
+[debug] [2026-03-06T18:44:56.553Z] CLI Version:   13.23.0
+[debug] [2026-03-06T18:44:56.553Z] Platform:      darwin
+[debug] [2026-03-06T18:44:56.553Z] Node Version:  v18.5.0
+[debug] [2026-03-06T18:44:56.556Z] Time:          Fri Mar 06 2026 21:44:56 GMT+0300 (GMT+03:00)
+[debug] [2026-03-06T18:44:56.556Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-03-06T18:44:56.561Z] >>> [apiv2][query] GET https://firebase-public.firebaseio.com/cli.json [none]
+[error] 
+[error] Error: Not in a Firebase app directory (could not locate firebase.json)

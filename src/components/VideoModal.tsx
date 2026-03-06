@@ -14,6 +14,7 @@ interface YoutuberAssignment {
     name: string;
     delivered: boolean;
     note: string;
+    createdAt?: number;
 }
 
 interface VideoModalProps {
@@ -126,7 +127,14 @@ export default function VideoModal({
                             </div>
 
                             <div className={styles.youtuberInfo}>
-                                <div className={styles.youtuberName}>{a.name}</div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <div className={styles.youtuberName}>{a.name}</div>
+                                    {a.createdAt && (
+                                        <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                                            • {new Date(a.createdAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                        </div>
+                                    )}
+                                </div>
                                 <input
                                     type="text"
                                     className={styles.noteInput}

@@ -33,6 +33,8 @@ export default function CalendarPage() {
     const [records, setRecords] = useState<any[]>([]);
     const [youtubers, setYoutubers] = useState<any[]>([]);
     const [teamMembers, setTeamMembers] = useState<any[]>([]);
+    const [assignments, setAssignments] = useState<any[]>([]);
+    const [videos, setVideos] = useState<any[]>([]);
 
     useEffect(() => {
         if (!user) return;
@@ -72,6 +74,33 @@ export default function CalendarPage() {
         return () => unsubscribe();
     }, [user]);
 
+    useEffect(() => {
+        if (!user) return;
+        const q = query(collection(db, "assignments"), where("userId", "==", user.uid));
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const data: any[] = [];
+            snapshot.forEach(doc => {
+                const docData = doc.data();
+                if (docData.source !== 'mods' && docData.videoId) {
+                    data.push({ ...docData, id: doc.id });
+                }
+            });
+            setAssignments(data);
+        });
+        return () => unsubscribe();
+    }, [user]);
+
+    useEffect(() => {
+        if (!user) return;
+        const q = query(collection(db, "youtube_videos"), where("userId", "==", user.uid));
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const data: any[] = [];
+            snapshot.forEach(doc => data.push({ id: doc.id, ...doc.data() }));
+            setVideos(data);
+        });
+        return () => unsubscribe();
+    }, [user]);
+
     const nextMonth = () => setCurrentDate(addMonths(currentDate, 1));
     const prevMonth = () => setCurrentDate(subMonths(currentDate, 1));
 
@@ -95,6 +124,11 @@ export default function CalendarPage() {
     const allTimeExpense = expenseRecords.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
 
     const selectedDateRecords = records.filter(r => isSameDay(r.date, selectedDate));
+    const selectedDateAssignments = assignments.filter(a =>
+        a.createdAt &&
+        isSameDay(new Date(a.createdAt), selectedDate) &&
+        videos.some(v => v.id === a.videoId)
+    );
 
     return (
         <div className={styles.container}>
@@ -156,6 +190,7 @@ export default function CalendarPage() {
                         const isDayToday = isToday(day);
                         const isSelected = isSameDay(day, selectedDate);
                         const hasRecord = records.some(r => isSameDay(r.date, day));
+                        const hasAssignment = assignments.some(a => a.createdAt && isSameDay(new Date(a.createdAt), day));
 
                         return (
                             <div
@@ -166,9 +201,14 @@ export default function CalendarPage() {
                                 <span className={`${styles.dayNumber} ${isDayToday ? styles.today : ''} ${isSelected && !isDayToday ? styles.selected : ''}`}>
                                     {format(day, 'd')}
                                 </span>
-                                {hasRecord && (
-                                    <div style={{ width: '4px', height: '4px', borderRadius: '50%', backgroundColor: 'var(--accent-purple)', marginTop: '4px' }}></div>
-                                )}
+                                <div style={{ display: 'flex', gap: '2px', marginTop: '4px', justifyContent: 'center' }}>
+                                    {hasRecord && (
+                                        <div style={{ width: '4px', height: '4px', borderRadius: '50%', backgroundColor: 'var(--accent-purple)' }}></div>
+                                    )}
+                                    {hasAssignment && (
+                                        <div style={{ width: '4px', height: '4px', borderRadius: '50%', backgroundColor: '#3B82F6' }}></div>
+                                    )}
+                                </div>
                             </div>
                         );
                     })}
@@ -188,7 +228,7 @@ export default function CalendarPage() {
                 </button>
             </div>
 
-            {selectedDateRecords.length === 0 ? (
+            {selectedDateRecords.length === 0 && selectedDateAssignments.length === 0 ? (
                 <div className={styles.emptyStateCard}>
                     Bu tarihte kayıt bulunmuyor.
                 </div>
@@ -232,6 +272,38 @@ export default function CalendarPage() {
                                         </span>
                                         <button onClick={() => { setEditingRecordId(record.id); setEditAmount(record.amount.toString()); }} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '4px' }}><Edit2 size={14} /></button>
                                         <button onClick={async () => { if (confirm('Bu kaydı silmek istediğinize emin misiniz?')) { await deleteDoc(doc(db, 'records', record.id)); } }} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '4px' }}><Trash2 size={14} /></button>
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+
+                    {selectedDateAssignments.map((assignment) => {
+                        const videoInfo = videos.find(v => v.id === assignment.videoId);
+                        const youtuberName = youtubers.find(y => y.id === assignment.youtuberId)?.name || assignment.name || 'Bilinmiyor';
+
+                        return (
+                            <div key={assignment.id} className="card" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                        <span style={{ fontWeight: 500 }}>{youtuberName}</span>
+                                        <span style={{ fontSize: '11px', color: '#3B82F6' }}>Video Ataması</span>
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <button onClick={async () => { if (confirm('Bu videoyu silmek istediğinize emin misiniz?')) { await deleteDoc(doc(db, 'assignments', assignment.id)); } }} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '4px' }}><Trash2 size={14} /></button>
+                                    </div>
+                                </div>
+                                <div style={{ color: 'var(--text-primary)', fontSize: '14px', lineHeight: '1.4' }}>
+                                    {videoInfo ? videoInfo.title : 'Bilinmeyen Video'}
+                                </div>
+                                {videoInfo && (
+                                    <a href={videoInfo.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: '12px', color: 'var(--accent-blue)', display: 'inline-block' }}>
+                                        Kanalda İzle
+                                    </a>
+                                )}
+                                {assignment.note && (
+                                    <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+                                        Not: {assignment.note}
                                     </div>
                                 )}
                             </div>

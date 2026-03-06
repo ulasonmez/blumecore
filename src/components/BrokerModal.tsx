@@ -4,17 +4,16 @@ import { X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
-import styles from './CalendarModal.module.css';
+import styles from './CalendarModal.module.css'; // Reusing CalendarModal styles
 import { db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { useAuth } from '@/lib/auth-context';
 
-interface CalendarModalProps {
+interface BrokerModalProps {
     isOpen: boolean;
     onClose: () => void;
-    youtuberId: string;
-    title: string;
-    channelUrl?: string;
+    brokerId: string;
+    brokerName: string;
 }
 
 interface RecordData {
@@ -23,6 +22,7 @@ interface RecordData {
     description?: string;
     date: Date;
     videoId?: string;
+    youtuberId?: string;
 }
 
 interface AssignmentData {
@@ -42,13 +42,12 @@ interface VideoData {
     url: string;
 }
 
-export default function CalendarModal({
+export default function BrokerModal({
     isOpen,
     onClose,
-    youtuberId,
-    title,
-    channelUrl,
-}: CalendarModalProps) {
+    brokerId,
+    brokerName
+}: BrokerModalProps) {
     const { user } = useAuth();
     const [records, setRecords] = useState<RecordData[]>([]);
     const [assignments, setAssignments] = useState<AssignmentData[]>([]);
@@ -56,13 +55,13 @@ export default function CalendarModal({
     const [activeTab, setActiveTab] = useState<'money' | 'videos'>('money');
 
     useEffect(() => {
-        if (!isOpen || !user || !youtuberId) return;
+        if (!isOpen || !user || !brokerId) return;
 
-        // Fetch Records
+        // Fetch Records that have this brokerId
         const qRecords = query(
             collection(db, "records"),
             where("userId", "==", user.uid),
-            where("youtuberId", "==", youtuberId)
+            where("brokerId", "==", brokerId)
         );
 
         const unsubRecords = onSnapshot(qRecords, (snapshot) => {
@@ -75,29 +74,28 @@ export default function CalendarModal({
                         amount: Number(rec.amount) || 0,
                         description: rec.description || '',
                         date: rec.date.toDate(),
-                        videoId: rec.videoId
+                        videoId: rec.videoId,
+                        youtuberId: rec.youtuberId
                     });
                 }
             });
-            // Sort by earliest date to latest date? User requested: "en son tarihten ilk tarihe kadar" -> Newest to Oldest -> descending
+            // Newest to Oldest -> descending
             data.sort((a, b) => b.date.getTime() - a.date.getTime());
             setRecords(data);
         });
 
-        // Fetch Assignments
+        // Fetch Assignments that have this brokerId
         const qAssignments = query(
             collection(db, "assignments"),
             where("userId", "==", user.uid),
-            where("youtuberId", "==", youtuberId)
+            where("brokerId", "==", brokerId)
         );
 
         const unsubAssignments = onSnapshot(qAssignments, (snapshot) => {
             const data: AssignmentData[] = [];
             snapshot.forEach(doc => {
                 const docData = doc.data();
-                if (docData.source !== 'mods' && docData.videoId) {
-                    data.push({ id: doc.id, ...docData } as AssignmentData);
-                }
+                data.push({ id: doc.id, ...docData } as AssignmentData);
             });
             data.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
             setAssignments(data);
@@ -114,7 +112,7 @@ export default function CalendarModal({
         });
 
         return () => { unsubRecords(); unsubAssignments(); unsubVideos(); };
-    }, [isOpen, user, youtuberId]);
+    }, [isOpen, user, brokerId]);
 
     if (!isOpen) return null;
 
@@ -125,18 +123,8 @@ export default function CalendarModal({
             <div className={styles.modal} onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
                 <div className={styles.header}>
                     <div>
-                        <h2 className={styles.title} style={{ marginBottom: channelUrl ? '4px' : '0' }}>{title}</h2>
-                        {channelUrl && (
-                            <a
-                                href={channelUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                style={{ fontSize: '12px', color: 'var(--accent-blue)', display: 'flex', alignItems: 'center', gap: '4px' }}
-                                onClick={(e) => e.stopPropagation()}
-                            >
-                                <span style={{ textDecoration: 'underline' }}>Kanalı Ziyaret Et</span>
-                            </a>
-                        )}
+                        <h2 className={styles.title} style={{ marginBottom: '4px' }}>{brokerName}</h2>
+                        <span style={{ fontSize: '12px', color: 'var(--accent-blue)' }}>Aracı Bilgileri</span>
                     </div>
                     <button className={styles.closeBtn} onClick={onClose} style={{ alignSelf: 'flex-start' }}>
                         <X size={24} />
@@ -146,7 +134,7 @@ export default function CalendarModal({
                 <div className={styles.statsRow} style={{ gridTemplateColumns: '1fr', marginBottom: '16px' }}>
                     <div className={styles.statCard}>
                         <div className={styles.statValue}>${allTimeTotal}</div>
-                        <div className={styles.statLabel}>Toplam Ciro</div>
+                        <div className={styles.statLabel}>Toplam Ciro (Aracı Olunan)</div>
                     </div>
                 </div>
 
@@ -180,7 +168,7 @@ export default function CalendarModal({
                             flex: 1
                         }}
                     >
-                        Videolar
+                        Videolar ({assignments.filter(a => videos.some(v => v.id === a.videoId)).length})
                     </button>
                 </div>
 
@@ -221,7 +209,7 @@ export default function CalendarModal({
                             {(() => {
                                 const validAssignments = assignments.filter(a => videos.some(v => v.id === a.videoId));
                                 if (validAssignments.length === 0) {
-                                    return <p style={{ fontSize: '13px', color: 'var(--text-secondary)', textAlign: 'center', padding: '20px 0' }}>Atanan video bulunmuyor.</p>;
+                                    return <p style={{ fontSize: '13px', color: 'var(--text-secondary)', textAlign: 'center', padding: '20px 0' }}>Aracı olunan video bulunmuyor.</p>;
                                 }
 
                                 return validAssignments.map(assignment => {

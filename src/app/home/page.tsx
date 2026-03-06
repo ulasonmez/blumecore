@@ -150,13 +150,16 @@ export default function HomePage() {
 
             const data = await response.json();
 
+            // Find the minimum order so the new video is placed at the top-left
+            const minOrder = videos.length > 0 ? Math.min(...videos.map(v => v.order !== undefined ? v.order : 0)) : 0;
+
             await addDoc(collection(db, "videos"), {
                 url,
                 title: data.title,
                 thumbnailUrl: data.thumbnail_url,
                 userId: user.uid,
                 createdAt: new Date().getTime(),
-                order: videos.length
+                order: minOrder - 1
             });
 
             setLinkInput('');
@@ -219,7 +222,8 @@ export default function HomePage() {
                 delivered: false,
                 note: '',
                 userId: user.uid,
-                createdAt: new Date().getTime()
+                createdAt: new Date().getTime(),
+                source: 'mods'
             });
         } catch (error) {
             console.error("Error adding assignment:", error);

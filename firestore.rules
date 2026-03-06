@@ -26,6 +26,12 @@ service cloud.firestore {
       allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
     }
 
+    // YouTube Videos (Videolar Tab)
+    match /youtube_videos/{docId} {
+      allow read, update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+    }
+
     // Assignments
     match /assignments/{docId} {
       allow read, update, delete: if request.auth != null && request.auth.uid == resource.data.userId;

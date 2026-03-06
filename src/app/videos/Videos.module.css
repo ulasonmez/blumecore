@@ -1,0 +1,118 @@
+.container {
+    padding-bottom: 24px;
+    animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.header {
+    margin-bottom: 24px;
+}
+
+.addVideoSection {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.videoInput {
+    width: 100%;
+    background-color: var(--input-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 12px;
+    color: var(--text-primary);
+    font-size: 14px;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.videoInput:focus {
+    border-color: var(--accent-purple);
+    box-shadow: 0 0 0 2px rgba(92, 62, 240, 0.1);
+}
+
+.videoInput::placeholder {
+    color: var(--text-secondary);
+    opacity: 0.7;
+}
+
+.controlsSection {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.searchContainer {
+    position: relative;
+    flex: 1;
+    min-width: 250px;
+    max-width: 400px;
+}
+
+.searchIcon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-secondary);
+}
+
+.searchInput {
+    width: 100%;
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 10px 12px 10px 40px;
+    color: var(--text-primary);
+    font-size: 14px;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.searchInput:focus {
+    border-color: var(--accent-purple);
+    box-shadow: 0 0 0 2px rgba(92, 62, 240, 0.1);
+}
+
+.statsBadge {
+    padding: 8px 16px;
+    background: rgba(92, 62, 240, 0.1);
+    border: 1px solid rgba(92, 62, 240, 0.2);
+    border-radius: 20px;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.statsBadge span {
+    color: var(--accent-purple);
+    font-weight: 600;
+}
+
+.videoGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+}
+
+.emptyState {
+    text-align: center;
+    color: var(--text-secondary);
+    padding: 60px 20px;
+    border: 1px dashed var(--border-color);
+    border-radius: 12px;
+    background: rgba(26, 29, 40, 0.3);
+}

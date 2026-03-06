@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Plus, Calendar, Bookmark, Settings, Users, UsersRound } from 'lucide-react';
+import { Plus, Calendar, Bookmark, Settings, Users, UsersRound, Video } from 'lucide-react';
 import styles from './BottomNav.module.css';
 
 export default function BottomNav() {
@@ -13,6 +13,7 @@ export default function BottomNav() {
 
     const navItems = [
         { name: 'Mods', href: '/home', icon: Plus },
+        { name: 'Videolar', href: '/videos', icon: Video },
         { name: 'Takvim', href: '/calendar', icon: Calendar },
         { name: 'YouTubers', href: '/catalog', icon: Users },
         { name: 'Team', href: '/team', icon: UsersRound },
