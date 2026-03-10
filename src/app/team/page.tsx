@@ -2,7 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { Trash2, Edit2, Check, X, UserPlus } from 'lucide-react';
+import { format } from 'date-fns';
+import { tr } from 'date-fns/locale';
 import styles from './Team.module.css';
+import modalStyles from '@/components/CalendarModal.module.css';
 import { db } from '@/lib/firebase';
 import { collection, query, where, addDoc, deleteDoc, doc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { useAuth } from '@/lib/auth-context';
@@ -14,6 +17,13 @@ interface TeamMember {
     role?: 'member' | 'broker';
 }
 
+interface MemberRecord {
+    id: string;
+    amount: number;
+    description?: string;
+    date: Date;
+}
+
 export default function TeamPage() {
     const { user } = useAuth();
     const [members, setMembers] = useState<TeamMember[]>([]);
@@ -21,6 +31,10 @@ export default function TeamPage() {
     const [newRole, setNewRole] = useState<'member' | 'broker'>('member');
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editName, setEditName] = useState('');
+
+    const [selectedBroker, setSelectedBroker] = useState<TeamMember | null>(null);
+    const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
+    const [memberRecords, setMemberRecords] = useState<MemberRecord[]>([]);
 
     useEffect(() => {
         if (!user) return;
@@ -39,6 +53,40 @@ export default function TeamPage() {
         });
         return () => unsub();
     }, [user]);
+
+    // Fetch records for selected team member
+    useEffect(() => {
+        if (!selectedMember || !user) {
+            setMemberRecords([]);
+            return;
+        }
+
+        const qRecords = query(
+            collection(db, "records"),
+            where("userId", "==", user.uid),
+            where("teamMemberId", "==", selectedMember.id)
+        );
+
+        const unsub = onSnapshot(qRecords, (snapshot) => {
+            const data: MemberRecord[] = [];
+            snapshot.forEach(doc => {
+                const rec = doc.data();
+                if (rec.date && typeof rec.date.toDate === 'function') {
+                    data.push({
+                        id: doc.id,
+                        amount: Number(rec.amount) || 0,
+                        description: rec.description || '',
+                        date: rec.date.toDate(),
+                    });
+                }
+            });
+            // Newest to Oldest
+            data.sort((a, b) => b.date.getTime() - a.date.getTime());
+            setMemberRecords(data);
+        });
+
+        return () => unsub();
+    }, [selectedMember, user]);
 
     const handleAdd = async () => {
         if (!newName.trim() || !user) return;
@@ -86,8 +134,6 @@ export default function TeamPage() {
         setEditName('');
     };
 
-    const [selectedBroker, setSelectedBroker] = useState<TeamMember | null>(null);
-
     const teamMembers = members.filter(m => m.role === 'member' || !m.role);
     const brokers = members.filter(m => m.role === 'broker');
 
@@ -96,11 +142,15 @@ export default function TeamPage() {
             key={member.id}
             className={styles.memberCard}
             onClick={() => {
-                if (member.role === 'broker' && editingId !== member.id) {
-                    setSelectedBroker(member);
+                if (editingId !== member.id) {
+                    if (member.role === 'broker') {
+                        setSelectedBroker(member);
+                    } else {
+                        setSelectedMember(member);
+                    }
                 }
             }}
-            style={{ cursor: member.role === 'broker' ? 'pointer' : 'default' }}
+            style={{ cursor: editingId !== member.id ? 'pointer' : 'default' }}
         >
             {editingId === member.id ? (
                 <input
@@ -142,6 +192,8 @@ export default function TeamPage() {
             </div>
         </div>
     );
+
+    const memberTotal = memberRecords.reduce((sum, r) => sum + r.amount, 0);
 
     return (
         <div className={styles.container}>
@@ -226,6 +278,52 @@ export default function TeamPage() {
                     brokerId={selectedBroker.id}
                     brokerName={selectedBroker.name}
                 />
+            )}
+
+            {/* Inline Team Member Modal */}
+            {selectedMember && (
+                <div className={modalStyles.overlay} onClick={() => setSelectedMember(null)}>
+                    <div className={modalStyles.modal} onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+                        <div className={modalStyles.header}>
+                            <div>
+                                <h2 className={modalStyles.title} style={{ marginBottom: '4px' }}>{selectedMember.name}</h2>
+                                <span style={{ fontSize: '12px', color: 'var(--accent-purple)' }}>Ekip Üyesi Bilgileri</span>
+                            </div>
+                            <button className={modalStyles.closeBtn} onClick={() => setSelectedMember(null)} style={{ alignSelf: 'flex-start' }}>
+                                <X size={24} />
+                            </button>
+                        </div>
+
+                        <div className={modalStyles.statsRow} style={{ gridTemplateColumns: '1fr', marginBottom: '16px' }}>
+                            <div className={modalStyles.statCard}>
+                                <div className={modalStyles.statValue}>${memberTotal}</div>
+                                <div className={modalStyles.statLabel}>Toplam Ödeme</div>
+                            </div>
+                        </div>
+
+                        <div style={{ maxHeight: '400px', overflowY: 'auto', paddingRight: '4px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            {memberRecords.length === 0 ? (
+                                <p style={{ fontSize: '13px', color: 'var(--text-secondary)', textAlign: 'center', padding: '20px 0' }}>Kayıt bulunmuyor.</p>
+                            ) : (
+                                memberRecords.map(record => (
+                                    <div key={record.id} style={{ display: 'flex', flexDirection: 'column', gap: '4px', backgroundColor: 'var(--bg-card)', padding: '12px', borderRadius: '8px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <span style={{ color: 'var(--text-primary)', fontWeight: 500, fontSize: '14px' }}>
+                                                {format(record.date, 'd MMMM yyyy', { locale: tr })}
+                                            </span>
+                                            <span style={{ color: 'var(--accent-purple)', fontWeight: 700 }}>${record.amount}</span>
+                                        </div>
+                                        {record.description && (
+                                            <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                                                {record.description}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );

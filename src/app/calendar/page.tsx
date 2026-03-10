@@ -118,16 +118,30 @@ export default function CalendarPage() {
     const expenseRecords = records.filter(r => r.type === 'expense');
 
     const currentMonthRecords = records.filter(r => isSameMonth(r.date, currentDate));
-    const monthlyIncome = currentMonthRecords.filter(r => r.type !== 'expense').reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+    const monthlyIncome = currentMonthRecords.filter(r => r.type === 'income').reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
     const monthlyExpense = currentMonthRecords.filter(r => r.type === 'expense').reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
-    const allTimeIncome = incomeRecords.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
-    const allTimeExpense = expenseRecords.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+    const allTimeIncome = records.filter(r => r.type === 'income').reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+    const allTimeExpense = records.filter(r => r.type === 'expense').reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+
+    // Calculate assigned (sold) videos by filtering assignments that have a valid connected YouTube video
+    const validAssignments = assignments.filter(a => videos.some(v => v.id === a.videoId));
+    
+    let monthlyAssignedVideos = 0;
+    validAssignments.forEach(a => {
+        if (a.createdAt) {
+            const date = new Date(a.createdAt);
+            if (isSameMonth(date, currentDate)) {
+                monthlyAssignedVideos++;
+            }
+        }
+    });
+
+    const allTimeAssignedVideos = validAssignments.length;
 
     const selectedDateRecords = records.filter(r => isSameDay(r.date, selectedDate));
-    const selectedDateAssignments = assignments.filter(a =>
+    const selectedDateAssignments = validAssignments.filter(a =>
         a.createdAt &&
-        isSameDay(new Date(a.createdAt), selectedDate) &&
-        videos.some(v => v.id === a.videoId)
+        isSameDay(new Date(a.createdAt), selectedDate)
     );
 
     return (
@@ -140,22 +154,35 @@ export default function CalendarPage() {
             </div>
 
             {/* Stats Cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '20px' }}>
-                <div className="card" style={{ padding: '12px', textAlign: 'center' }}>
-                    <div style={{ fontSize: '16px', fontWeight: 700, color: '#22C55E' }}>${monthlyIncome.toFixed(2)}</div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Bu Ay Gelir</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
+                    <div className="card" style={{ padding: '12px', textAlign: 'center' }}>
+                        <div style={{ fontSize: '16px', fontWeight: 700, color: '#F59E0B' }}>{monthlyAssignedVideos}</div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Bu Ay Satılan Video</div>
+                    </div>
+                    <div className="card" style={{ padding: '12px', textAlign: 'center' }}>
+                        <div style={{ fontSize: '16px', fontWeight: 700, color: '#F59E0B' }}>{allTimeAssignedVideos}</div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Genel Satılan Video</div>
+                    </div>
                 </div>
-                <div className="card" style={{ padding: '12px', textAlign: 'center' }}>
-                    <div style={{ fontSize: '16px', fontWeight: 700, color: '#EF4444' }}>${monthlyExpense.toFixed(2)}</div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Bu Ay Gider</div>
-                </div>
-                <div className="card" style={{ padding: '12px', textAlign: 'center' }}>
-                    <div style={{ fontSize: '16px', fontWeight: 700, color: '#22C55E' }}>${allTimeIncome.toFixed(2)}</div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Genel Gelir</div>
-                </div>
-                <div className="card" style={{ padding: '12px', textAlign: 'center' }}>
-                    <div style={{ fontSize: '16px', fontWeight: 700, color: '#EF4444' }}>${allTimeExpense.toFixed(2)}</div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Genel Gider</div>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
+                    <div className="card" style={{ padding: '12px', textAlign: 'center' }}>
+                        <div style={{ fontSize: '16px', fontWeight: 700, color: '#22C55E' }}>${monthlyIncome.toFixed(2)}</div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Bu Ay Gelir</div>
+                    </div>
+                    <div className="card" style={{ padding: '12px', textAlign: 'center' }}>
+                        <div style={{ fontSize: '16px', fontWeight: 700, color: '#EF4444' }}>${monthlyExpense.toFixed(2)}</div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Bu Ay Gider</div>
+                    </div>
+                    <div className="card" style={{ padding: '12px', textAlign: 'center' }}>
+                        <div style={{ fontSize: '16px', fontWeight: 700, color: '#22C55E' }}>${allTimeIncome.toFixed(2)}</div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Genel Gelir</div>
+                    </div>
+                    <div className="card" style={{ padding: '12px', textAlign: 'center' }}>
+                        <div style={{ fontSize: '16px', fontWeight: 700, color: '#EF4444' }}>${allTimeExpense.toFixed(2)}</div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Genel Gider</div>
+                    </div>
                 </div>
             </div>
 
@@ -244,8 +271,8 @@ export default function CalendarPage() {
                             <div key={record.id} className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
                                     <span style={{ fontWeight: 500 }}>{personName}</span>
-                                    <span style={{ fontSize: '11px', color: isExpense ? '#EF4444' : '#22C55E' }}>
-                                        {isExpense ? 'Gider' : 'Gelir'}
+                                    <span style={{ fontSize: '11px', color: record.type === 'expense' ? '#EF4444' : '#22C55E' }}>
+                                        {record.type === 'expense' ? 'Gider' : 'Gelir'}
                                     </span>
                                     {record.description ? (
                                         <span style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px', fontStyle: 'italic' }}>
@@ -267,8 +294,8 @@ export default function CalendarPage() {
                                     </div>
                                 ) : (
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                        <span style={{ fontWeight: 700, color: isExpense ? '#EF4444' : '#22C55E' }}>
-                                            {isExpense ? '-' : '+'}${record.amount}
+                                        <span style={{ fontWeight: 700, color: record.type === 'expense' ? '#EF4444' : '#22C55E' }}>
+                                            {record.type === 'expense' ? '-' : '+'}${record.amount}
                                         </span>
                                         <button onClick={() => { setEditingRecordId(record.id); setEditAmount(record.amount.toString()); }} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '4px' }}><Edit2 size={14} /></button>
                                         <button onClick={async () => { if (confirm('Bu kaydı silmek istediğinize emin misiniz?')) { await deleteDoc(doc(db, 'records', record.id)); } }} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '4px' }}><Trash2 size={14} /></button>
