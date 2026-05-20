@@ -44,6 +44,7 @@ interface Youtuber {
     id: string;
     name: string;
     groupId: string;
+    channelUrl?: string;
 }
 
 interface Group {
@@ -89,6 +90,7 @@ export default function HomePage() {
     
     // Dropdown search for existing Youtubers
     const [showYtDropdown, setShowYtDropdown] = useState(false);
+    const [ytSearchQuery, setYtSearchQuery] = useState('');
 
     useEffect(() => {
         if (!user) return;
@@ -186,11 +188,11 @@ export default function HomePage() {
 
     // Filtered Youtubers for the creation dropdown search
     const filteredYoutubers = useMemo(() => {
-        if (!youtuberNameInput.trim()) return [];
+        if (!ytSearchQuery.trim()) return youtubers;
         return youtubers.filter(yt => 
-            yt.name.toLowerCase().includes(youtuberNameInput.toLowerCase())
+            yt.name.toLowerCase().includes(ytSearchQuery.toLowerCase())
         );
-    }, [youtuberNameInput, youtubers]);
+    }, [ytSearchQuery, youtubers]);
 
     // Filtered & Searched Follow Ups
     const filteredFollowUps = useMemo(() => {
@@ -223,51 +225,16 @@ export default function HomePage() {
         setYoutuberNameInput(yt.name);
         setSelectedYoutuberId(yt.id);
         setShowYtDropdown(false);
+        setYtSearchQuery('');
     };
 
     const handleAddFollowUp = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!user) return;
-
-        let finalYoutuberId = selectedYoutuberId;
-        let finalYoutuberName = youtuberNameInput.trim();
-
-        if (!finalYoutuberName) return;
+        if (!user || !selectedYoutuberId) return;
 
         setLoading(true);
 
         try {
-            // Auto create YouTuber in Catalog if custom string typing
-            if (!finalYoutuberId) {
-                const existingYt = youtubers.find(y => y.name.toLowerCase() === finalYoutuberName.toLowerCase());
-                if (existingYt) {
-                    finalYoutuberId = existingYt.id;
-                    finalYoutuberName = existingYt.name;
-                } else {
-                    let firstGroupId = "";
-                    if (groups.length > 0) {
-                        firstGroupId = groups[0].id;
-                    } else {
-                        // Create General group if none exists
-                        const newGrp = await addDoc(collection(db, "groups"), {
-                            name: "Takip",
-                            color: "#5C3EF0",
-                            userId: user.uid,
-                            createdAt: new Date()
-                        });
-                        firstGroupId = newGrp.id;
-                    }
-
-                    const newYt = await addDoc(collection(db, "youtubers"), {
-                        name: finalYoutuberName,
-                        groupId: firstGroupId,
-                        userId: user.uid,
-                        createdAt: new Date()
-                    });
-                    finalYoutuberId = newYt.id;
-                }
-            }
-
             const initialSystemNote: FollowUpNote = {
                 text: "Takip kaydı oluşturuldu.",
                 createdAt: Date.now(),
@@ -285,13 +252,13 @@ export default function HomePage() {
             }
 
             await addDoc(collection(db, "followups"), {
-                youtuberId: finalYoutuberId,
-                youtuberName: finalYoutuberName,
-                country: countryInput.trim() || "-",
-                contactMethod: contactMethodInput.trim() || "-",
+                youtuberId: selectedYoutuberId,
+                youtuberName: youtuberNameInput,
+                country: "-",
+                contactMethod: "-",
                 status: initialStatus || (statuses[0]?.name || 'Trial Mod Sent'),
-                trialMod: trialModInput.trim() || "-",
-                paymentAmount: parseFloat(paymentAmountInput) || 0,
+                trialMod: "-",
+                paymentAmount: 0,
                 notes: initialNotes,
                 lastNote: lastNoteText,
                 lastUpdated: Date.now(),
@@ -303,11 +270,8 @@ export default function HomePage() {
             setIsAddOpen(false);
             setYoutuberNameInput('');
             setSelectedYoutuberId('');
-            setCountryInput('');
-            setContactMethodInput('');
-            setTrialModInput('');
-            setInitialStatus(statuses[0]?.name || '');
-            setPaymentAmountInput('');
+            setYtSearchQuery('');
+            setInitialStatus(statuses[0]?.name || 'Trial Mod Sent');
             setInitialNoteInput('');
         } catch (err) {
             console.error("Error adding follow-up:", err);
@@ -443,7 +407,7 @@ export default function HomePage() {
 
             {/* Search, Add, and filter row */}
             <div className={styles.searchFilterRow}>
-                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                <div className={styles.searchAddContainer}>
                     <div className={styles.searchInputWrapper}>
                         <Search size={16} className={styles.searchIcon} />
                         <input
@@ -455,39 +419,37 @@ export default function HomePage() {
                         />
                     </div>
                     <button
-                        className="btn-primary"
+                        className={styles.addNewBtn}
                         onClick={() => {
-                            if (statuses.length > 0 && !initialStatus) {
+                            if (statuses.length > 0) {
                                 setInitialStatus(statuses[0].name);
+                            } else {
+                                setInitialStatus('Trial Mod Sent');
                             }
                             setIsAddOpen(true);
                         }}
-                        style={{ padding: '10px 18px', fontSize: '14px', height: '42px', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}
                     >
                         <Plus size={16} /> Yeni Ekle
                     </button>
                 </div>
 
-                {/* Horizontal scroll of dynamic status badges */}
-                <div className={styles.statusBadgesContainer}>
-                    <button
-                        onClick={() => setActiveFilter('Tümü')}
-                        className={`${styles.statusBadge} ${activeFilter === 'Tümü' ? styles.active : ''}`}
+                <div className={styles.filterSelectWrapper}>
+                    <span className={styles.filterLabel}>Durum Filtresi:</span>
+                    <select
+                        value={activeFilter}
+                        onChange={(e) => setActiveFilter(e.target.value)}
+                        className={styles.filterSelect}
                     >
-                        Tümü ({followUps.length})
-                    </button>
-                    {statuses.map(s => {
-                        const count = followUps.filter(f => f.status === s.name).length;
-                        return (
-                            <button
-                                key={s.id}
-                                onClick={() => setActiveFilter(s.name)}
-                                className={`${styles.statusBadge} ${activeFilter === s.name ? styles.active : ''}`}
-                            >
-                                {s.name} ({count})
-                            </button>
-                        );
-                    })}
+                        <option value="Tümü">Tümü ({followUps.length})</option>
+                        {statuses.map(s => {
+                            const count = followUps.filter(f => f.status === s.name).length;
+                            return (
+                                <option key={s.id} value={s.name}>
+                                    {s.name} ({count})
+                                </option>
+                            );
+                        })}
+                    </select>
                 </div>
             </div>
 
@@ -520,102 +482,75 @@ export default function HomePage() {
                     <div className="card" style={{ width: '480px', maxWidth: '90%', maxHeight: '90vh', overflowY: 'auto', border: '1px solid var(--border-color)' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
                             <h2 style={{ fontSize: '18px', fontWeight: 600 }}>Yeni Takip Ekle</h2>
-                            <button onClick={() => setIsAddOpen(false)} style={{ color: 'var(--text-secondary)', padding: '4px' }}>
+                            <button onClick={() => {
+                                setIsAddOpen(false);
+                                setSelectedYoutuberId('');
+                                setYoutuberNameInput('');
+                                setYtSearchQuery('');
+                                setInitialNoteInput('');
+                            }} style={{ color: 'var(--text-secondary)', padding: '4px' }}>
                                 <X size={20} />
                             </button>
                         </div>
 
-                        <form onSubmit={handleAddFollowUp} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        <form onSubmit={handleAddFollowUp} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                             <div className={styles.formGroup}>
                                 <label className={styles.formLabel}>YouTuber / Müşteri</label>
-                                <div className={styles.searchSelectContainer}>
-                                    <input
-                                        type="text"
-                                        placeholder="Katalogdan seçin veya yeni isim girin..."
-                                        value={youtuberNameInput}
-                                        onChange={(e) => {
-                                            setYoutuberNameInput(e.target.value);
-                                            setSelectedYoutuberId('');
-                                            setShowYtDropdown(true);
-                                        }}
-                                        onFocus={() => setShowYtDropdown(true)}
-                                        className={styles.formInput}
-                                        required
-                                    />
-                                    {showYtDropdown && youtuberNameInput.trim().length > 0 && (
-                                        <div className={styles.searchSelectDropdown}>
-                                            {filteredYoutubers.map(yt => (
-                                                <div
-                                                    key={yt.id}
-                                                    onClick={() => handleSelectYoutuber(yt)}
-                                                    className={styles.searchSelectItem}
-                                                >
-                                                    {yt.name} (Katalogda)
-                                                </div>
-                                            ))}
-                                            {filteredYoutubers.length === 0 && (
-                                                <div 
-                                                    onClick={() => setShowYtDropdown(false)}
-                                                    className={styles.searchSelectItemEmpty}
-                                                >
-                                                    Katalogda eşleşme yok. Yeni YouTuber olarak eklenecek.
-                                                </div>
-                                            )}
+                                {selectedYoutuberId ? (
+                                    <div className={styles.selectedYoutuberBadge}>
+                                        <div className={styles.selectedYtInfo}>
+                                            <User size={16} className={styles.selectedYtIcon} />
+                                            <span className={styles.selectedYtName}>{youtuberNameInput}</span>
                                         </div>
-                                    )}
-                                </div>
-                            </div>
-
-                            <div className={styles.formRow}>
-                                <div className={styles.formGroup}>
-                                    <label className={styles.formLabel}>Ülke</label>
-                                    <input
-                                        type="text"
-                                        placeholder="Örn: US, TR, DE"
-                                        value={countryInput}
-                                        onChange={(e) => setCountryInput(e.target.value)}
-                                        className={styles.formInput}
-                                    />
-                                </div>
-                                <div className={styles.formGroup}>
-                                    <label className={styles.formLabel}>İletişim Kanalı</label>
-                                    <input
-                                        type="text"
-                                        placeholder="E-posta, Instagram, Discord"
-                                        value={contactMethodInput}
-                                        onChange={(e) => setContactMethodInput(e.target.value)}
-                                        className={styles.formInput}
-                                    />
-                                </div>
-                            </div>
-
-                            <div className={styles.formRow}>
-                                <div className={styles.formGroup}>
-                                    <label className={styles.formLabel}>İlişkili Mod / Trial</label>
-                                    <input
-                                        type="text"
-                                        placeholder="Örn: X Mod v2"
-                                        value={trialModInput}
-                                        onChange={(e) => setTrialModInput(e.target.value)}
-                                        className={styles.formInput}
-                                    />
-                                </div>
-                                <div className={styles.formGroup}>
-                                    <label className={styles.formLabel}>Ödeme Beklenen Miktar ($)</label>
-                                    <input
-                                        type="number"
-                                        placeholder="0"
-                                        value={paymentAmountInput}
-                                        onChange={(e) => setPaymentAmountInput(e.target.value)}
-                                        className={styles.formInput}
-                                        min="0"
-                                        step="0.01"
-                                    />
-                                </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setSelectedYoutuberId('');
+                                                setYoutuberNameInput('');
+                                            }}
+                                            className={styles.clearSelectedYt}
+                                        >
+                                            <X size={16} />
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className={styles.searchSelectContainer}>
+                                        <input
+                                            type="text"
+                                            placeholder="YouTuber seçmek için arayın..."
+                                            value={ytSearchQuery}
+                                            onChange={(e) => {
+                                                setYtSearchQuery(e.target.value);
+                                                setShowYtDropdown(true);
+                                            }}
+                                            onFocus={() => setShowYtDropdown(true)}
+                                            className={styles.formInput}
+                                            required={!selectedYoutuberId}
+                                        />
+                                        {showYtDropdown && (
+                                            <div className={styles.searchSelectDropdown}>
+                                                {filteredYoutubers.map(yt => (
+                                                    <div
+                                                        key={yt.id}
+                                                        onClick={() => handleSelectYoutuber(yt)}
+                                                        className={styles.searchSelectItem}
+                                                    >
+                                                        {yt.name}
+                                                    </div>
+                                                ))}
+                                                {filteredYoutubers.length === 0 && (
+                                                    <div className={styles.searchSelectItemEmpty}>
+                                                        Eşleşen YouTuber bulunamadı.
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
 
                             <div className={styles.formGroup}>
-                                <label className={styles.formLabel}>Başlangıç Aşaması (Status)</label>
+                                <label className={styles.formLabel}>Aşama (Status)</label>
                                 <select
                                     value={initialStatus}
                                     onChange={(e) => setInitialStatus(e.target.value)}
@@ -641,7 +576,7 @@ export default function HomePage() {
                             <button
                                 type="submit"
                                 className="btn-primary"
-                                disabled={loading || !youtuberNameInput.trim()}
+                                disabled={loading || !selectedYoutuberId}
                                 style={{ marginTop: '8px' }}
                             >
                                 {loading ? 'Oluşturuluyor...' : 'Takip Başlat'}
@@ -676,6 +611,14 @@ export default function HomePage() {
         
         const isExpanded = expandedCards[f.id] || false;
         
+        // Lookup YouTuber from catalog
+        const ytData = youtubers.find(y => y.id === f.youtuberId);
+        const groupData = ytData ? groups.find(g => g.id === ytData.groupId) : null;
+
+        const displayName = ytData ? ytData.name : f.youtuberName;
+        const displayCountry = groupData ? groupData.name : f.country;
+        const displayChannelUrl = ytData?.channelUrl || null;
+        
         return (
             <div key={f.id} className={styles.followUpCard}>
                 {/* Left boundary bar color based on status color */}
@@ -688,16 +631,32 @@ export default function HomePage() {
                     <div className={styles.cardHeaderInfo}>
                         <div className={styles.youtuberName}>
                             <User size={16} style={{ color: 'var(--text-secondary)' }} />
-                            {f.youtuberName}
+                            {displayName}
                         </div>
                         
                         <div className={styles.badgeRow}>
-                            <span className={styles.metaBadge}>
-                                <Globe size={11} /> {f.country}
-                            </span>
-                            <span className={styles.metaBadge}>
-                                <MessageSquare size={11} /> {f.contactMethod}
-                            </span>
+                            {displayCountry && displayCountry !== '-' && (
+                                <span className={styles.metaBadge}>
+                                    <Globe size={11} /> {displayCountry}
+                                </span>
+                            )}
+                            {displayChannelUrl ? (
+                                <a 
+                                    href={displayChannelUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className={styles.metaBadgeLink}
+                                    onClick={(e) => e.stopPropagation()}
+                                >
+                                    <LinkIcon size={11} /> Kanalı Aç
+                                </a>
+                            ) : (
+                                f.contactMethod && f.contactMethod !== '-' && (
+                                    <span className={styles.metaBadge}>
+                                        <MessageSquare size={11} /> {f.contactMethod}
+                                    </span>
+                                )
+                            )}
                             <span 
                                 className={styles.statusPill}
                                 style={{
