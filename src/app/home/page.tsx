@@ -164,27 +164,19 @@ export default function HomePage() {
         };
     }, [user]);
 
-    // Top Summary metrics based on loaded custom statuses
-    const stats = useMemo(() => {
-        let trialSent = 0;
-        let waitingFeedback = 0;
-        let paymentPending = 0;
-        let inProgress = 0;
-        let oldCustomers = 0;
-
-        // Try to identify dynamic status names or fallback to exact matching strings
-        const firstStatusName = statuses[0]?.name || "Trial Mod Sent";
-
-        followUps.forEach(f => {
-            if (f.status === firstStatusName) trialSent++;
-            else if (f.status === "Waiting Feedback") waitingFeedback++;
-            else if (f.status === "Payment Pending") paymentPending++;
-            else if (f.status === "In Progress") inProgress++;
-            else if (f.status === "Old Customer") oldCustomers++;
-        });
-
-        return { trialSent, waitingFeedback, paymentPending, inProgress, oldCustomers };
-    }, [followUps, statuses]);
+    // Close YouTuber autocomplete dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            const container = document.getElementById('youtuber-search-container');
+            if (container && !container.contains(event.target as Node)) {
+                setShowYtDropdown(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, []);
 
     // Filtered Youtubers for the creation dropdown search
     const filteredYoutubers = useMemo(() => {
@@ -381,29 +373,7 @@ export default function HomePage() {
                 </div>
             </div>
 
-            {/* Top Summaries */}
-            <div className={styles.summaryGrid}>
-                <div className={styles.summaryCard}>
-                    <div className={styles.summaryValue}>{stats.trialSent}</div>
-                    <div className={styles.summaryLabel}>{statuses[0]?.name || "Trial Sent"}</div>
-                </div>
-                <div className={styles.summaryCard}>
-                    <div className={styles.summaryValue}>{stats.waitingFeedback}</div>
-                    <div className={styles.summaryLabel}>Waiting Feedback</div>
-                </div>
-                <div className={styles.summaryCard}>
-                    <div className={styles.summaryValue}>{stats.paymentPending}</div>
-                    <div className={styles.summaryLabel}>Pending Payment</div>
-                </div>
-                <div className={styles.summaryCard}>
-                    <div className={styles.summaryValue}>{stats.inProgress}</div>
-                    <div className={styles.summaryLabel}>In Progress</div>
-                </div>
-                <div className={styles.summaryCard}>
-                    <div className={styles.summaryValue}>{stats.oldCustomers}</div>
-                    <div className={styles.summaryLabel}>Old Customers</div>
-                </div>
-            </div>
+            {/* Top Summaries completely removed as requested */}
 
             {/* Search, Add, and filter row */}
             <div className={styles.searchFilterRow}>
@@ -514,7 +484,7 @@ export default function HomePage() {
                                         </button>
                                     </div>
                                 ) : (
-                                    <div className={styles.searchSelectContainer}>
+                                    <div id="youtuber-search-container" className={styles.searchSelectContainer}>
                                         <input
                                             type="text"
                                             placeholder="YouTuber seçmek için arayın..."
@@ -688,22 +658,6 @@ export default function HomePage() {
                         </button>
                     </div>
                 </div>
-
-                {f.trialMod && f.trialMod !== '-' && (
-                    <div className={styles.trialModRow}>
-                        <LinkIcon size={12} />
-                        <span>Deneme Modu: <strong>{f.trialMod}</strong></span>
-                    </div>
-                )}
-
-                {f.paymentAmount > 0 && (
-                    <div>
-                        <div className={styles.cardPaymentBadge}>
-                            <DollarSign size={13} />
-                            Beklenen Ödeme: ${f.paymentAmount.toFixed(2)}
-                        </div>
-                    </div>
-                )}
 
                 {f.lastNote && (
                     <div className={styles.lastNotePreview}>
