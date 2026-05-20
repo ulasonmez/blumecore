@@ -459,8 +459,44 @@ export default function HomePage() {
             {/* List area */}
             <div className={styles.followUpsGrid}>
                 {filteredFollowUps.length === 0 && (
-                    <div style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '40px 0', border: '1px dashed var(--border-color)', borderRadius: '16px' }}>
-                        Gösterilecek takip kaydı bulunamadı.
+                    <div style={{ 
+                        textAlign: 'center', 
+                        color: 'var(--text-secondary)', 
+                        padding: '40px 20px', 
+                        border: '1px dashed var(--border-color)', 
+                        borderRadius: '16px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: '14px',
+                        backgroundColor: 'rgba(255, 255, 255, 0.01)'
+                    }}>
+                        {searchQuery.trim() ? (
+                            <>
+                                <p style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
+                                    <strong>"{searchQuery}"</strong> isminde bir takip kaydı bulunamadı.
+                                </p>
+                                <button
+                                    onClick={() => {
+                                        const queryStr = searchQuery.trim();
+                                        const exactYt = youtubers.find(y => y.name.toLowerCase() === queryStr.toLowerCase());
+                                        if (exactYt) {
+                                            setYoutuberNameInput(exactYt.name);
+                                            setSelectedYoutuberId(exactYt.id);
+                                        } else {
+                                            setYoutuberNameInput(queryStr);
+                                            setSelectedYoutuberId('NEW_YOUTUBER');
+                                        }
+                                        setIsAddOpen(true);
+                                    }}
+                                    className={styles.addNewBtn}
+                                >
+                                    <Plus size={16} /> "{searchQuery}" İçin Takip Başlat
+                                </button>
+                            </>
+                        ) : (
+                            <span>Gösterilecek takip kaydı bulunamadı. Sağ üstteki <strong>"Yeni Ekle"</strong> butonuna tıklayarak ilk takibinizi başlatabilirsiniz.</span>
+                        )}
                     </div>
                 )}
 
