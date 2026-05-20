@@ -297,6 +297,32 @@ export default function HomePage() {
         }
     };
 
+    const handleDeleteNote = async (followUpId: string, noteCreatedAt: number) => {
+        if (!confirm("Bu notu geçmişten silmek istediğinize emin misiniz?")) return;
+        
+        const followUp = followUps.find(f => f.id === followUpId);
+        if (!followUp) return;
+
+        try {
+            const updatedNotes = (followUp.notes || []).filter(note => note.createdAt !== noteCreatedAt);
+            
+            // Recalculate lastNote preview based on remaining latest note (highest createdAt)
+            let newLastNote = "";
+            if (updatedNotes.length > 0) {
+                const sortedRemaining = [...updatedNotes].sort((a, b) => b.createdAt - a.createdAt);
+                newLastNote = sortedRemaining[0].text;
+            }
+
+            await updateDoc(doc(db, "followups", followUpId), {
+                notes: updatedNotes,
+                lastNote: newLastNote,
+                lastUpdated: Date.now()
+            });
+        } catch (err) {
+            console.error("Error deleting note:", err);
+        }
+    };
+
     const handleQuickNote = async (id: string, currentNotes: FollowUpNote[]) => {
         const text = inlineNotes[id]?.trim();
         if (!text) return;
@@ -765,19 +791,31 @@ export default function HomePage() {
                             {(!f.notes || f.notes.length === 0) ? (
                                 <p style={{ fontSize: '12px', color: 'var(--text-secondary)', textAlign: 'center', padding: '10px 0' }}>Not bulunmuyor.</p>
                             ) : (
-                                f.notes.map((note, index) => (
-                                    <div key={index} className={`${styles.timelineItem} ${note.isSystem ? styles.system : ''}`}>
-                                        <p className={styles.timelineText}>
-                                            {note.text}
-                                        </p>
-                                        <div className={styles.timelineMeta}>
-                                            <span>{note.isSystem ? 'Sistem Logu' : 'Kullanıcı'}</span>
-                                            <span>
-                                                {format(new Date(note.createdAt), 'd MMM yyyy HH:mm', { locale: tr })}
-                                            </span>
+                                [...f.notes]
+                                    .sort((a, b) => a.createdAt - b.createdAt)
+                                    .map((note) => (
+                                        <div key={note.createdAt} className={`${styles.timelineItem} ${note.isSystem ? styles.system : ''}`}>
+                                            <p className={styles.timelineText}>
+                                                {note.text}
+                                            </p>
+                                            <div className={styles.timelineMeta}>
+                                                <span>{note.isSystem ? 'Sistem Logu' : 'Kullanıcı'}</span>
+                                                <span>
+                                                    {format(new Date(note.createdAt), 'd MMM yyyy HH:mm', { locale: tr })}
+                                                </span>
+                                            </div>
+                                            <button
+                                                className={styles.deleteNoteBtn}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleDeleteNote(f.id, note.createdAt);
+                                                }}
+                                                title="Log Kaydını Sil"
+                                            >
+                                                <Trash2 size={12} />
+                                            </button>
                                         </div>
-                                    </div>
-                                ))
+                                    ))
                             )}
                         </div>
 
