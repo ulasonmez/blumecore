@@ -376,7 +376,6 @@ export default function HomePage() {
             <div className={styles.headerRow}>
                 <div>
                     <h1 className="page-title">Follow Ups</h1>
-                    <p className="page-subtitle">Track trial mod recipients, active customers, old customers, and pending payments.</p>
                 </div>
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                     <button
@@ -434,25 +433,6 @@ export default function HomePage() {
                     >
                         <Plus size={16} /> Yeni Ekle
                     </button>
-                </div>
-
-                <div className={styles.filterSelectWrapper}>
-                    <span className={styles.filterLabel}>Durum Filtresi:</span>
-                    <select
-                        value={activeFilter}
-                        onChange={(e) => setActiveFilter(e.target.value)}
-                        className={styles.filterSelect}
-                    >
-                        <option value="Tümü">Tümü ({followUps.length})</option>
-                        {statuses.map(s => {
-                            const count = followUps.filter(f => f.status === s.name).length;
-                            return (
-                                <option key={s.id} value={s.name}>
-                                    {s.name} ({count})
-                                </option>
-                            );
-                        })}
-                    </select>
                 </div>
             </div>
 
