@@ -120,30 +120,9 @@ export default function HomePage() {
             setGroups(list);
         });
 
-        // Listen to custom statuses in Firestore with automatic seeding if empty
+        // Listen to custom statuses in Firestore
         const qStatuses = query(collection(db, "statuses"), where("userId", "==", user.uid));
-        const unsubStatuses = onSnapshot(qStatuses, async (snapshot) => {
-            if (snapshot.empty) {
-                // Seed database with default 15 statuses using writeBatch
-                const batch = writeBatch(db);
-                DEFAULT_STATUSES_DATA.forEach((s) => {
-                    const docRef = doc(collection(db, "statuses"));
-                    batch.set(docRef, {
-                        name: s.name,
-                        color: s.color,
-                        order: s.order,
-                        userId: user.uid,
-                        createdAt: Date.now()
-                    });
-                });
-                try {
-                    await batch.commit();
-                } catch (err) {
-                    console.error("Error seeding default statuses: ", err);
-                }
-                return;
-            }
-
+        const unsubStatuses = onSnapshot(qStatuses, (snapshot) => {
             const list: Status[] = [];
             snapshot.forEach(doc => list.push({ id: doc.id, ...doc.data() } as Status));
             // Sort by order ascending
@@ -153,6 +132,8 @@ export default function HomePage() {
             // Set initial status to first dynamic status
             if (list.length > 0) {
                 setInitialStatus(list[0].name);
+            } else {
+                setInitialStatus('');
             }
         });
 
@@ -603,15 +584,21 @@ export default function HomePage() {
 
                             <div className={styles.formGroup}>
                                 <label className={styles.formLabel}>Aşama (Status)</label>
-                                <select
-                                    value={initialStatus}
-                                    onChange={(e) => setInitialStatus(e.target.value)}
-                                    className={styles.formSelect}
-                                >
-                                    {statuses.map(s => (
-                                        <option key={s.id} value={s.name}>{s.name}</option>
-                                    ))}
-                                </select>
+                                {statuses.length === 0 ? (
+                                    <div style={{ color: 'var(--accent-red)', fontSize: '13px', padding: '6px 0', fontWeight: 500 }}>
+                                        Lütfen önce sağ üstten <strong>"Statüleri Yönet"</strong> butonuna tıklayarak en az bir aşama (statü) ekleyin.
+                                    </div>
+                                ) : (
+                                    <select
+                                        value={initialStatus}
+                                        onChange={(e) => setInitialStatus(e.target.value)}
+                                        className={styles.formSelect}
+                                    >
+                                        {statuses.map(s => (
+                                            <option key={s.id} value={s.name}>{s.name}</option>
+                                        ))}
+                                    </select>
+                                )}
                             </div>
 
                             <div className={styles.formGroup}>
@@ -628,7 +615,7 @@ export default function HomePage() {
                             <button
                                 type="submit"
                                 className="btn-primary"
-                                disabled={loading || !selectedYoutuberId}
+                                disabled={loading || !selectedYoutuberId || statuses.length === 0}
                                 style={{ marginTop: '8px' }}
                             >
                                 {loading ? 'Oluşturuluyor...' : 'Takip Başlat'}
