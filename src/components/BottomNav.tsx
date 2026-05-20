@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Plus, Calendar, Bookmark, Settings, Users, UsersRound, Video } from 'lucide-react';
+import { MessageSquare, Calendar, Bookmark, Settings, Users, UsersRound, Video } from 'lucide-react';
 import styles from './BottomNav.module.css';
 
 export default function BottomNav() {
@@ -12,7 +12,7 @@ export default function BottomNav() {
     // Let's assume it's always visible for authenticated pages.
 
     const navItems = [
-        { name: 'Mods', href: '/home', icon: Plus },
+        { name: 'Follow Ups', href: '/home', icon: MessageSquare },
         { name: 'Videolar', href: '/videos', icon: Video },
         { name: 'Takvim', href: '/calendar', icon: Calendar },
         { name: 'YouTubers', href: '/catalog', icon: Users },

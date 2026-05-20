@@ -2,196 +2,485 @@
     padding-bottom: var(--spacing-xxl);
 }
 
-.addVideoSection {
+/* Header Action Row */
+.headerRow {
     display: flex;
-    gap: var(--spacing-sm);
-    margin-bottom: var(--spacing-xl);
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 4px;
+    gap: 12px;
 }
 
-.videoInput {
-    flex: 1;
-}
-
-.videoGrid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: var(--spacing-md);
-}
-
-.videoCard {
-    background-color: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius-lg);
-    overflow: hidden;
-    cursor: pointer;
-    transition: transform 0.2s, border-color 0.2s;
-    position: relative;
-}
-
-.videoCard:hover {
-    transform: translateY(-2px);
-    border-color: var(--text-secondary);
-}
-
-.thumbnailContainer {
-    width: 100%;
-    aspect-ratio: 16 / 9;
-    background-color: var(--bg-card-hover);
-    position: relative;
-}
-
-.thumbnailImage {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.videoInfo {
-    padding: var(--spacing-md);
-}
-
-.videoTitle {
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--text-primary);
-    display: -webkit-box;
-    line-clamp: 2;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    line-height: 1.4;
-}
-
-.deleteVideoBtn {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    background-color: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(4px);
-    color: white;
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
+.headerActions {
     display: flex;
+    gap: 8px;
     align-items: center;
-    justify-content: center;
-    transition: background-color 0.2s;
 }
 
-.deleteVideoBtn:hover {
-    background-color: var(--accent-red);
+@media (max-width: 600px) {
+    .headerRow {
+        flex-direction: column;
+        align-items: stretch;
+        gap: var(--spacing-md);
+        margin-bottom: var(--spacing-md);
+    }
+    .headerActions {
+        width: 100%;
+    }
+    .headerActions button {
+        flex: 1;
+        justify-content: center;
+    }
 }
 
-/* Modal Styles */
-.modalHeader {
+/* Summary Cards Layout */
+.summaryGrid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: var(--spacing-sm);
     margin-bottom: var(--spacing-lg);
 }
 
-.modalTitle {
-    font-size: 18px;
-    font-weight: 600;
-    margin-bottom: 4px;
-    line-height: 1.3;
+@media (max-width: 768px) {
+    .summaryGrid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .summaryCard:last-child {
+        grid-column: span 2;
+    }
 }
 
-.linkRow {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: var(--spacing-xl);
-}
-
-.addYoutuberForm {
-    display: flex;
-    gap: var(--spacing-sm);
-    margin-bottom: var(--spacing-xl);
-}
-
-.addYoutuberForm select {
-    flex: 1;
-    background: var(--bg-card);
+.summaryCard {
+    background-color: var(--bg-card);
     border: 1px solid var(--border-color);
-    color: var(--text-primary);
     border-radius: var(--border-radius-md);
     padding: var(--spacing-sm) var(--spacing-md);
-    outline: none;
+    text-align: center;
+    transition: transform 0.2s, border-color 0.2s, background-color 0.2s;
 }
 
-.youtuberList {
+.summaryCard:hover {
+    transform: translateY(-1px);
+    border-color: var(--accent-purple);
+    background-color: var(--bg-card-hover);
+}
+
+.summaryValue {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 2px;
+}
+
+.summaryLabel {
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Search and Filters */
+.searchFilterRow {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-lg);
+    background-color: var(--bg-card);
+    padding: var(--spacing-md);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-lg);
+}
+
+.searchInputWrapper {
+    position: relative;
+    width: 100%;
+}
+
+.searchInput {
+    width: 100%;
+    padding: 10px 10px 10px 38px;
+    background-color: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-md);
+    color: var(--text-primary);
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.searchInput:focus {
+    border-color: var(--accent-purple);
+}
+
+.searchIcon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-secondary);
+}
+
+.statusBadgesContainer {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: thin;
+}
+
+.statusBadgesContainer::-webkit-scrollbar {
+    height: 4px;
+}
+
+.statusBadge {
+    white-space: nowrap;
+    padding: 6px 12px;
+    border-radius: 20px;
+    background-color: var(--bg-color);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.statusBadge:hover {
+    color: var(--text-primary);
+    border-color: var(--text-secondary);
+}
+
+.statusBadge.active {
+    background-color: var(--accent-purple);
+    color: white;
+    border-color: var(--accent-purple);
+}
+
+/* Main Follow Ups List */
+.followUpsGrid {
     display: flex;
     flex-direction: column;
     gap: var(--spacing-md);
 }
 
-.youtuberRow {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-md);
+.followUpCard {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-lg);
+    overflow: hidden;
+    transition: border-color 0.2s, transform 0.2s;
+    position: relative;
     padding: var(--spacing-md);
-    background-color: var(--bg-card-hover);
-    border-radius: var(--border-radius-md);
-    border: 1px solid transparent;
 }
 
-.youtuberRow.delivered {
-    border-color: rgba(62, 130, 247, 0.3);
-    /* Slight blue border when delivered */
+.followUpCard:hover {
+    border-color: #33384D;
 }
 
-.checkboxContainer {
+.cardTopRow {
     display: flex;
-    align-items: center;
-    cursor: pointer;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: var(--spacing-sm);
+    gap: 8px;
 }
 
-.checkbox {
-    width: 24px;
-    height: 24px;
-    border-radius: 6px;
-    border: 2px solid var(--border-color);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s;
-}
-
-.checkbox.checked {
-    background-color: var(--accent-blue);
-    border-color: var(--accent-blue);
-    color: white;
-}
-
-.youtuberInfo {
+.cardHeaderInfo {
     flex: 1;
 }
 
 .youtuberName {
-    font-weight: 500;
-    font-size: 15px;
-    margin-bottom: 4px;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }
 
-.noteInput {
-    width: 100%;
-    background: transparent !important;
-    border: none !important;
-    border-bottom: 1px dashed var(--border-color) !important;
-    border-radius: 0 !important;
-    padding: 4px 0 !important;
-    font-size: 13px !important;
-    color: var(--text-secondary) !important;
+.badgeRow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 6px;
 }
 
-.noteInput:focus {
-    border-bottom-color: var(--accent-purple) !important;
-    color: var(--text-primary) !important;
-}
-
-.deleteYoutuberBtn {
+.metaBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
     color: var(--text-secondary);
-    padding: 8px;
+    background-color: var(--bg-card-hover);
+    padding: 3px 8px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.deleteYoutuberBtn:hover {
-    color: var(--accent-red);
+.statusPill {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 20px;
+    display: inline-block;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.trialModRow {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-sm);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.lastNotePreview {
+    background-color: rgba(255, 255, 255, 0.02);
+    border-left: 2px solid var(--accent-purple);
+    padding: 8px 12px;
+    border-radius: 0 6px 6px 0;
+    font-size: 12.5px;
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-md);
+    line-height: 1.4;
+    word-break: break-word;
+}
+
+.cardPaymentBadge {
+    background-color: rgba(34, 197, 94, 0.15);
+    border: 1px solid rgba(34, 197, 94, 0.3);
+    color: #4ADE80;
+    font-weight: 600;
+    font-size: 12px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: var(--spacing-md);
+}
+
+.cardActions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid var(--border-color);
+    padding-top: var(--spacing-sm);
+    gap: 8px;
+}
+
+.actionBtnLeft {
+    display: flex;
+    gap: var(--spacing-xs);
+}
+
+.btnAction {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    padding: 6px 10px;
+    border-radius: 6px;
+    background-color: var(--bg-card-hover);
+    border: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.btnAction:hover {
+    color: var(--text-primary);
+    border-color: var(--text-secondary);
+}
+
+.btnActionPrimary {
+    font-size: 12px;
+    font-weight: 600;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 6px;
+    background-color: var(--accent-purple);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.btnActionPrimary:hover {
+    background-color: var(--accent-purple-hover);
+}
+
+/* Expanded Notes History Section */
+.expandedSection {
+    margin-top: var(--spacing-md);
+    border-top: 1px dashed var(--border-color);
+    padding-top: var(--spacing-md);
+}
+
+.notesTimeline {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    max-height: 250px;
+    overflow-y: auto;
+    padding-right: 4px;
+    margin-bottom: var(--spacing-md);
+}
+
+.timelineItem {
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--border-radius-sm);
+    background-color: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.02);
+}
+
+.timelineItem.system {
+    background-color: rgba(92, 62, 240, 0.04);
+    border-left: 2px solid rgba(92, 62, 240, 0.4);
+}
+
+.timelineText {
+    font-size: 12.5px;
+    color: var(--text-primary);
+    line-height: 1.4;
+    word-break: break-word;
+}
+
+.timelineMeta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10.5px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+
+/* Note Input Form */
+.quickNoteForm {
+    display: flex;
+    gap: var(--spacing-sm);
+}
+
+.quickNoteInput {
+    flex: 1;
+    padding: 8px 12px;
+    font-size: 13px;
+    background-color: var(--bg-color) !important;
+    border: 1px solid var(--border-color) !important;
+    color: var(--text-primary);
+    border-radius: 6px;
+    outline: none;
+}
+
+.quickNoteInput:focus {
+    border-color: var(--accent-purple) !important;
+}
+
+.quickNoteBtn {
+    padding: 8px 12px;
+    background-color: var(--accent-purple);
+    color: white;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.quickNoteBtn:hover {
+    background-color: var(--accent-purple-hover);
+}
+
+/* Add Follow Up Modal Inputs */
+.formGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 12px;
+}
+
+.formLabel {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.formInput, .formSelect, .formTextarea {
+    width: 100%;
+    padding: 10px;
+    font-size: 14px;
+    border-radius: 8px;
+    background-color: var(--bg-color);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.formInput:focus, .formSelect:focus, .formTextarea:focus {
+    border-color: var(--accent-purple);
+}
+
+.formRow {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+/* Custom dropdown search-select styling */
+.searchSelectContainer {
+    position: relative;
+}
+
+.searchSelectDropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    max-height: 180px;
+    overflow-y: auto;
+    background-color: var(--bg-card-hover);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    z-index: 150;
+    margin-top: 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.searchSelectItem {
+    padding: 10px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.15s;
+    color: var(--text-primary);
+}
+
+.searchSelectItem:hover {
+    background-color: var(--accent-purple);
+    color: white;
+}
+
+.searchSelectItemEmpty {
+    padding: 10px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    text-align: center;
+    background-color: rgba(255, 255, 255, 0.02);
+}
+
+/* Status quick-change dropdown */
+.statusInlineSelect {
+    background-color: var(--bg-color);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    font-size: 12px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    outline: none;
+}
+
+.statusInlineSelect:focus {
+    border-color: var(--accent-purple);
 }

@@ -1,334 +1,821 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Trash2, Link as LinkIcon, AlertCircle, Clock } from 'lucide-react';
-import {
-    DndContext,
-    closestCenter,
-    KeyboardSensor,
-    PointerSensor,
-    useSensor,
-    useSensors,
-    DragEndEvent
-} from '@dnd-kit/core';
-import {
-    arrayMove,
-    SortableContext,
-    sortableKeyboardCoordinates,
-    rectSortingStrategy,
-} from '@dnd-kit/sortable';
+import { useState, useEffect, useMemo } from 'react';
+import { 
+    Clock, Search, MessageSquare, Calendar, DollarSign, Globe, 
+    User, Edit2, Trash2, Check, X, ChevronDown, ChevronUp, 
+    Plus, Link as LinkIcon, Send, Settings
+} from 'lucide-react';
 import styles from './Home.module.css';
-import VideoModal from '@/components/VideoModal';
 import PendingPaymentsModal from '@/components/PendingPaymentsModal';
-import { SortableModCard } from '@/components/SortableModCard';
+import StatusesModal from '@/components/StatusesModal';
 import { db } from '@/lib/firebase';
-import { collection, query, where, addDoc, deleteDoc, doc, updateDoc, onSnapshot, writeBatch } from 'firebase/firestore';
+import { 
+    collection, query, where, addDoc, deleteDoc, doc, 
+    updateDoc, onSnapshot, writeBatch
+} from 'firebase/firestore';
 import { useAuth } from '@/lib/auth-context';
+import { DEFAULT_STATUSES_DATA, getStatusStyle } from '@/lib/statuses';
+import { format } from 'date-fns';
+import { tr } from 'date-fns/locale';
 
-// Interfaces for our state
-interface Video {
-    id: string;
-    url: string;
-    title: string;
-    thumbnailUrl: string;
-    order?: number;
-    createdAt?: number;
+interface FollowUpNote {
+    text: string;
+    createdAt: number;
+    isSystem?: boolean;
 }
 
-interface YoutuberAssignment {
-    id: string; // unique assignment id
-    youtuberId: string;
+interface FollowUp {
+    id: string;
+    youtuberId?: string;
+    youtuberName: string;
+    country: string;
+    contactMethod: string;
+    status: string;
+    trialMod: string;
+    paymentAmount: number;
+    lastNote: string;
+    lastUpdated: number;
+    createdAt: number;
+    notes: FollowUpNote[];
+}
+
+interface Youtuber {
+    id: string;
     name: string;
-    delivered: boolean;
-    note: string;
+    groupId: string;
+}
+
+interface Group {
+    id: string;
+    name: string;
+}
+
+interface Status {
+    id: string;
+    name: string;
+    color: string;
+    order: number;
 }
 
 export default function HomePage() {
     const { user } = useAuth();
-    const [linkInput, setLinkInput] = useState('');
-    const [videos, setVideos] = useState<Video[]>([]);
-    const [assignmentsByVideo, setAssignmentsByVideo] = useState<Record<string, YoutuberAssignment[]>>({});
-
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
-
-    const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
+    
+    // Core database collections
+    const [followUps, setFollowUps] = useState<FollowUp[]>([]);
+    const [youtubers, setYoutubers] = useState<Youtuber[]>([]);
+    const [groups, setGroups] = useState<Group[]>([]);
+    const [statuses, setStatuses] = useState<Status[]>([]);
+    
+    // UI state
     const [isPendingOpen, setIsPendingOpen] = useState(false);
+    const [isStatusesOpen, setIsStatusesOpen] = useState(false);
+    const [isAddOpen, setIsAddOpen] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [activeFilter, setActiveFilter] = useState('Tümü');
+    const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({});
+    const [inlineNotes, setInlineNotes] = useState<Record<string, string>>({});
+    const [loading, setLoading] = useState(false);
+    
+    // Form fields for Add Follow Up
+    const [youtuberNameInput, setYoutuberNameInput] = useState('');
+    const [selectedYoutuberId, setSelectedYoutuberId] = useState('');
+    const [countryInput, setCountryInput] = useState('');
+    const [contactMethodInput, setContactMethodInput] = useState('');
+    const [trialModInput, setTrialModInput] = useState('');
+    const [initialStatus, setInitialStatus] = useState('');
+    const [paymentAmountInput, setPaymentAmountInput] = useState('');
+    const [initialNoteInput, setInitialNoteInput] = useState('');
+    
+    // Dropdown search for existing Youtubers
+    const [showYtDropdown, setShowYtDropdown] = useState(false);
 
     useEffect(() => {
         if (!user) return;
 
-        const qVideos = query(collection(db, "videos"), where("userId", "==", user.uid));
-        const unsubVideos = onSnapshot(qVideos, (snapshot) => {
-            const vids: Video[] = [];
-            snapshot.forEach(doc => vids.push({ id: doc.id, ...doc.data() } as Video));
-            // Sort by order ascending, then by createdAt desc for items without order
-            setVideos(vids.sort((a, b) => {
-                if (a.order !== undefined && b.order !== undefined) return a.order - b.order;
-                if (a.order !== undefined) return -1;
-                if (b.order !== undefined) return 1;
-                return (b.createdAt || 0) - (a.createdAt || 0);
-            }));
+        // Listen to followups
+        const qFollow = query(collection(db, "followups"), where("userId", "==", user.uid));
+        const unsubFollow = onSnapshot(qFollow, (snapshot) => {
+            const list: FollowUp[] = [];
+            snapshot.forEach(doc => list.push({ id: doc.id, ...doc.data() } as FollowUp));
+            list.sort((a, b) => b.lastUpdated - a.lastUpdated);
+            setFollowUps(list);
         });
 
-        const qAssignments = query(collection(db, "assignments"), where("userId", "==", user.uid));
-        const unsubAssignments = onSnapshot(qAssignments, (snapshot) => {
-            const byVideo: Record<string, YoutuberAssignment[]> = {};
-            snapshot.forEach(doc => {
-                const data = doc.data();
-                const assignment = { id: doc.id, ...data } as YoutuberAssignment & { videoId: string };
-                if (!byVideo[assignment.videoId]) byVideo[assignment.videoId] = [];
-                byVideo[assignment.videoId].push(assignment);
-            });
-            setAssignmentsByVideo(byVideo);
+        // Listen to youtubers catalog
+        const qYoutubers = query(collection(db, "youtubers"), where("userId", "==", user.uid));
+        const unsubYoutubers = onSnapshot(qYoutubers, (snapshot) => {
+            const list: Youtuber[] = [];
+            snapshot.forEach(doc => list.push({ id: doc.id, ...doc.data() } as Youtuber));
+            setYoutubers(list);
+        });
+
+        // Listen to groups catalog for provision fallback
+        const qGroups = query(collection(db, "groups"), where("userId", "==", user.uid));
+        const unsubGroups = onSnapshot(qGroups, (snapshot) => {
+            const list: Group[] = [];
+            snapshot.forEach(doc => list.push({ id: doc.id, ...doc.data() } as Group));
+            setGroups(list);
+        });
+
+        // Listen to custom statuses in Firestore with automatic seeding if empty
+        const qStatuses = query(collection(db, "statuses"), where("userId", "==", user.uid));
+        const unsubStatuses = onSnapshot(qStatuses, async (snapshot) => {
+            if (snapshot.empty) {
+                // Seed database with default 15 statuses using writeBatch
+                const batch = writeBatch(db);
+                DEFAULT_STATUSES_DATA.forEach((s) => {
+                    const docRef = doc(collection(db, "statuses"));
+                    batch.set(docRef, {
+                        name: s.name,
+                        color: s.color,
+                        order: s.order,
+                        userId: user.uid,
+                        createdAt: Date.now()
+                    });
+                });
+                try {
+                    await batch.commit();
+                } catch (err) {
+                    console.error("Error seeding default statuses: ", err);
+                }
+                return;
+            }
+
+            const list: Status[] = [];
+            snapshot.forEach(doc => list.push({ id: doc.id, ...doc.data() } as Status));
+            // Sort by order ascending
+            list.sort((a, b) => a.order - b.order);
+            setStatuses(list);
+            
+            // Set initial status to first dynamic status
+            if (list.length > 0) {
+                setInitialStatus(list[0].name);
+            }
         });
 
         return () => {
-            unsubVideos();
-            unsubAssignments();
+            unsubFollow();
+            unsubYoutubers();
+            unsubGroups();
+            unsubStatuses();
         };
     }, [user]);
 
-    const sensors = useSensors(
-        useSensor(PointerSensor, {
-            activationConstraint: {
-                distance: 8, // Require dragging a bit to differentiate from clicks
-            },
-        }),
-        useSensor(KeyboardSensor, {
-            coordinateGetter: sortableKeyboardCoordinates,
-        })
-    );
+    // Top Summary metrics based on loaded custom statuses
+    const stats = useMemo(() => {
+        let trialSent = 0;
+        let waitingFeedback = 0;
+        let paymentPending = 0;
+        let inProgress = 0;
+        let oldCustomers = 0;
 
-    const handleDragEnd = async (event: DragEndEvent) => {
-        const { active, over } = event;
+        // Try to identify dynamic status names or fallback to exact matching strings
+        const firstStatusName = statuses[0]?.name || "Trial Mod Sent";
 
-        if (over && active.id !== over.id) {
-            const oldIndex = videos.findIndex(v => v.id === active.id);
-            const newIndex = videos.findIndex(v => v.id === over.id);
+        followUps.forEach(f => {
+            if (f.status === firstStatusName) trialSent++;
+            else if (f.status === "Waiting Feedback") waitingFeedback++;
+            else if (f.status === "Payment Pending") paymentPending++;
+            else if (f.status === "In Progress") inProgress++;
+            else if (f.status === "Old Customer") oldCustomers++;
+        });
 
-            const newVideos = arrayMove(videos, oldIndex, newIndex);
+        return { trialSent, waitingFeedback, paymentPending, inProgress, oldCustomers };
+    }, [followUps, statuses]);
 
-            // Immediately update local state for smooth UI
-            setVideos(newVideos);
+    // Filtered Youtubers for the creation dropdown search
+    const filteredYoutubers = useMemo(() => {
+        if (!youtuberNameInput.trim()) return [];
+        return youtubers.filter(yt => 
+            yt.name.toLowerCase().includes(youtuberNameInput.toLowerCase())
+        );
+    }, [youtuberNameInput, youtubers]);
 
-            // Save new order to Firestore using batch
-            const batch = writeBatch(db);
-            newVideos.forEach((video, index) => {
-                const vidRef = doc(db, "videos", video.id);
-                batch.update(vidRef, { order: index });
-            });
+    // Filtered & Searched Follow Ups
+    const filteredFollowUps = useMemo(() => {
+        return followUps.filter(f => {
+            const nameMatch = f.youtuberName.toLowerCase().includes(searchQuery.toLowerCase());
+            const statusMatch = activeFilter === 'Tümü' || f.status === activeFilter;
+            return nameMatch && statusMatch;
+        });
+    }, [followUps, searchQuery, activeFilter]);
 
-            try {
-                await batch.commit();
-            } catch (err) {
-                console.error("Error saving order: ", err);
-            }
-        }
+    // Grouped Follow Ups when in "Tümü" filter
+    const groupedFollowUps = useMemo(() => {
+        if (activeFilter !== 'Tümü') return null;
+        
+        const groups: Record<string, FollowUp[]> = {};
+        filteredFollowUps.forEach(f => {
+            if (!groups[f.status]) groups[f.status] = [];
+            groups[f.status].push(f);
+        });
+        
+        // Group by loaded database statuses
+        return statuses.map(s => ({
+            status: s.name,
+            color: s.color,
+            items: groups[s.name] || []
+        })).filter(g => g.items.length > 0);
+    }, [filteredFollowUps, activeFilter, statuses]);
+
+    const handleSelectYoutuber = (yt: Youtuber) => {
+        setYoutuberNameInput(yt.name);
+        setSelectedYoutuberId(yt.id);
+        setShowYtDropdown(false);
     };
 
-    const extractYoutubeUrl = (url: string) => {
-        // Basic validation
-        if (!url.includes('youtube.com') && !url.includes('youtu.be')) return null;
-        return url;
-    };
+    const handleAddFollowUp = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!user) return;
 
-    const handleAddLink = async () => {
-        setError('');
-        const url = extractYoutubeUrl(linkInput);
+        let finalYoutuberId = selectedYoutuberId;
+        let finalYoutuberName = youtuberNameInput.trim();
 
-        if (!url || !user) {
-            setError('Geçerli bir YouTube linki giriniz.');
-            return;
-        }
+        if (!finalYoutuberName) return;
 
         setLoading(true);
 
         try {
-            const response = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`);
-            if (!response.ok) throw new Error('Video bilgisi alınamadı.');
+            // Auto create YouTuber in Catalog if custom string typing
+            if (!finalYoutuberId) {
+                const existingYt = youtubers.find(y => y.name.toLowerCase() === finalYoutuberName.toLowerCase());
+                if (existingYt) {
+                    finalYoutuberId = existingYt.id;
+                    finalYoutuberName = existingYt.name;
+                } else {
+                    let firstGroupId = "";
+                    if (groups.length > 0) {
+                        firstGroupId = groups[0].id;
+                    } else {
+                        // Create General group if none exists
+                        const newGrp = await addDoc(collection(db, "groups"), {
+                            name: "Takip",
+                            color: "#5C3EF0",
+                            userId: user.uid,
+                            createdAt: new Date()
+                        });
+                        firstGroupId = newGrp.id;
+                    }
 
-            const data = await response.json();
+                    const newYt = await addDoc(collection(db, "youtubers"), {
+                        name: finalYoutuberName,
+                        groupId: firstGroupId,
+                        userId: user.uid,
+                        createdAt: new Date()
+                    });
+                    finalYoutuberId = newYt.id;
+                }
+            }
 
-            // Find the minimum order so the new video is placed at the top-left
-            const minOrder = videos.length > 0 ? Math.min(...videos.map(v => v.order !== undefined ? v.order : 0)) : 0;
+            const initialSystemNote: FollowUpNote = {
+                text: "Takip kaydı oluşturuldu.",
+                createdAt: Date.now(),
+                isSystem: true
+            };
+            const initialNotes: FollowUpNote[] = [initialSystemNote];
+            let lastNoteText = "Takip kaydı oluşturuldu.";
 
-            await addDoc(collection(db, "videos"), {
-                url,
-                title: data.title,
-                thumbnailUrl: data.thumbnail_url,
-                userId: user.uid,
-                createdAt: new Date().getTime(),
-                order: minOrder - 1
+            if (initialNoteInput.trim()) {
+                initialNotes.push({
+                    text: initialNoteInput.trim(),
+                    createdAt: Date.now()
+                });
+                lastNoteText = initialNoteInput.trim();
+            }
+
+            await addDoc(collection(db, "followups"), {
+                youtuberId: finalYoutuberId,
+                youtuberName: finalYoutuberName,
+                country: countryInput.trim() || "-",
+                contactMethod: contactMethodInput.trim() || "-",
+                status: initialStatus || (statuses[0]?.name || 'Trial Mod Sent'),
+                trialMod: trialModInput.trim() || "-",
+                paymentAmount: parseFloat(paymentAmountInput) || 0,
+                notes: initialNotes,
+                lastNote: lastNoteText,
+                lastUpdated: Date.now(),
+                createdAt: Date.now(),
+                userId: user.uid
             });
 
-            setLinkInput('');
+            // Reset Form and close
+            setIsAddOpen(false);
+            setYoutuberNameInput('');
+            setSelectedYoutuberId('');
+            setCountryInput('');
+            setContactMethodInput('');
+            setTrialModInput('');
+            setInitialStatus(statuses[0]?.name || '');
+            setPaymentAmountInput('');
+            setInitialNoteInput('');
         } catch (err) {
-            console.error(err);
-            setError('Video eklenirken bir hata oluştu veya gizli bir video.');
+            console.error("Error adding follow-up:", err);
         } finally {
             setLoading(false);
         }
     };
 
-    const handleDeleteVideo = async (e: React.MouseEvent, videoId: string) => {
+    const handleDelete = async (e: React.MouseEvent, id: string) => {
         e.stopPropagation();
-        if (confirm('Bu videoyu silmek istediğinize emin misiniz?')) {
+        if (confirm("Bu takip kaydını silmek istediğinize emin misiniz?")) {
             try {
-                await deleteDoc(doc(db, "videos", videoId));
-                // Clean up assignments
-                const relatedAssignments = assignmentsByVideo[videoId] || [];
-                relatedAssignments.forEach(a => deleteDoc(doc(db, "assignments", a.id)));
-
-                if (selectedVideo?.id === videoId) setSelectedVideo(null);
-            } catch (error) {
-                console.error("Error deleting video:", error);
+                await deleteDoc(doc(db, "followups", id));
+            } catch (err) {
+                console.error("Error deleting follow-up:", err);
             }
         }
     };
 
-    const handleUpdateTitle = async (videoId: string, newTitle: string) => {
-        try {
-            await updateDoc(doc(db, "videos", videoId), { title: newTitle });
-        } catch (error) {
-            console.error("Error updating video title:", error);
-        }
-    };
+    const handleQuickNote = async (id: string, currentNotes: FollowUpNote[]) => {
+        const text = inlineNotes[id]?.trim();
+        if (!text) return;
 
-    // Modal handlers
-    const handleUpdateAssignment = async (videoId: string, assignmentId: string, updates: Partial<YoutuberAssignment>) => {
         try {
-            await updateDoc(doc(db, "assignments", assignmentId), updates);
-        } catch (error) {
-            console.error("Error updating assignment:", error);
-        }
-    };
-
-    const handleDeleteAssignment = async (videoId: string, assignmentId: string) => {
-        try {
-            await deleteDoc(doc(db, "assignments", assignmentId));
-        } catch (error) {
-            console.error("Error deleting assignment:", error);
-        }
-    };
-
-    const handleAddAssignment = async (videoId: string, youtuberId: string, name: string) => {
-        if (!user) return;
-        try {
-            await addDoc(collection(db, "assignments"), {
-                videoId,
-                youtuberId,
-                name,
-                delivered: false,
-                note: '',
-                userId: user.uid,
-                createdAt: new Date().getTime(),
-                source: 'mods'
+            const newNote: FollowUpNote = {
+                text,
+                createdAt: Date.now()
+            };
+            await updateDoc(doc(db, "followups", id), {
+                notes: [...(currentNotes || []), newNote],
+                lastNote: text,
+                lastUpdated: Date.now()
             });
-        } catch (error) {
-            console.error("Error adding assignment:", error);
+            // Clear input for this card
+            setInlineNotes(prev => ({ ...prev, [id]: '' }));
+        } catch (err) {
+            console.error("Error adding note:", err);
         }
+    };
+
+    const handleQuickStatusChange = async (id: string, oldStatus: string, newStatus: string, currentNotes: FollowUpNote[]) => {
+        if (oldStatus === newStatus) return;
+        try {
+            const systemNote: FollowUpNote = {
+                text: `Durum "${oldStatus}" aşamasından "${newStatus}" aşamasına güncellendi.`,
+                createdAt: Date.now(),
+                isSystem: true
+            };
+            await updateDoc(doc(db, "followups", id), {
+                status: newStatus,
+                notes: [...(currentNotes || []), systemNote],
+                lastNote: systemNote.text,
+                lastUpdated: Date.now()
+            });
+        } catch (err) {
+            console.error("Error changing status:", err);
+        }
+    };
+
+    const toggleCard = (id: string) => {
+        setExpandedCards(prev => ({ ...prev, [id]: !prev[id] }));
+    };
+
+    const triggerAddNoteClick = (e: React.MouseEvent, id: string) => {
+        e.stopPropagation();
+        setExpandedCards(prev => ({ ...prev, [id]: true }));
+        // Set brief timeout to focus input
+        setTimeout(() => {
+            const input = document.getElementById(`quick-note-input-${id}`);
+            if (input) input.focus();
+        }, 100);
     };
 
     return (
         <div className={styles.container}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
-                <h1 className="page-title" style={{ marginBottom: 0 }}>Mods</h1>
-                <button
-                    onClick={() => setIsPendingOpen(true)}
-                    style={{
-                        display: 'flex', alignItems: 'center', gap: '6px',
-                        padding: '8px 14px', borderRadius: '8px',
-                        backgroundColor: 'rgba(92, 62, 240, 0.15)', border: '1px solid var(--accent-purple)',
-                        color: 'var(--accent-purple)', fontSize: '13px', fontWeight: 500,
-                        cursor: 'pointer', whiteSpace: 'nowrap'
-                    }}
-                >
-                    <Clock size={14} /> Beklenen Ödemeler
-                </button>
+            {/* Header row */}
+            <div className={styles.headerRow}>
+                <div>
+                    <h1 className="page-title">Follow Ups</h1>
+                    <p className="page-subtitle">Track trial mod recipients, active customers, old customers, and pending payments.</p>
+                </div>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <button
+                        onClick={() => setIsStatusesOpen(true)}
+                        style={{
+                            display: 'flex', alignItems: 'center', gap: '6px',
+                            padding: '8px 14px', borderRadius: '8px',
+                            backgroundColor: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--border-color)',
+                            color: 'var(--text-secondary)', fontSize: '13px', fontWeight: 500,
+                            cursor: 'pointer', whiteSpace: 'nowrap'
+                        }}
+                    >
+                        <Settings size={14} /> Statüleri Yönet
+                    </button>
+                    <button
+                        onClick={() => setIsPendingOpen(true)}
+                        style={{
+                            display: 'flex', alignItems: 'center', gap: '6px',
+                            padding: '8px 14px', borderRadius: '8px',
+                            backgroundColor: 'rgba(92, 62, 240, 0.15)', border: '1px solid var(--accent-purple)',
+                            color: 'var(--accent-purple)', fontSize: '13px', fontWeight: 500,
+                            cursor: 'pointer', whiteSpace: 'nowrap'
+                        }}
+                    >
+                        <Clock size={14} /> Beklenen Ödemeler
+                    </button>
+                </div>
             </div>
-            <p className="page-subtitle">Modlarınızı düzenleyin ve görev atamalarınızı yapın</p>
 
-            <div className="card" style={{ marginBottom: '24px' }}>
-                <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '12px' }}>
-                    YouTube video linkini yapıştırın:
-                </p>
+            {/* Top Summaries */}
+            <div className={styles.summaryGrid}>
+                <div className={styles.summaryCard}>
+                    <div className={styles.summaryValue}>{stats.trialSent}</div>
+                    <div className={styles.summaryLabel}>{statuses[0]?.name || "Trial Sent"}</div>
+                </div>
+                <div className={styles.summaryCard}>
+                    <div className={styles.summaryValue}>{stats.waitingFeedback}</div>
+                    <div className={styles.summaryLabel}>Waiting Feedback</div>
+                </div>
+                <div className={styles.summaryCard}>
+                    <div className={styles.summaryValue}>{stats.paymentPending}</div>
+                    <div className={styles.summaryLabel}>Pending Payment</div>
+                </div>
+                <div className={styles.summaryCard}>
+                    <div className={styles.summaryValue}>{stats.inProgress}</div>
+                    <div className={styles.summaryLabel}>In Progress</div>
+                </div>
+                <div className={styles.summaryCard}>
+                    <div className={styles.summaryValue}>{stats.oldCustomers}</div>
+                    <div className={styles.summaryLabel}>Old Customers</div>
+                </div>
+            </div>
 
-                <div className={styles.addVideoSection}>
-                    <div style={{ position: 'relative', flex: 1 }}>
-                        <LinkIcon size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
+            {/* Search, Add, and filter row */}
+            <div className={styles.searchFilterRow}>
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                    <div className={styles.searchInputWrapper}>
+                        <Search size={16} className={styles.searchIcon} />
                         <input
                             type="text"
-                            className={styles.videoInput}
-                            placeholder="https://www.youtube.com/watch?v=..."
-                            value={linkInput}
-                            onChange={(e) => setLinkInput(e.target.value)}
-                            style={{ width: '100%', paddingLeft: '40px' }}
-                            onKeyDown={(e) => e.key === 'Enter' && handleAddLink()}
+                            placeholder="YouTuber ismine göre ara..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className={styles.searchInput}
                         />
                     </div>
                     <button
                         className="btn-primary"
-                        onClick={handleAddLink}
-                        disabled={loading || !linkInput.trim()}
+                        onClick={() => {
+                            if (statuses.length > 0 && !initialStatus) {
+                                setInitialStatus(statuses[0].name);
+                            }
+                            setIsAddOpen(true);
+                        }}
+                        style={{ padding: '10px 18px', fontSize: '14px', height: '42px', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}
                     >
-                        {loading ? 'Ekleniyor...' : 'Ekle'}
+                        <Plus size={16} /> Yeni Ekle
                     </button>
                 </div>
 
-                {error && (
-                    <div style={{ color: 'var(--accent-red)', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <AlertCircle size={14} /> {error}
+                {/* Horizontal scroll of dynamic status badges */}
+                <div className={styles.statusBadgesContainer}>
+                    <button
+                        onClick={() => setActiveFilter('Tümü')}
+                        className={`${styles.statusBadge} ${activeFilter === 'Tümü' ? styles.active : ''}`}
+                    >
+                        Tümü ({followUps.length})
+                    </button>
+                    {statuses.map(s => {
+                        const count = followUps.filter(f => f.status === s.name).length;
+                        return (
+                            <button
+                                key={s.id}
+                                onClick={() => setActiveFilter(s.name)}
+                                className={`${styles.statusBadge} ${activeFilter === s.name ? styles.active : ''}`}
+                            >
+                                {s.name} ({count})
+                            </button>
+                        );
+                    })}
+                </div>
+            </div>
+
+            {/* List area */}
+            <div className={styles.followUpsGrid}>
+                {filteredFollowUps.length === 0 && (
+                    <div style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '40px 0', border: '1px dashed var(--border-color)', borderRadius: '16px' }}>
+                        Gösterilecek takip kaydı bulunamadı.
                     </div>
                 )}
+
+                {/* Grouped view when looking at "Tümü" */}
+                {activeFilter === 'Tümü' && groupedFollowUps && groupedFollowUps.map(group => (
+                    <div key={group.status} style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '14px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', paddingLeft: '4px' }}>
+                            <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: group.color }}></span>
+                            {group.status} ({group.items.length})
+                        </div>
+                        {group.items.map(f => renderFollowUpCard(f))}
+                    </div>
+                ))}
+
+                {/* Flat view when filtered */}
+                {activeFilter !== 'Tümü' && filteredFollowUps.map(f => renderFollowUpCard(f))}
             </div>
 
-            <div className={styles.videoGrid}>
-                <DndContext
-                    sensors={sensors}
-                    collisionDetection={closestCenter}
-                    onDragEnd={handleDragEnd}
-                >
-                    <SortableContext
-                        items={videos.map(v => v.id)}
-                        strategy={rectSortingStrategy}
-                    >
-                        {videos.map((video) => (
-                            <SortableModCard
-                                key={video.id}
-                                video={video}
-                                assignmentCount={assignmentsByVideo[video.id]?.length || 0}
-                                onClick={() => setSelectedVideo(video)}
-                                onDelete={handleDeleteVideo}
-                                onUpdateTitle={handleUpdateTitle}
-                            />
-                        ))}
-                    </SortableContext>
-                </DndContext>
-            </div>
+            {/* Add Follow Up Modal */}
+            {isAddOpen && (
+                <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0,0,0,0.75)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div className="card" style={{ width: '480px', maxWidth: '90%', maxHeight: '90vh', overflowY: 'auto', border: '1px solid var(--border-color)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
+                            <h2 style={{ fontSize: '18px', fontWeight: 600 }}>Yeni Takip Ekle</h2>
+                            <button onClick={() => setIsAddOpen(false)} style={{ color: 'var(--text-secondary)', padding: '4px' }}>
+                                <X size={20} />
+                            </button>
+                        </div>
 
-            {videos.length === 0 && (
-                <div style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '40px 0', border: '1px dashed var(--border-color)', borderRadius: '16px' }}>
-                    Henüz video eklenmemiş. Yukarıdan bir YouTube linki yapıştırın.
+                        <form onSubmit={handleAddFollowUp} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            <div className={styles.formGroup}>
+                                <label className={styles.formLabel}>YouTuber / Müşteri</label>
+                                <div className={styles.searchSelectContainer}>
+                                    <input
+                                        type="text"
+                                        placeholder="Katalogdan seçin veya yeni isim girin..."
+                                        value={youtuberNameInput}
+                                        onChange={(e) => {
+                                            setYoutuberNameInput(e.target.value);
+                                            setSelectedYoutuberId('');
+                                            setShowYtDropdown(true);
+                                        }}
+                                        onFocus={() => setShowYtDropdown(true)}
+                                        className={styles.formInput}
+                                        required
+                                    />
+                                    {showYtDropdown && youtuberNameInput.trim().length > 0 && (
+                                        <div className={styles.searchSelectDropdown}>
+                                            {filteredYoutubers.map(yt => (
+                                                <div
+                                                    key={yt.id}
+                                                    onClick={() => handleSelectYoutuber(yt)}
+                                                    className={styles.searchSelectItem}
+                                                >
+                                                    {yt.name} (Katalogda)
+                                                </div>
+                                            ))}
+                                            {filteredYoutubers.length === 0 && (
+                                                <div 
+                                                    onClick={() => setShowYtDropdown(false)}
+                                                    className={styles.searchSelectItemEmpty}
+                                                >
+                                                    Katalogda eşleşme yok. Yeni YouTuber olarak eklenecek.
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className={styles.formRow}>
+                                <div className={styles.formGroup}>
+                                    <label className={styles.formLabel}>Ülke</label>
+                                    <input
+                                        type="text"
+                                        placeholder="Örn: US, TR, DE"
+                                        value={countryInput}
+                                        onChange={(e) => setCountryInput(e.target.value)}
+                                        className={styles.formInput}
+                                    />
+                                </div>
+                                <div className={styles.formGroup}>
+                                    <label className={styles.formLabel}>İletişim Kanalı</label>
+                                    <input
+                                        type="text"
+                                        placeholder="E-posta, Instagram, Discord"
+                                        value={contactMethodInput}
+                                        onChange={(e) => setContactMethodInput(e.target.value)}
+                                        className={styles.formInput}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className={styles.formRow}>
+                                <div className={styles.formGroup}>
+                                    <label className={styles.formLabel}>İlişkili Mod / Trial</label>
+                                    <input
+                                        type="text"
+                                        placeholder="Örn: X Mod v2"
+                                        value={trialModInput}
+                                        onChange={(e) => setTrialModInput(e.target.value)}
+                                        className={styles.formInput}
+                                    />
+                                </div>
+                                <div className={styles.formGroup}>
+                                    <label className={styles.formLabel}>Ödeme Beklenen Miktar ($)</label>
+                                    <input
+                                        type="number"
+                                        placeholder="0"
+                                        value={paymentAmountInput}
+                                        onChange={(e) => setPaymentAmountInput(e.target.value)}
+                                        className={styles.formInput}
+                                        min="0"
+                                        step="0.01"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className={styles.formGroup}>
+                                <label className={styles.formLabel}>Başlangıç Aşaması (Status)</label>
+                                <select
+                                    value={initialStatus}
+                                    onChange={(e) => setInitialStatus(e.target.value)}
+                                    className={styles.formSelect}
+                                >
+                                    {statuses.map(s => (
+                                        <option key={s.id} value={s.name}>{s.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className={styles.formGroup}>
+                                <label className={styles.formLabel}>İlk Not (Opsiyonel)</label>
+                                <textarea
+                                    placeholder="YouTuber hakkında ilk gözleminiz veya detaylar..."
+                                    value={initialNoteInput}
+                                    onChange={(e) => setInitialNoteInput(e.target.value)}
+                                    className={styles.formTextarea}
+                                    rows={3}
+                                />
+                            </div>
+
+                            <button
+                                type="submit"
+                                className="btn-primary"
+                                disabled={loading || !youtuberNameInput.trim()}
+                                style={{ marginTop: '8px' }}
+                            >
+                                {loading ? 'Oluşturuluyor...' : 'Takip Başlat'}
+                            </button>
+                        </form>
+                    </div>
                 </div>
             )}
 
-            {selectedVideo && (
-                <VideoModal
-                    isOpen={!!selectedVideo}
-                    onClose={() => setSelectedVideo(null)}
-                    video={selectedVideo}
-                    assignments={assignmentsByVideo[selectedVideo.id] || []}
-                    onUpdateAssignment={(id, updates) => handleUpdateAssignment(selectedVideo.id, id, updates)}
-                    onDeleteAssignment={(id) => handleDeleteAssignment(selectedVideo.id, id)}
-                    onAddAssignment={(yId, name) => handleAddAssignment(selectedVideo.id, yId, name)}
-                />
-            )}
+            {/* Dynamic Statuses Manager Panel Modal */}
+            <StatusesModal
+                isOpen={isStatusesOpen}
+                onClose={() => setIsStatusesOpen(false)}
+                statuses={statuses}
+                followUps={followUps}
+            />
 
+            {/* Pending Payments Modal */}
             <PendingPaymentsModal
                 isOpen={isPendingOpen}
                 onClose={() => setIsPendingOpen(false)}
             />
         </div>
     );
+
+    // Render helper for single Follow Up card
+    function renderFollowUpCard(f: FollowUp) {
+        // Dynamic status color lookup from database state
+        const statusObj = statuses.find(s => s.name === f.status);
+        const statusColor = statusObj ? statusObj.color : '#5C3EF0';
+        const statusColors = getStatusStyle(statusColor);
+        
+        const isExpanded = expandedCards[f.id] || false;
+        
+        return (
+            <div key={f.id} className={styles.followUpCard}>
+                {/* Left boundary bar color based on status color */}
+                <div style={{
+                    position: 'absolute', top: 0, left: 0, bottom: 0, width: '4px',
+                    backgroundColor: statusColor
+                }}></div>
+
+                <div className={styles.cardTopRow}>
+                    <div className={styles.cardHeaderInfo}>
+                        <div className={styles.youtuberName}>
+                            <User size={16} style={{ color: 'var(--text-secondary)' }} />
+                            {f.youtuberName}
+                        </div>
+                        
+                        <div className={styles.badgeRow}>
+                            <span className={styles.metaBadge}>
+                                <Globe size={11} /> {f.country}
+                            </span>
+                            <span className={styles.metaBadge}>
+                                <MessageSquare size={11} /> {f.contactMethod}
+                            </span>
+                            <span 
+                                className={styles.statusPill}
+                                style={{
+                                    backgroundColor: statusColors.bg,
+                                    color: statusColors.text,
+                                    border: statusColors.border
+                                }}
+                            >
+                                {f.status}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <select
+                            value={f.status}
+                            onChange={(e) => handleQuickStatusChange(f.id, f.status, e.target.value, f.notes)}
+                            className={styles.statusInlineSelect}
+                        >
+                            {statuses.map(s => (
+                                <option key={s.id} value={s.name}>{s.name}</option>
+                            ))}
+                        </select>
+                        <button 
+                            onClick={(e) => handleDelete(e, f.id)} 
+                            style={{ padding: '6px', borderRadius: '6px', cursor: 'pointer', display: 'flex', backgroundColor: 'rgba(229, 57, 53, 0.08)' }}
+                        >
+                            <Trash2 size={13} style={{ color: 'var(--accent-red)' }} />
+                        </button>
+                    </div>
+                </div>
+
+                {f.trialMod && f.trialMod !== '-' && (
+                    <div className={styles.trialModRow}>
+                        <LinkIcon size={12} />
+                        <span>Deneme Modu: <strong>{f.trialMod}</strong></span>
+                    </div>
+                )}
+
+                {f.paymentAmount > 0 && (
+                    <div>
+                        <div className={styles.cardPaymentBadge}>
+                            <DollarSign size={13} />
+                            Beklenen Ödeme: ${f.paymentAmount.toFixed(2)}
+                        </div>
+                    </div>
+                )}
+
+                {f.lastNote && (
+                    <div className={styles.lastNotePreview}>
+                        <strong>Son Not: </strong> {f.lastNote}
+                    </div>
+                )}
+
+                {/* Card Actions */}
+                <div className={styles.cardActions}>
+                    <div style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 400 }}>
+                        Güncelleme: {format(new Date(f.lastUpdated), 'd MMM yyyy HH:mm', { locale: tr })}
+                    </div>
+
+                    <div className={styles.actionBtnLeft}>
+                        <button className={styles.btnAction} onClick={(e) => triggerAddNoteClick(e, f.id)}>
+                            Not Ekle
+                        </button>
+                        <button className={styles.btnActionPrimary} onClick={() => toggleCard(f.id)}>
+                            {isExpanded ? (
+                                <>Kapat <ChevronUp size={14} /></>
+                            ) : (
+                                <>Aç / Geçmiş <ChevronDown size={14} /></>
+                            )}
+                        </button>
+                    </div>
+                </div>
+
+                {/* Expanded Notes Section */}
+                {isExpanded && (
+                    <div className={styles.expandedSection}>
+                        <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '0.5px' }}>
+                            Not Geçmişi ({f.notes?.length || 0})
+                        </div>
+
+                        <div className={styles.notesTimeline}>
+                            {(!f.notes || f.notes.length === 0) ? (
+                                <p style={{ fontSize: '12px', color: 'var(--text-secondary)', textAlign: 'center', padding: '10px 0' }}>Not bulunmuyor.</p>
+                            ) : (
+                                f.notes.map((note, index) => (
+                                    <div key={index} className={`${styles.timelineItem} ${note.isSystem ? styles.system : ''}`}>
+                                        <p className={styles.timelineText}>
+                                            {note.text}
+                                        </p>
+                                        <div className={styles.timelineMeta}>
+                                            <span>{note.isSystem ? 'Sistem Logu' : 'Kullanıcı'}</span>
+                                            <span>
+                                                {format(new Date(note.createdAt), 'd MMM yyyy HH:mm', { locale: tr })}
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+
+                        <div className={styles.quickNoteForm} onClick={(e) => e.stopPropagation()}>
+                            <input
+                                id={`quick-note-input-${f.id}`}
+                                type="text"
+                                placeholder="Buraya yeni bir not yazın..."
+                                value={inlineNotes[f.id] || ''}
+                                onChange={(e) => setInlineNotes(prev => ({ ...prev, [f.id]: e.target.value }))}
+                                onKeyDown={(e) => e.key === 'Enter' && handleQuickNote(f.id, f.notes)}
+                                className={styles.quickNoteInput}
+                            />
+                            <button className={styles.quickNoteBtn} onClick={() => handleQuickNote(f.id, f.notes)}>
+                                <Send size={14} />
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
+    }
 }
