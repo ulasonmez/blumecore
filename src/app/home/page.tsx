@@ -227,6 +227,39 @@ export default function HomePage() {
         setLoading(true);
 
         try {
+            let finalYoutuberId = selectedYoutuberId;
+            let finalYoutuberName = youtuberNameInput.trim();
+
+            if (selectedYoutuberId === 'NEW_YOUTUBER') {
+                const existingYt = youtubers.find(y => y.name.toLowerCase() === finalYoutuberName.toLowerCase());
+                if (existingYt) {
+                    finalYoutuberId = existingYt.id;
+                    finalYoutuberName = existingYt.name;
+                } else {
+                    let firstGroupId = "";
+                    if (groups.length > 0) {
+                        firstGroupId = groups[0].id;
+                    } else {
+                        // Create General group if none exists
+                        const newGrp = await addDoc(collection(db, "groups"), {
+                            name: "Takip",
+                            color: "#5C3EF0",
+                            userId: user.uid,
+                            createdAt: Date.now()
+                        });
+                        firstGroupId = newGrp.id;
+                    }
+
+                    const newYt = await addDoc(collection(db, "youtubers"), {
+                        name: finalYoutuberName,
+                        groupId: firstGroupId,
+                        userId: user.uid,
+                        createdAt: Date.now()
+                    });
+                    finalYoutuberId = newYt.id;
+                }
+            }
+
             const initialSystemNote: FollowUpNote = {
                 text: "Takip kaydı oluşturuldu.",
                 createdAt: Date.now(),
@@ -244,8 +277,8 @@ export default function HomePage() {
             }
 
             await addDoc(collection(db, "followups"), {
-                youtuberId: selectedYoutuberId,
-                youtuberName: youtuberNameInput,
+                youtuberId: finalYoutuberId,
+                youtuberName: finalYoutuberName,
                 country: "-",
                 contactMethod: "-",
                 status: initialStatus || (statuses[0]?.name || 'Trial Mod Sent'),
@@ -494,11 +527,44 @@ export default function HomePage() {
                                                 setShowYtDropdown(true);
                                             }}
                                             onFocus={() => setShowYtDropdown(true)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    e.preventDefault();
+                                                    const trimmed = ytSearchQuery.trim();
+                                                    if (trimmed) {
+                                                        const exactMatch = filteredYoutubers.find(
+                                                            yt => yt.name.toLowerCase() === trimmed.toLowerCase()
+                                                        );
+                                                        if (exactMatch) {
+                                                            handleSelectYoutuber(exactMatch);
+                                                        } else {
+                                                            setYoutuberNameInput(trimmed);
+                                                            setSelectedYoutuberId('NEW_YOUTUBER');
+                                                            setShowYtDropdown(false);
+                                                            setYtSearchQuery('');
+                                                        }
+                                                    }
+                                                }
+                                            }}
                                             className={styles.formInput}
                                             required={!selectedYoutuberId}
                                         />
                                         {showYtDropdown && (
                                             <div className={styles.searchSelectDropdown}>
+                                                {ytSearchQuery.trim().length > 0 && (
+                                                    <div
+                                                        onClick={() => {
+                                                            setYoutuberNameInput(ytSearchQuery.trim());
+                                                            setSelectedYoutuberId('NEW_YOUTUBER');
+                                                            setShowYtDropdown(false);
+                                                            setYtSearchQuery('');
+                                                        }}
+                                                        className={styles.searchSelectItemCreate}
+                                                    >
+                                                        <Plus size={14} style={{ marginRight: '6px' }} />
+                                                        <strong>"{ytSearchQuery.trim()}"</strong> yeni YouTuber olarak ekle
+                                                    </div>
+                                                )}
                                                 {filteredYoutubers.map(yt => (
                                                     <div
                                                         key={yt.id}
@@ -508,7 +574,7 @@ export default function HomePage() {
                                                         {yt.name}
                                                     </div>
                                                 ))}
-                                                {filteredYoutubers.length === 0 && (
+                                                {filteredYoutubers.length === 0 && !ytSearchQuery.trim() && (
                                                     <div className={styles.searchSelectItemEmpty}>
                                                         Eşleşen YouTuber bulunamadı.
                                                     </div>

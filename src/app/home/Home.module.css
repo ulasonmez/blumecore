@@ -488,6 +488,23 @@
     color: white;
 }
 
+.searchSelectItemCreate {
+    padding: 10px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.15s;
+    color: var(--accent-purple);
+    border-bottom: 1px dashed var(--border-color);
+    background-color: rgba(92, 62, 240, 0.05);
+    display: flex;
+    align-items: center;
+}
+
+.searchSelectItemCreate:hover {
+    background-color: var(--accent-purple);
+    color: white;
+}
+
 .searchSelectItemEmpty {
     padding: 10px;
     font-size: 13px;
