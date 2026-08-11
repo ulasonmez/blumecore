@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Plus, Trash2, Edit2, Check, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Trash2, Edit2 } from 'lucide-react';
 import {
     format,
     addMonths,
@@ -26,9 +26,8 @@ export default function CalendarPage() {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
-
-    const [editingRecordId, setEditingRecordId] = useState<string | null>(null);
-    const [editAmount, setEditAmount] = useState('');
+    const [editRecordData, setEditRecordData] = useState<any | null>(null);
+    const [editRecordType, setEditRecordType] = useState<'record' | 'assignment' | null>(null);
 
     const [records, setRecords] = useState<any[]>([]);
     const [youtubers, setYoutubers] = useState<any[]>([]);
@@ -266,7 +265,7 @@ export default function CalendarPage() {
                         const personName = isExpense
                             ? teamMembers.find(t => t.id === record.teamMemberId)?.name || 'Bilinmiyor'
                             : youtubers.find(y => y.id === record.youtuberId)?.name || 'Bilinmiyor';
-                        const isEditing = editingRecordId === record.id;
+
                         return (
                             <div key={record.id} className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
@@ -280,27 +279,13 @@ export default function CalendarPage() {
                                         </span>
                                     ) : null}
                                 </div>
-                                {isEditing ? (
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                        <input
-                                            type="number"
-                                            value={editAmount}
-                                            onChange={(e) => setEditAmount(e.target.value)}
-                                            style={{ width: '80px', padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--accent-purple)', backgroundColor: '#1A1D28', color: 'white', fontSize: '14px', outline: 'none' }}
-                                            autoFocus
-                                        />
-                                        <button onClick={async () => { if (editAmount) { await updateDoc(doc(db, 'records', record.id), { amount: parseFloat(editAmount) }); } setEditingRecordId(null); }} style={{ background: 'none', border: 'none', color: 'var(--accent-purple)', cursor: 'pointer', padding: '4px' }}><Check size={16} /></button>
-                                        <button onClick={() => setEditingRecordId(null)} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '4px' }}><X size={16} /></button>
-                                    </div>
-                                ) : (
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                        <span style={{ fontWeight: 700, color: record.type === 'expense' ? '#EF4444' : '#22C55E' }}>
-                                            {record.type === 'expense' ? '-' : '+'}${record.amount}
-                                        </span>
-                                        <button onClick={() => { setEditingRecordId(record.id); setEditAmount(record.amount.toString()); }} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '4px' }}><Edit2 size={14} /></button>
-                                        <button onClick={async () => { if (confirm('Bu kaydı silmek istediğinize emin misiniz?')) { await deleteDoc(doc(db, 'records', record.id)); } }} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '4px' }}><Trash2 size={14} /></button>
-                                    </div>
-                                )}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                    <span style={{ fontWeight: 700, color: record.type === 'expense' ? '#EF4444' : '#22C55E' }}>
+                                        {record.type === 'expense' ? '-' : '+'}${record.amount}
+                                    </span>
+                                    <button onClick={() => { setEditRecordData(record); setEditRecordType('record'); }} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '4px' }}><Edit2 size={14} /></button>
+                                    <button onClick={async () => { if (confirm('Bu kaydı silmek istediğinize emin misiniz?')) { await deleteDoc(doc(db, 'records', record.id)); } }} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '4px' }}><Trash2 size={14} /></button>
+                                </div>
                             </div>
                         );
                     })}
@@ -317,6 +302,7 @@ export default function CalendarPage() {
                                         <span style={{ fontSize: '11px', color: '#3B82F6' }}>Video Ataması</span>
                                     </div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <button onClick={() => { setEditRecordData(assignment); setEditRecordType('assignment'); }} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '4px' }}><Edit2 size={14} /></button>
                                         <button onClick={async () => { if (confirm('Bu videoyu silmek istediğinize emin misiniz?')) { await deleteDoc(doc(db, 'assignments', assignment.id)); } }} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '4px' }}><Trash2 size={14} /></button>
                                     </div>
                                 </div>
@@ -340,11 +326,13 @@ export default function CalendarPage() {
             )}
 
             {
-                isRecordModalOpen && (
+                (isRecordModalOpen || editRecordData) && (
                     <RecordModal
-                        isOpen={isRecordModalOpen}
-                        onClose={() => setIsRecordModalOpen(false)}
+                        isOpen={true}
+                        onClose={() => { setIsRecordModalOpen(false); setEditRecordData(null); setEditRecordType(null); }}
                         initialDate={selectedDate}
+                        editData={editRecordData}
+                        editType={editRecordType}
                     />
                 )
             }

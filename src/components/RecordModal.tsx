@@ -6,13 +6,15 @@ import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import styles from './CalendarModal.module.css';
 import { db } from '@/lib/firebase';
-import { collection, query, where, addDoc, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, addDoc, onSnapshot, doc, updateDoc } from 'firebase/firestore';
 import { useAuth } from '@/lib/auth-context';
 
 interface RecordModalProps {
     isOpen: boolean;
     onClose: () => void;
     initialDate?: Date;
+    editData?: any | null;
+    editType?: 'record' | 'assignment' | null;
 }
 
 interface SelectOption {
@@ -27,7 +29,7 @@ interface VideoOption {
     createdAt?: number;
 }
 
-export default function RecordModal({ isOpen, onClose, initialDate = new Date() }: RecordModalProps) {
+export default function RecordModal({ isOpen, onClose, initialDate = new Date(), editData = null, editType = null }: RecordModalProps) {
     const { user } = useAuth();
     const [amount, setAmount] = useState('');
     const [description, setDescription] = useState('');
@@ -85,14 +87,43 @@ export default function RecordModal({ isOpen, onClose, initialDate = new Date() 
         return () => { unsubYt(); unsubTeam(); unsubVideos(); };
     }, [isOpen, user]);
 
+    useEffect(() => {
+        if (editData) {
+            if (editType === 'assignment') {
+                setRecordType('video');
+                setSelectedId(editData.youtuberId || '');
+                setSelectedVideoId(editData.videoId || '');
+                setSelectedBrokerId(editData.brokerId || '');
+                setDescription(editData.note || '');
+            } else {
+                setRecordType(editData.type || 'income');
+                setSelectedId(editData.youtuberId || editData.teamMemberId || '');
+                setSelectedBrokerId(editData.brokerId || '');
+                setAmount(editData.amount?.toString() || '');
+                setDescription(editData.description || '');
+            }
+        } else {
+            setAmount('');
+            setDescription('');
+            setRecordType('income');
+            setSelectedId('');
+            setSelectedVideoId('');
+            setSelectedBrokerId('');
+            setVideoSearchTerm('');
+            setIsVideoDropdownOpen(false);
+        }
+    }, [editData, editType, isOpen]);
+
     // Reset selectedId, selectedVideoId, and UI states when switching record type
     useEffect(() => {
-        setSelectedId('');
-        setSelectedVideoId('');
-        setSelectedBrokerId('');
-        setVideoSearchTerm('');
-        setIsVideoDropdownOpen(false);
-    }, [recordType]);
+        if (!editData) {
+            setSelectedId('');
+            setSelectedVideoId('');
+            setSelectedBrokerId('');
+            setVideoSearchTerm('');
+            setIsVideoDropdownOpen(false);
+        }
+    }, [recordType, editData]);
 
     if (!isOpen) return null;
 
@@ -112,43 +143,55 @@ export default function RecordModal({ isOpen, onClose, initialDate = new Date() 
             if (recordType === 'video') {
                 const selectedYoutuber = youtubers.find(y => y.id === selectedId);
                 if (selectedYoutuber) {
-                    await addDoc(collection(db, "assignments"), {
+                    const data = {
                         videoId: selectedVideoId,
                         youtuberId: selectedId,
                         name: selectedYoutuber.name,
-                        delivered: false,
                         note: description.trim(),
-                        userId: user.uid,
-                        createdAt: initialDate.getTime(),
-                        source: 'calendar',
                         brokerId: selectedBrokerId || null
-                    });
+                    };
+                    if (editData && editType === 'assignment') {
+                        await updateDoc(doc(db, "assignments", editData.id), data);
+                    } else {
+                        await addDoc(collection(db, "assignments"), {
+                            ...data,
+                            delivered: false,
+                            userId: user.uid,
+                            createdAt: initialDate.getTime(),
+                            source: 'calendar'
+                        });
+                    }
                 }
             } else {
-                const recordData: Record<string, unknown> = {
-                    userId: user.uid,
+                const recordData: any = {
                     type: recordType,
-                    ...(recordType === 'income'
-                        ? { youtuberId: selectedId, brokerId: selectedBrokerId || null }
-                        : { teamMemberId: selectedId }
-                    ),
                     amount: parseFloat(amount),
                     description: description.trim(),
-                    date: initialDate,
-                    createdAt: new Date()
                 };
 
-                await addDoc(collection(db, "records"), recordData);
+                if (recordType === 'income') {
+                    recordData.youtuberId = selectedId;
+                    recordData.brokerId = selectedBrokerId || null;
+                    recordData.teamMemberId = null; // Clear if switching
+                } else {
+                    recordData.teamMemberId = selectedId;
+                    recordData.youtuberId = null; // Clear if switching
+                    recordData.brokerId = null; // Clear if switching
+                }
+
+                if (editData && editType === 'record') {
+                    await updateDoc(doc(db, "records", editData.id), recordData);
+                } else {
+                    recordData.userId = user.uid;
+                    recordData.date = initialDate;
+                    recordData.createdAt = new Date();
+                    await addDoc(collection(db, "records"), recordData);
+                }
             }
 
             onClose();
-            setAmount('');
-            setDescription('');
-            setSelectedId('');
-            setSelectedVideoId('');
-            setSelectedBrokerId('');
         } catch (error) {
-            console.error("Error adding record:", error);
+            console.error("Error adding/updating record:", error);
         } finally {
             setIsSaving(false);
         }
@@ -158,7 +201,7 @@ export default function RecordModal({ isOpen, onClose, initialDate = new Date() 
         <div className={styles.overlay} onClick={onClose}>
             <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
                 <div className={styles.header}>
-                    <h2 className={styles.title}>Kayıt Ekle</h2>
+                    <h2 className={styles.title}>{editData ? 'Kaydı Düzenle' : 'Kayıt Ekle'}</h2>
                     <button className={styles.closeBtn} onClick={onClose}>
                         <X size={24} />
                     </button>
@@ -192,6 +235,7 @@ export default function RecordModal({ isOpen, onClose, initialDate = new Date() 
                                 fontSize: '13px',
                                 cursor: 'pointer',
                             }}
+                            disabled={editType === 'assignment'} // Don't allow changing type to income if editing an assignment
                         >
                             <ArrowDownCircle size={16} /> Gelir
                         </button>
@@ -213,6 +257,7 @@ export default function RecordModal({ isOpen, onClose, initialDate = new Date() 
                                 fontSize: '13px',
                                 cursor: 'pointer',
                             }}
+                            disabled={editType === 'assignment'} // Don't allow changing type to expense if editing an assignment
                         >
                             <ArrowUpCircle size={16} /> Gider
                         </button>
@@ -234,6 +279,7 @@ export default function RecordModal({ isOpen, onClose, initialDate = new Date() 
                                 fontSize: '13px',
                                 cursor: 'pointer',
                             }}
+                            disabled={editType === 'record'} // Don't allow changing type to video if editing a record
                         >
                             <Youtube size={16} /> Video
                         </button>
