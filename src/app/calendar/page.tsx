@@ -154,7 +154,7 @@ export default function CalendarPage() {
 
             {/* Stats Cards */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
+                <div className={styles.statsGrid2}>
                     <div className="card" style={{ padding: '12px', textAlign: 'center' }}>
                         <div style={{ fontSize: '16px', fontWeight: 700, color: '#F59E0B' }}>{monthlyAssignedVideos}</div>
                         <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Bu Ay Satılan Video</div>
@@ -165,7 +165,7 @@ export default function CalendarPage() {
                     </div>
                 </div>
                 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
+                <div className={styles.statsGrid4}>
                     <div className="card" style={{ padding: '12px', textAlign: 'center' }}>
                         <div style={{ fontSize: '16px', fontWeight: 700, color: '#22C55E' }}>${monthlyIncome.toFixed(2)}</div>
                         <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Bu Ay Gelir</div>

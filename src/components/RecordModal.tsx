@@ -47,6 +47,10 @@ export default function RecordModal({ isOpen, onClose, initialDate = new Date(),
     const [isVideoDropdownOpen, setIsVideoDropdownOpen] = useState(false);
     const [videoSearchTerm, setVideoSearchTerm] = useState('');
 
+    // New states for searchable person dropdown
+    const [isPersonDropdownOpen, setIsPersonDropdownOpen] = useState(false);
+    const [personSearchTerm, setPersonSearchTerm] = useState('');
+
     useEffect(() => {
         if (!isOpen || !user) return;
 
@@ -122,6 +126,8 @@ export default function RecordModal({ isOpen, onClose, initialDate = new Date(),
             setSelectedBrokerId('');
             setVideoSearchTerm('');
             setIsVideoDropdownOpen(false);
+            setPersonSearchTerm('');
+            setIsPersonDropdownOpen(false);
         }
     }, [recordType, editData]);
 
@@ -287,28 +293,101 @@ export default function RecordModal({ isOpen, onClose, initialDate = new Date(),
 
                     <div>
                         <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', color: 'var(--text-secondary)' }}>
-                            {categoryLabel}
+                            {categoryLabel} <span style={{ color: 'var(--text-secondary)', fontStyle: 'italic', fontSize: '11px' }}>(gerekli)</span>
                         </label>
-                        <select
-                            value={selectedId}
-                            onChange={(e) => setSelectedId(e.target.value)}
-                            style={{
-                                width: '100%',
-                                padding: '12px',
-                                borderRadius: '8px',
-                                backgroundColor: 'var(--bg-color)',
-                                border: '1px solid var(--border-color)',
-                                color: 'var(--text-primary)',
-                                fontSize: '15px',
-                                outline: 'none'
-                            }}
-                            required
-                        >
-                            <option value="" disabled>Seçiniz...</option>
-                            {currentOptions.map(opt => (
-                                <option key={opt.id} value={opt.id}>{opt.name}</option>
-                            ))}
-                        </select>
+                        <div style={{ position: 'relative' }}>
+                            <div
+                                style={{
+                                    width: '100%',
+                                    backgroundColor: 'var(--bg-color)',
+                                    border: '1px solid var(--border-color)',
+                                    borderRadius: '8px',
+                                    position: 'relative'
+                                }}
+                            >
+                                <input
+                                    type="text"
+                                    placeholder={`${categoryLabel} ara veya seç...`}
+                                    value={isPersonDropdownOpen ? personSearchTerm : (currentOptions.find(opt => opt.id === selectedId)?.name || '')}
+                                    onChange={(e) => {
+                                        setPersonSearchTerm(e.target.value);
+                                        setIsPersonDropdownOpen(true);
+                                        if (!e.target.value) {
+                                            setSelectedId('');
+                                        }
+                                    }}
+                                    onFocus={() => setIsPersonDropdownOpen(true)}
+                                    style={{
+                                        width: '100%',
+                                        padding: '12px',
+                                        backgroundColor: 'transparent',
+                                        border: 'none',
+                                        color: 'var(--text-primary)',
+                                        fontSize: '14px',
+                                        outline: 'none',
+                                        cursor: 'text'
+                                    }}
+                                />
+
+                                {isPersonDropdownOpen && (
+                                    <>
+                                        <div
+                                            style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9 }}
+                                            onClick={() => {
+                                                setIsPersonDropdownOpen(false);
+                                                setPersonSearchTerm('');
+                                            }}
+                                        />
+                                        <div style={{
+                                            position: 'absolute',
+                                            top: '100%',
+                                            left: 0,
+                                            right: 0,
+                                            marginTop: '4px',
+                                            backgroundColor: 'var(--bg-card)',
+                                            border: '1px solid var(--border-color)',
+                                            borderRadius: '8px',
+                                            maxHeight: '200px',
+                                            overflowY: 'auto',
+                                            zIndex: 10,
+                                            boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
+                                        }}>
+                                            {currentOptions.filter(opt => opt.name.toLowerCase().includes(personSearchTerm.toLowerCase())).length === 0 ? (
+                                                <div style={{ padding: '12px', color: 'var(--text-secondary)', fontSize: '13px', textAlign: 'center' }}>
+                                                    Aramanıza uygun sonuç bulunamadı.
+                                                </div>
+                                            ) : (
+                                                currentOptions.filter(opt => opt.name.toLowerCase().includes(personSearchTerm.toLowerCase())).map(opt => (
+                                                    <div
+                                                        key={opt.id}
+                                                        onClick={() => {
+                                                            setSelectedId(opt.id);
+                                                            setIsPersonDropdownOpen(false);
+                                                            setPersonSearchTerm('');
+                                                        }}
+                                                        style={{
+                                                            padding: '10px 12px',
+                                                            cursor: 'pointer',
+                                                            fontSize: '13px',
+                                                            color: selectedId === opt.id ? 'var(--accent-purple)' : 'var(--text-primary)',
+                                                            backgroundColor: selectedId === opt.id ? 'rgba(92, 62, 240, 0.1)' : 'transparent',
+                                                            borderBottom: '1px solid var(--border-color)',
+                                                            whiteSpace: 'nowrap',
+                                                            overflow: 'hidden',
+                                                            textOverflow: 'ellipsis'
+                                                        }}
+                                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-color)'}
+                                                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = selectedId === opt.id ? 'rgba(92, 62, 240, 0.1)' : 'transparent'}
+                                                    >
+                                                        {opt.name}
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        </div>
                         {currentOptions.length === 0 && (
                             <div style={{ fontSize: '12px', color: 'var(--accent-red)', marginTop: '4px' }}>
                                 {recordType === 'income'

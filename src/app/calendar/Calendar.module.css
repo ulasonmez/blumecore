@@ -154,4 +154,20 @@
         height: 28px;
         font-size: 13px;
     }
+
+    .statsGrid4 {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+}
+
+.statsGrid2 {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+}
+
+.statsGrid4 {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
 }
