@@ -7,7 +7,7 @@ import { db } from '@/lib/firebase';
 import { collection, query, where, addDoc, deleteDoc, doc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { useAuth } from '@/lib/auth-context';
 import { VideoGridItem } from '@/components/VideoGridItem';
-import VideoModal from '@/components/VideoModal';
+import VideoDetailModal from '@/components/VideoDetailModal';
 
 // Interfaces
 interface Video {
@@ -211,39 +211,7 @@ export default function VideosPage() {
         }
     };
 
-    // Modal handlers (Assignments)
-    const handleUpdateAssignment = async (videoId: string, assignmentId: string, updates: Partial<YoutuberAssignment>) => {
-        try {
-            await updateDoc(doc(db, "assignments", assignmentId), updates);
-        } catch (error) {
-            console.error("Error updating assignment:", error);
-        }
-    };
 
-    const handleDeleteAssignment = async (videoId: string, assignmentId: string) => {
-        try {
-            await deleteDoc(doc(db, "assignments", assignmentId));
-        } catch (error) {
-            console.error("Error deleting assignment:", error);
-        }
-    };
-
-    const handleAddAssignment = async (videoId: string, youtuberId: string, name: string) => {
-        if (!user) return;
-        try {
-            await addDoc(collection(db, "assignments"), {
-                videoId,
-                youtuberId,
-                name,
-                delivered: false,
-                note: '',
-                userId: user.uid,
-                createdAt: new Date().getTime()
-            });
-        } catch (error) {
-            console.error("Error adding assignment:", error);
-        }
-    };
 
     // Filtering
     const filteredVideos = videos.filter(v =>
@@ -354,14 +322,11 @@ export default function VideosPage() {
             )}
 
             {selectedVideo && (
-                <VideoModal
+                <VideoDetailModal
                     isOpen={!!selectedVideo}
                     onClose={() => setSelectedVideo(null)}
                     video={selectedVideo}
                     assignments={assignmentsByVideo[selectedVideo.id] || []}
-                    onUpdateAssignment={(id, updates) => handleUpdateAssignment(selectedVideo.id, id, updates)}
-                    onDeleteAssignment={(id) => handleDeleteAssignment(selectedVideo.id, id)}
-                    onAddAssignment={(yId, name) => handleAddAssignment(selectedVideo.id, yId, name)}
                 />
             )}
         </div>
