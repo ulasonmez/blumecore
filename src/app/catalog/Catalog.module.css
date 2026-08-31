@@ -26,6 +26,60 @@
     flex: 1;
 }
 
+.searchContainer {
+    position: relative;
+    width: 100%;
+    margin-bottom: var(--spacing-md);
+}
+
+.searchIcon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-secondary);
+    pointer-events: none;
+}
+
+.searchInput {
+    width: 100%;
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 10px 36px 10px 38px;
+    color: var(--text-primary);
+    font-size: 14px;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.searchInput:focus {
+    border-color: var(--accent-purple);
+    box-shadow: 0 0 0 2px rgba(92, 62, 240, 0.15);
+}
+
+.clearSearchBtn {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    border-radius: 50%;
+    transition: color 0.2s, background-color 0.2s;
+}
+
+.clearSearchBtn:hover {
+    color: var(--text-primary);
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
 .filterScroll {
     display: flex;
     flex-wrap: wrap;

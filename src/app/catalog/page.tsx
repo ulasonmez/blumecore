@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Trash2, Calendar as CalendarIcon, Link as LinkIcon } from 'lucide-react';
+import { Trash2, Calendar as CalendarIcon, Link as LinkIcon, Search, X } from 'lucide-react';
 import styles from './Catalog.module.css';
 import CalendarModal from '@/components/CalendarModal';
 import GroupModal from '@/components/GroupModal';
@@ -28,6 +28,7 @@ export default function CatalogPage() {
     const [items, setItems] = useState<Youtuber[]>([]);
 
     const [activeGroup, setActiveGroup] = useState<string | null>(null);
+    const [searchQuery, setSearchQuery] = useState('');
     const [newItemName, setNewItemName] = useState('');
     const [newChannelUrl, setNewChannelUrl] = useState('');
 
@@ -58,9 +59,6 @@ export default function CatalogPage() {
             unsubItems();
         };
     }, [user]);
-
-    // handleAddGroup logic is now moved to the new modal
-    // we keep handleAdd for the Youtuber
 
     const handleAdd = async () => {
         if (!newItemName.trim() || !user) return;
@@ -99,16 +97,18 @@ export default function CatalogPage() {
         setSelectedItem(item);
     };
 
-    // Filter items if a specific group is clicked
-    const itemsToDisplay = activeGroup
-        ? items.filter((item) => item.groupId === activeGroup)
-        : items;
+    // Filter items if a specific group is clicked and by search query
+    const filteredItems = items.filter((item) => {
+        const matchesGroup = activeGroup ? item.groupId === activeGroup : true;
+        const matchesSearch = searchQuery.trim() === '' || item.name.toLowerCase().includes(searchQuery.toLowerCase().trim());
+        return matchesGroup && matchesSearch;
+    });
 
     // Group items for display
     const groupedItems = groups.map((group) => {
         return {
             ...group,
-            items: itemsToDisplay.filter((item) => item.groupId === group.id),
+            items: filteredItems.filter((item) => item.groupId === group.id),
         };
     }).filter((g) => g.items.length > 0);
 
@@ -154,6 +154,28 @@ export default function CatalogPage() {
                 </div>
             </div>
 
+            {/* Search Bar */}
+            <div className={styles.searchContainer}>
+                <Search size={16} className={styles.searchIcon} />
+                <input
+                    type="text"
+                    placeholder="YouTuber ara..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className={styles.searchInput}
+                />
+                {searchQuery && (
+                    <button
+                        onClick={() => setSearchQuery('')}
+                        className={styles.clearSearchBtn}
+                        title="Aramayı Temizle"
+                        type="button"
+                    >
+                        <X size={14} />
+                    </button>
+                )}
+            </div>
+
             <div className={styles.filterScroll}>
                 <button
                     className={`${styles.filterBadge} ${activeGroup === null ? styles.active : ''}`}
@@ -177,7 +199,13 @@ export default function CatalogPage() {
             <div className="catalog-list">
                 {groupedItems.length === 0 && (
                     <div style={{ textAlign: 'center', margin: '40px 0', color: 'var(--text-secondary)' }}>
-                        Henüz gösterilecek kayıt yok. Önce yukarıdan bir grup ekleyin!
+                        {searchQuery.trim() ? (
+                            <div>
+                                <strong>&ldquo;{searchQuery}&rdquo;</strong> aramasına uygun YouTuber bulunamadı.
+                            </div>
+                        ) : (
+                            'Henüz gösterilecek kayıt yok. Önce yukarıdan bir grup ekleyin!'
+                        )}
                     </div>
                 )}
                 {groupedItems.map((group) => (
