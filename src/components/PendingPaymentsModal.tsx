@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { X, Plus, Trash2, Edit2, Check, DollarSign, User } from 'lucide-react';
+import { X, Plus, Trash2, Edit2, Check, DollarSign, User, ChevronDown, ChevronUp } from 'lucide-react';
 import modalStyles from '@/components/CalendarModal.module.css';
 import { db } from '@/lib/firebase';
 import { collection, query, where, addDoc, deleteDoc, doc, updateDoc, onSnapshot } from 'firebase/firestore';
@@ -40,6 +40,9 @@ export default function PendingPaymentsModal({ isOpen, onClose }: PendingPayment
     const [amount, setAmount] = useState('');
     const [description, setDescription] = useState('');
 
+    // Accordion state
+    const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
+
     // Edit state
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editAmount, setEditAmount] = useState('');
@@ -74,6 +77,7 @@ export default function PendingPaymentsModal({ isOpen, onClose }: PendingPayment
             setAmount('');
             setDescription('');
             setEditingId(null);
+            setCollapsedGroups({});
         }
     }, [isOpen]);
 
@@ -98,6 +102,13 @@ export default function PendingPaymentsModal({ isOpen, onClose }: PendingPayment
         });
         return Array.from(map.values());
     }, [payments]);
+
+    const toggleGroup = (key: string) => {
+        setCollapsedGroups(prev => ({
+            ...prev,
+            [key]: !prev[key]
+        }));
+    };
 
     if (!isOpen) return null;
 
@@ -158,8 +169,9 @@ export default function PendingPaymentsModal({ isOpen, onClose }: PendingPayment
 
     return (
         <div className={modalStyles.overlay} onClick={onClose} style={{ zIndex: 101 }}>
-            <div className={modalStyles.modal} style={{ maxWidth: '480px' }} onClick={(e) => e.stopPropagation()}>
-                <div className={modalStyles.header}>
+            <div className={modalStyles.modal} style={{ maxWidth: '500px', display: 'flex', flexDirection: 'column', maxHeight: '88vh' }} onClick={(e) => e.stopPropagation()}>
+                {/* Header */}
+                <div className={modalStyles.header} style={{ flexShrink: 0, marginBottom: '16px' }}>
                     <div>
                         <h2 className={modalStyles.title}>Beklenen Ödemeler</h2>
                         <span style={{ fontSize: '13px', color: 'var(--accent-purple)', fontWeight: 600 }}>
@@ -172,7 +184,7 @@ export default function PendingPaymentsModal({ isOpen, onClose }: PendingPayment
                 </div>
 
                 {/* Add Form */}
-                <div style={{ marginBottom: '24px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ marginBottom: '20px', display: 'flex', flexDirection: 'column', gap: '8px', flexShrink: 0 }}>
                     {/* Searchable YouTuber selector */}
                     <div style={{ position: 'relative' }}>
                         <div
@@ -314,160 +326,187 @@ export default function PendingPaymentsModal({ isOpen, onClose }: PendingPayment
                 </div>
 
                 {/* Grouped Payment List */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '380px', overflowY: 'auto', paddingRight: '2px' }}>
+                <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '12px',
+                    overflowY: 'auto',
+                    paddingRight: '4px',
+                    flex: 1
+                }}>
                     {groupedPayments.length === 0 && (
                         <div style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '24px 0', fontSize: '14px' }}>
                             Henüz beklenen ödeme yok.
                         </div>
                     )}
 
-                    {groupedPayments.map(group => (
-                        <div
-                            key={group.youtuberKey}
-                            style={{
-                                backgroundColor: '#232736',
-                                border: '1px solid #33384D',
-                                borderRadius: '10px',
-                                overflow: 'hidden'
-                            }}
-                        >
-                            {/* YouTuber Group Header */}
-                            <div style={{
-                                padding: '10px 14px',
-                                backgroundColor: 'rgba(92, 62, 240, 0.1)',
-                                borderBottom: '1px solid #33384D',
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center'
-                            }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    <User size={15} style={{ color: 'var(--accent-purple)' }} />
-                                    <span style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text-primary)' }}>
-                                        {group.youtuberName}
-                                    </span>
-                                    {group.items.length > 1 && (
+                    {groupedPayments.map(group => {
+                        const isCollapsed = !!collapsedGroups[group.youtuberKey];
+                        return (
+                            <div
+                                key={group.youtuberKey}
+                                style={{
+                                    backgroundColor: '#232736',
+                                    border: '1px solid #33384D',
+                                    borderRadius: '10px',
+                                    overflow: 'hidden',
+                                    flexShrink: 0
+                                }}
+                            >
+                                {/* YouTuber Group Header */}
+                                <div
+                                    onClick={() => toggleGroup(group.youtuberKey)}
+                                    style={{
+                                        padding: '11px 14px',
+                                        backgroundColor: 'rgba(92, 62, 240, 0.12)',
+                                        borderBottom: isCollapsed ? 'none' : '1px solid #33384D',
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center',
+                                        cursor: 'pointer',
+                                        userSelect: 'none'
+                                    }}
+                                >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <User size={15} style={{ color: 'var(--accent-purple)' }} />
+                                        <span style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text-primary)' }}>
+                                            {group.youtuberName}
+                                        </span>
                                         <span style={{
                                             fontSize: '11px',
-                                            backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                                            padding: '2px 6px',
+                                            backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                                            padding: '2px 7px',
                                             borderRadius: '10px',
                                             color: 'var(--text-secondary)'
                                         }}>
                                             {group.items.length} ödeme
                                         </span>
-                                    )}
-                                </div>
-                                <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--accent-purple)' }}>
-                                    Toplam: ${group.totalAmount.toFixed(2)}
-                                </div>
-                            </div>
-
-                            {/* Sub-items for this YouTuber */}
-                            <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                {group.items.map((p, index) => (
-                                    <div
-                                        key={p.id}
-                                        style={{
-                                            padding: '10px 14px',
-                                            display: 'flex',
-                                            justifyContent: 'space-between',
-                                            alignItems: 'center',
-                                            borderTop: index > 0 ? '1px solid #2B3042' : 'none',
-                                            backgroundColor: index % 2 === 1 ? 'rgba(0, 0, 0, 0.1)' : 'transparent'
-                                        }}
-                                    >
-                                        {editingId === p.id ? (
-                                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px', marginRight: '10px' }}>
-                                                <input
-                                                    type="number"
-                                                    value={editAmount}
-                                                    onChange={(e) => setEditAmount(e.target.value)}
-                                                    style={{
-                                                        padding: '6px 8px',
-                                                        borderRadius: '6px',
-                                                        border: '1px solid var(--accent-purple)',
-                                                        backgroundColor: '#1A1D28',
-                                                        color: 'white',
-                                                        fontSize: '14px',
-                                                        outline: 'none'
-                                                    }}
-                                                    autoFocus
-                                                />
-                                                <input
-                                                    type="text"
-                                                    value={editDescription}
-                                                    onChange={(e) => setEditDescription(e.target.value)}
-                                                    placeholder="Açıklama"
-                                                    style={{
-                                                        padding: '6px 8px',
-                                                        borderRadius: '6px',
-                                                        border: '1px solid var(--border-color)',
-                                                        backgroundColor: '#1A1D28',
-                                                        color: 'white',
-                                                        fontSize: '13px',
-                                                        outline: 'none'
-                                                    }}
-                                                />
-                                            </div>
-                                        ) : (
-                                            <div style={{ flex: 1, marginRight: '10px' }}>
-                                                {p.description ? (
-                                                    <div style={{ fontSize: '13px', color: 'var(--text-primary)', wordBreak: 'break-word' }}>
-                                                        {p.description}
-                                                    </div>
-                                                ) : (
-                                                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
-                                                        Açıklama yok
-                                                    </div>
-                                                )}
-                                                <div style={{ fontSize: '14px', fontWeight: 700, color: '#22C55E', marginTop: '2px' }}>
-                                                    ${p.amount.toFixed(2)}
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                                            {editingId === p.id ? (
-                                                <>
-                                                    <button
-                                                        onClick={handleSaveEdit}
-                                                        title="Kaydet"
-                                                        style={{ background: 'none', border: 'none', color: 'var(--accent-purple)', cursor: 'pointer', padding: '4px' }}
-                                                    >
-                                                        <Check size={16} />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => setEditingId(null)}
-                                                        title="İptal"
-                                                        style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '4px' }}
-                                                    >
-                                                        <X size={16} />
-                                                    </button>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <button
-                                                        onClick={() => handleStartEdit(p)}
-                                                        title="Düzenle"
-                                                        style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '4px' }}
-                                                    >
-                                                        <Edit2 size={14} />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleDelete(p.id)}
-                                                        title="Sil"
-                                                        style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '4px' }}
-                                                    >
-                                                        <Trash2 size={14} />
-                                                    </button>
-                                                </>
-                                            )}
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                        <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--accent-purple)' }}>
+                                            Toplam: ${group.totalAmount.toFixed(2)}
+                                        </div>
+                                        <div style={{ color: 'var(--text-secondary)', display: 'flex', alignItems: 'center' }}>
+                                            {isCollapsed ? <ChevronDown size={15} /> : <ChevronUp size={15} />}
                                         </div>
                                     </div>
-                                ))}
+                                </div>
+
+                                {/* Sub-items for this YouTuber */}
+                                {!isCollapsed && (
+                                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                        {group.items.map((p, index) => (
+                                            <div
+                                                key={p.id}
+                                                style={{
+                                                    padding: '10px 14px',
+                                                    display: 'flex',
+                                                    justifyContent: 'space-between',
+                                                    alignItems: 'center',
+                                                    borderTop: index > 0 ? '1px solid #2D3244' : 'none',
+                                                    backgroundColor: index % 2 === 1 ? 'rgba(0, 0, 0, 0.12)' : 'transparent'
+                                                }}
+                                            >
+                                                {editingId === p.id ? (
+                                                    <div
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px', marginRight: '10px' }}
+                                                    >
+                                                        <input
+                                                            type="number"
+                                                            value={editAmount}
+                                                            onChange={(e) => setEditAmount(e.target.value)}
+                                                            style={{
+                                                                padding: '6px 8px',
+                                                                borderRadius: '6px',
+                                                                border: '1px solid var(--accent-purple)',
+                                                                backgroundColor: '#1A1D28',
+                                                                color: 'white',
+                                                                fontSize: '14px',
+                                                                outline: 'none'
+                                                            }}
+                                                            autoFocus
+                                                        />
+                                                        <input
+                                                            type="text"
+                                                            value={editDescription}
+                                                            onChange={(e) => setEditDescription(e.target.value)}
+                                                            placeholder="Açıklama"
+                                                            style={{
+                                                                padding: '6px 8px',
+                                                                borderRadius: '6px',
+                                                                border: '1px solid var(--border-color)',
+                                                                backgroundColor: '#1A1D28',
+                                                                color: 'white',
+                                                                fontSize: '13px',
+                                                                outline: 'none'
+                                                            }}
+                                                        />
+                                                    </div>
+                                                ) : (
+                                                    <div style={{ flex: 1, marginRight: '10px' }}>
+                                                        {p.description ? (
+                                                            <div style={{ fontSize: '13px', color: 'var(--text-primary)', wordBreak: 'break-word' }}>
+                                                                {p.description}
+                                                            </div>
+                                                        ) : (
+                                                            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+                                                                Ödeme
+                                                            </div>
+                                                        )}
+                                                        <div style={{ fontSize: '14px', fontWeight: 700, color: '#22C55E', marginTop: '2px' }}>
+                                                            ${p.amount.toFixed(2)}
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                <div
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    style={{ display: 'flex', gap: '6px', alignItems: 'center' }}
+                                                >
+                                                    {editingId === p.id ? (
+                                                        <>
+                                                            <button
+                                                                onClick={handleSaveEdit}
+                                                                title="Kaydet"
+                                                                style={{ background: 'none', border: 'none', color: 'var(--accent-purple)', cursor: 'pointer', padding: '4px' }}
+                                                            >
+                                                                <Check size={16} />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => setEditingId(null)}
+                                                                title="İptal"
+                                                                style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '4px' }}
+                                                            >
+                                                                <X size={16} />
+                                                            </button>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <button
+                                                                onClick={() => handleStartEdit(p)}
+                                                                title="Düzenle"
+                                                                style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '4px' }}
+                                                            >
+                                                                <Edit2 size={14} />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleDelete(p.id)}
+                                                                title="Sil"
+                                                                style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '4px' }}
+                                                            >
+                                                                <Trash2 size={14} />
+                                                            </button>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             </div>
         </div>
