@@ -227,6 +227,7 @@ export async function addPlayerToYoutuber(input: AddPlayerInput): Promise<Enrich
     // 2. Check if already associated with this YouTuber
     const qDuplicate = query(
         collection(db, 'youtuber_minecraft_players'),
+        where('userId', '==', input.userId),
         where('youtuberId', '==', input.youtuberId),
         where('minecraftPlayerId', '==', playerId)
     );
@@ -241,6 +242,7 @@ export async function addPlayerToYoutuber(input: AddPlayerInput): Promise<Enrich
     if (isPrimary) {
         const qPrimary = query(
             collection(db, 'youtuber_minecraft_players'),
+            where('userId', '==', input.userId),
             where('youtuberId', '==', input.youtuberId),
             where('isPrimary', '==', true)
         );
@@ -336,6 +338,7 @@ export async function updateYoutuberPlayer(input: UpdatePlayerInput): Promise<En
         if (targetPlayerId !== assocData.minecraftPlayerId) {
             const qDup = query(
                 collection(db, 'youtuber_minecraft_players'),
+                where('userId', '==', input.userId),
                 where('youtuberId', '==', input.youtuberId),
                 where('minecraftPlayerId', '==', targetPlayerId)
             );
@@ -356,6 +359,7 @@ export async function updateYoutuberPlayer(input: UpdatePlayerInput): Promise<En
     if (input.isPrimary) {
         const qPrimary = query(
             collection(db, 'youtuber_minecraft_players'),
+            where('userId', '==', input.userId),
             where('youtuberId', '==', input.youtuberId),
             where('isPrimary', '==', true)
         );
