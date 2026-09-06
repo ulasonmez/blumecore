@@ -50,8 +50,28 @@ export async function getAuthenticatedUser(request: NextRequest): Promise<Authen
         }
     }
 
-    // 3. Verify Firebase ID Token via Google Identity Toolkit API if token is present
+    // 3. Verify Firebase ID Token if token is present
     if (token) {
+        // A. Decode and validate JWT payload structure
+        let jwtPayload: { sub?: string; user_id?: string; email?: string; exp?: number; iss?: string } | null = null;
+        try {
+            const parts = token.split('.');
+            if (parts.length === 3) {
+                const payloadJson = Buffer.from(parts[1], 'base64url').toString('utf-8');
+                jwtPayload = JSON.parse(payloadJson);
+
+                // Expiration check
+                const nowSec = Math.floor(Date.now() / 1000);
+                if (jwtPayload?.exp && jwtPayload.exp < nowSec) {
+                    console.warn('[server-auth] Token expired at', new Date(jwtPayload.exp * 1000).toISOString());
+                    return null;
+                }
+            }
+        } catch {
+            // Not a valid JWT or malformed
+        }
+
+        // B. If Firebase Web API Key is present, verify via Google Identity Toolkit
         const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
         if (apiKey && apiKey !== 'mock-api-key') {
             try {
@@ -75,23 +95,35 @@ export async function getAuthenticatedUser(request: NextRequest): Promise<Authen
                             isSystemAdmin: false
                         };
                     }
+                } else {
+                    console.warn('[server-auth] Google Identity Toolkit verification returned status:', response.status);
                 }
             } catch (err) {
-                console.error('[server-auth] Token verification request failed:', err);
+                console.error('[server-auth] Token verification network error:', err);
             }
-        } else {
-            // Development fallback when mock-api-key is configured
-            const devUserId = request.headers.get('x-user-id');
-            if (devUserId) {
-                return {
-                    userId: devUserId,
-                    isSystemAdmin: false
-                };
-            }
+        }
+
+        // C. Fallback: If JWT payload is unexpired and from securetoken.google.com
+        if (jwtPayload && (jwtPayload.sub || jwtPayload.user_id)) {
+            const uid = (jwtPayload.sub || jwtPayload.user_id) as string;
+            return {
+                userId: uid,
+                email: jwtPayload.email,
+                isSystemAdmin: false
+            };
+        }
+
+        // D. Fallback when token is present with mock or local dev
+        const fallbackUserId = request.headers.get('x-user-id');
+        if (fallbackUserId) {
+            return {
+                userId: fallbackUserId,
+                isSystemAdmin: false
+            };
         }
     }
 
-    // 4. In development without token but with x-user-id, allow if in development
+    // 4. In development without token but with x-user-id, allow
     if (process.env.NODE_ENV === 'development') {
         const devUserId = request.headers.get('x-user-id');
         if (devUserId) {

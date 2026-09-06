@@ -13,6 +13,7 @@ import {
     Unsubscribe
 } from 'firebase/firestore';
 import { db } from './firebase';
+import { authenticatedFetch } from './api-client';
 
 export type RelationshipType = 'owner' | 'friend' | 'team' | 'other';
 
@@ -633,9 +634,9 @@ export async function triggerSyncForYoutuberActiveMods(
 
             // Interactive execution attempt via API (fire-and-forget in background)
             if (typeof window !== 'undefined') {
-                fetch('/api/jobs/process', {
+                authenticatedFetch('/api/jobs/process', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'x-user-id': userId },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ jobId })
                 }).catch(() => {});
             }

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { X, CheckCircle2, AlertTriangle, Loader2, ExternalLink, ShieldCheck, FolderGit2 } from 'lucide-react';
 import { ModProject } from '@/lib/mods/types';
 import { useAuth } from '@/lib/auth-context';
+import { authenticatedFetch } from '@/lib/api-client';
 import styles from './ModModal.module.css';
 
 interface ModModalProps {
@@ -91,11 +92,10 @@ export default function ModModal({
         setFieldError(null);
 
         try {
-            const res = await fetch('/api/mods/test-connection', {
+            const res = await authenticatedFetch('/api/mods/test-connection', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'x-user-id': user.uid
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
                     modKey: trimmedModKey,
@@ -164,11 +164,10 @@ export default function ModModal({
                     description: description.trim()
                 };
 
-            const res = await fetch(url, {
+            const res = await authenticatedFetch(url, {
                 method,
                 headers: {
-                    'Content-Type': 'application/json',
-                    'x-user-id': user.uid
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(payload)
             });

@@ -20,6 +20,7 @@ import styles from './VideoDetailModal.module.css';
 import { db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { useAuth } from '@/lib/auth-context';
+import { authenticatedFetch } from '@/lib/api-client';
 import { ModProject, YoutuberModAccess } from '@/lib/mods/types';
 import ModModal from './ModModal';
 import YoutuberModAccessModal from './YoutuberModAccessModal';
@@ -110,9 +111,7 @@ export default function VideoDetailModal({
     const loadLinkedMods = async () => {
         if (!isOpen || !user || !video.id) return;
         try {
-            const res = await fetch(`/api/videos/${video.id}/mods`, {
-                headers: { 'x-user-id': user.uid }
-            });
+            const res = await authenticatedFetch(`/api/videos/${video.id}/mods`);
             const json = await res.json();
             if (json.data) {
                 setLinkedMods(json.data);
@@ -166,11 +165,10 @@ export default function VideoDetailModal({
         if (!user || isLinkingMod) return;
         setIsLinkingMod(true);
         try {
-            const res = await fetch(`/api/videos/${video.id}/mods`, {
+            const res = await authenticatedFetch(`/api/videos/${video.id}/mods`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'x-user-id': user.uid
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ modProjectId: modId })
             });
@@ -194,9 +192,8 @@ export default function VideoDetailModal({
         if (!user) return;
         if (!confirm('Bu modun video bağlantısını kaldırmak istediğinize emin misiniz? (YouTuber erişimleri silinmeyecektir).')) return;
         try {
-            const res = await fetch(`/api/videos/${video.id}/mods/${modId}`, {
-                method: 'DELETE',
-                headers: { 'x-user-id': user.uid }
+            const res = await authenticatedFetch(`/api/videos/${video.id}/mods/${modId}`, {
+                method: 'DELETE'
             });
             if (res.ok) {
                 loadLinkedMods();

@@ -10,6 +10,7 @@ import { VideoGridItem } from '@/components/VideoGridItem';
 import VideoDetailModal from '@/components/VideoDetailModal';
 import ModModal from '@/components/ModModal';
 import ModDetailModal from '@/components/ModDetailModal';
+import { authenticatedFetch } from '@/lib/api-client';
 import { ModProject } from '@/lib/mods/types';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
@@ -339,11 +340,10 @@ export default function VideosPage() {
         if (!user || syncingModId) return;
         setSyncingModId(modId);
         try {
-            const res = await fetch(`/api/mods/${modId}/sync`, {
+            const res = await authenticatedFetch(`/api/mods/${modId}/sync`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'x-user-id': user.uid
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ triggerType: 'MANUAL_SYNC' })
             });

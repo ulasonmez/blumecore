@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { ModProject, YoutuberAccessSummary, LegacyUuidInfo } from '@/lib/mods/types';
 import { useAuth } from '@/lib/auth-context';
+import { authenticatedFetch } from '@/lib/api-client';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 
@@ -81,9 +82,7 @@ export default function ModDetailModal({
         if (!user) return;
         setIsLoadingAccess(true);
         try {
-            const res = await fetch(`/api/mods/${mod.id}/access`, {
-                headers: { 'x-user-id': user.uid }
-            });
+            const res = await authenticatedFetch(`/api/mods/${mod.id}/access`);
             const json = await res.json();
             if (json.data) setAccessList(json.data);
         } catch (err: unknown) {
@@ -98,9 +97,7 @@ export default function ModDetailModal({
         if (!user) return;
         setIsLoadingLegacy(true);
         try {
-            const res = await fetch(`/api/mods/${mod.id}/legacy-uuids`, {
-                headers: { 'x-user-id': user.uid }
-            });
+            const res = await authenticatedFetch(`/api/mods/${mod.id}/legacy-uuids`);
             const json = await res.json();
             if (json.data) setLegacyUuids(json.data);
         } catch (err: unknown) {
@@ -114,9 +111,7 @@ export default function ModDetailModal({
     const loadAllYoutubers = async () => {
         if (!user) return;
         try {
-            const res = await fetch('/api/youtubers', {
-                headers: { 'x-user-id': user.uid }
-            });
+            const res = await authenticatedFetch('/api/youtubers');
             const json = await res.json();
             if (json.data) setAllYoutubers(json.data);
         } catch {
@@ -140,11 +135,10 @@ export default function ModDetailModal({
         setIsSyncing(true);
         setIsSyncPreviewOpen(false);
         try {
-            const res = await fetch(`/api/mods/${mod.id}/sync`, {
+            const res = await authenticatedFetch(`/api/mods/${mod.id}/sync`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'x-user-id': user.uid
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ triggerType: 'MANUAL_SYNC' })
             });
@@ -169,9 +163,7 @@ export default function ModDetailModal({
         if (!user || isCheckingDrift) return;
         setIsCheckingDrift(true);
         try {
-            const res = await fetch(`/api/mods/${mod.id}/drift-check`, {
-                headers: { 'x-user-id': user.uid }
-            });
+            const res = await authenticatedFetch(`/api/mods/${mod.id}/drift-check`);
             const json = await res.json();
             if (json.data) {
                 setDriftResult(json.data);
@@ -190,11 +182,10 @@ export default function ModDetailModal({
         if (!user || !selectedYoutuberId || isGranting) return;
         setIsGranting(true);
         try {
-            const res = await fetch(`/api/mods/${mod.id}/access`, {
+            const res = await authenticatedFetch(`/api/mods/${mod.id}/access`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'x-user-id': user.uid
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
                     youtuberId: selectedYoutuberId,
@@ -223,11 +214,10 @@ export default function ModDetailModal({
         if (!user || !revokingTarget || isRevoking) return;
         setIsRevoking(true);
         try {
-            const res = await fetch(`/api/mods/${mod.id}/access`, {
+            const res = await authenticatedFetch(`/api/mods/${mod.id}/access`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'x-user-id': user.uid
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
                     youtuberId: revokingTarget.access.youtuberId,
@@ -254,11 +244,10 @@ export default function ModDetailModal({
     const handleRegrant = async (target: YoutuberAccessSummary) => {
         if (!user) return;
         try {
-            const res = await fetch(`/api/mods/${mod.id}/access`, {
+            const res = await authenticatedFetch(`/api/mods/${mod.id}/access`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'x-user-id': user.uid
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
                     youtuberId: target.access.youtuberId,

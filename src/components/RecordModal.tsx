@@ -8,6 +8,7 @@ import styles from './CalendarModal.module.css';
 import { db } from '@/lib/firebase';
 import { collection, query, where, addDoc, onSnapshot, doc, updateDoc, getDocs, getDoc } from 'firebase/firestore';
 import { useAuth } from '@/lib/auth-context';
+import { authenticatedFetch } from '@/lib/api-client';
 
 interface RecordEditData {
     id?: string;
@@ -213,11 +214,10 @@ export default function RecordModal({ isOpen, onClose, initialDate = new Date(),
                     // Automatic mod access grant and sync
                     if (autoGrantModAccess && connectedMods.length > 0) {
                         try {
-                            await fetch(`/api/videos/${selectedVideoId}/assign-access`, {
+                            await authenticatedFetch(`/api/videos/${selectedVideoId}/assign-access`, {
                                 method: 'POST',
                                 headers: {
-                                    'Content-Type': 'application/json',
-                                    'x-user-id': user.uid
+                                    'Content-Type': 'application/json'
                                 },
                                 body: JSON.stringify({
                                     youtuberId: selectedId,

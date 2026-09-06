@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { ModProject, YoutuberModAccess } from '@/lib/mods/types';
 import { useAuth } from '@/lib/auth-context';
+import { authenticatedFetch } from '@/lib/api-client';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 
@@ -62,9 +63,9 @@ export default function YoutuberModAccessModal({
         if (!user || isSyncing) return;
         setIsSyncing(true);
         try {
-            const res = await fetch(`/api/mods/${mod.id}/sync`, {
+            const res = await authenticatedFetch(`/api/mods/${mod.id}/sync`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'x-user-id': user.uid },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ triggerType: 'MANUAL_SYNC' })
             });
             const json = await res.json();
@@ -86,9 +87,9 @@ export default function YoutuberModAccessModal({
         if (!user || isRevoking) return;
         setIsRevoking(true);
         try {
-            const res = await fetch(`/api/mods/${mod.id}/access`, {
+            const res = await authenticatedFetch(`/api/mods/${mod.id}/access`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'x-user-id': user.uid },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ youtuberId, action: 'revoke' })
             });
             const json = await res.json();
@@ -111,9 +112,9 @@ export default function YoutuberModAccessModal({
         if (!user || isGranting) return;
         setIsGranting(true);
         try {
-            const res = await fetch(`/api/mods/${mod.id}/access`, {
+            const res = await authenticatedFetch(`/api/mods/${mod.id}/access`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'x-user-id': user.uid },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ youtuberId, action: isRegrant ? 'regrant' : 'grant' })
             });
             const json = await res.json();
