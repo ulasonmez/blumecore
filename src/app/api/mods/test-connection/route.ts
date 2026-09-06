@@ -11,15 +11,15 @@ export async function POST(request: NextRequest) {
         }
 
         const body = await request.json();
-        const { githubOwner, githubRepository, branch, allowlistPath } = body;
+        const rawKey = body.modKey || body.githubRepository || '';
+        const repo = rawKey.trim();
 
-        const owner = githubOwner || process.env.GITHUB_ALLOWED_OWNER || 'blumeplugins';
-        const repo = (githubRepository || '').trim();
-        const targetBranch = (branch || 'main').trim();
-        const targetPath = (allowlistPath || 'README.md').trim();
+        const owner = process.env.GITHUB_ALLOWED_OWNER || 'blumeplugins';
+        const targetBranch = 'main';
+        const targetPath = 'README.md';
 
         if (!repo) {
-            return NextResponse.json({ error: 'Repository ismi gereklidir.' }, { status: 400 });
+            return NextResponse.json({ error: 'Mod ID veya Repository ismi gereklidir.' }, { status: 400 });
         }
 
         const connTest = await testRepositoryConnection({

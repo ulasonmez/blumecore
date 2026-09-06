@@ -43,16 +43,23 @@ export async function POST(request: NextRequest) {
         const userId = authUser.userId;
 
         const body = await request.json();
-        const { modKey, displayName, description, githubOwner, githubRepository, branch, allowlistPath } = body;
+        const { modKey, description } = body;
 
-        const owner = githubOwner || process.env.GITHUB_ALLOWED_OWNER || 'blumeplugins';
-        const repo = githubRepository || (modKey ? modKey.trim() : '');
-        const targetBranch = branch || 'main';
-        const targetPath = allowlistPath || 'README.md';
+        const cleanModKey = (modKey || '').trim();
+        if (!cleanModKey) {
+            return NextResponse.json({ error: 'Mod ID alanı zorunludur.' }, { status: 400 });
+        }
+
+        // Server-enforced values derived directly from modKey
+        const owner = process.env.GITHUB_ALLOWED_OWNER || 'blumeplugins';
+        const repo = cleanModKey;
+        const targetBranch = 'main';
+        const targetPath = 'README.md';
+        const effectiveDisplayName = (body.displayName && body.displayName.trim()) || cleanModKey;
 
         validateModProjectInput({
-            modKey,
-            displayName,
+            modKey: cleanModKey,
+            displayName: effectiveDisplayName,
             githubOwner: owner,
             githubRepository: repo,
             branch: targetBranch,
@@ -63,24 +70,25 @@ export async function POST(request: NextRequest) {
         const qExisting = query(
             collection(db, 'mod_projects'),
             where('userId', '==', userId),
-            where('modKey', '==', modKey.trim())
+            where('modKey', '==', cleanModKey)
         );
         const existingSnap = await getDocs(qExisting);
         if (!existingSnap.empty) {
-            return NextResponse.json({ error: `Bu mod kimliğine (${modKey}) sahip bir mod zaten mevcut.` }, { status: 409 });
+            return NextResponse.json({ error: `Bu mod kimliğine (${cleanModKey}) sahip bir mod zaten mevcut.` }, { status: 409 });
         }
 
         const now = Date.now();
         const newMod: Omit<ModProject, 'id'> = {
-            modKey: modKey.trim(),
-            displayName: displayName.trim(),
+            modKey: cleanModKey,
+            displayName: effectiveDisplayName,
             description: description ? description.trim() : '',
             githubOwner: owner,
-            githubRepository: repo.trim(),
-            branch: targetBranch.trim(),
-            allowlistPath: targetPath.trim(),
+            githubRepository: repo,
+            branch: targetBranch,
+            allowlistPath: targetPath,
             syncMode: 'LEGACY_README',
             isActive: true,
+            syncStatus: 'PENDING',
             lastSuccessfulSyncAt: null,
             lastSuccessfulCommitSha: null,
             userId,

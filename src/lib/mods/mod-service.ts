@@ -50,8 +50,9 @@ export function validateModProjectInput(data: {
     if (!/^[a-zA-Z0-9_-]+$/.test(data.modKey.trim())) {
         throw new Error('Mod ID yalnızca harf, rakam, alt çizgi ve tire içerebilir.');
     }
-    if (!data.displayName || !data.displayName.trim()) {
-        throw new Error('Görünen Ad alanı zorunludur.');
+    const effectiveDisplayName = (data.displayName && data.displayName.trim()) || data.modKey.trim();
+    if (!effectiveDisplayName) {
+        throw new Error('Mod ID veya Görünen Ad alanı zorunludur.');
     }
 
     validateRepositoryParams({
