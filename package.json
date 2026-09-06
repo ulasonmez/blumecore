@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "tsx --test tests/minecraft-players.test.ts"
+    "test": "tsx --test tests/*.test.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

@@ -6,14 +6,27 @@ import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import styles from './CalendarModal.module.css';
 import { db } from '@/lib/firebase';
-import { collection, query, where, addDoc, onSnapshot, doc, updateDoc } from 'firebase/firestore';
+import { collection, query, where, addDoc, onSnapshot, doc, updateDoc, getDocs, getDoc } from 'firebase/firestore';
 import { useAuth } from '@/lib/auth-context';
+
+interface RecordEditData {
+    id?: string;
+    youtuberId?: string;
+    videoId?: string;
+    brokerId?: string;
+    note?: string;
+    teamMemberId?: string;
+    amount?: number | string;
+    description?: string;
+    type?: 'income' | 'expense' | 'video';
+    [key: string]: unknown;
+}
 
 interface RecordModalProps {
     isOpen: boolean;
     onClose: () => void;
     initialDate?: Date;
-    editData?: any | null;
+    editData?: RecordEditData | null;
     editType?: 'record' | 'assignment' | null;
 }
 
@@ -50,6 +63,33 @@ export default function RecordModal({ isOpen, onClose, initialDate = new Date(),
     // New states for searchable person dropdown
     const [isPersonDropdownOpen, setIsPersonDropdownOpen] = useState(false);
     const [personSearchTerm, setPersonSearchTerm] = useState('');
+
+    // Connected mods state
+    const [connectedMods, setConnectedMods] = useState<{ id: string; modKey: string; displayName: string }[]>([]);
+    const [autoGrantModAccess, setAutoGrantModAccess] = useState(true);
+
+    useEffect(() => {
+        if (!selectedVideoId || !user) {
+            setConnectedMods([]);
+            return;
+        }
+        const qLinks = query(
+            collection(db, "video_mod_projects"),
+            where("videoId", "==", selectedVideoId),
+            where("userId", "==", user.uid)
+        );
+        getDocs(qLinks).then(async (snap) => {
+            const list: { id: string; modKey: string; displayName: string }[] = [];
+            for (const lDoc of snap.docs) {
+                const mSnap = await getDoc(doc(db, "mod_projects", lDoc.data().modProjectId));
+                if (mSnap.exists()) {
+                    const mData = mSnap.data();
+                    list.push({ id: mSnap.id, modKey: mData.modKey, displayName: mData.displayName });
+                }
+            }
+            setConnectedMods(list);
+        }).catch(() => setConnectedMods([]));
+    }, [selectedVideoId, user]);
 
     useEffect(() => {
         if (!isOpen || !user) return;
@@ -156,20 +196,41 @@ export default function RecordModal({ isOpen, onClose, initialDate = new Date(),
                         note: description.trim(),
                         brokerId: selectedBrokerId || null
                     };
-                    if (editData && editType === 'assignment') {
+                    let assignmentId = editData?.id;
+                    if (editData?.id && editType === 'assignment') {
                         await updateDoc(doc(db, "assignments", editData.id), data);
                     } else {
-                        await addDoc(collection(db, "assignments"), {
+                        const newDoc = await addDoc(collection(db, "assignments"), {
                             ...data,
                             delivered: false,
                             userId: user.uid,
                             createdAt: initialDate.getTime(),
                             source: 'calendar'
                         });
+                        assignmentId = newDoc.id;
+                    }
+
+                    // Automatic mod access grant and sync
+                    if (autoGrantModAccess && connectedMods.length > 0) {
+                        try {
+                            await fetch(`/api/videos/${selectedVideoId}/assign-access`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'x-user-id': user.uid
+                                },
+                                body: JSON.stringify({
+                                    youtuberId: selectedId,
+                                    sourceVideoAssignmentId: assignmentId
+                                })
+                            });
+                        } catch (err) {
+                            console.warn('Failed to auto-grant mod access:', err);
+                        }
                     }
                 }
             } else {
-                const recordData: any = {
+                const recordData: Record<string, unknown> = {
                     type: recordType,
                     amount: parseFloat(amount),
                     description: description.trim(),
@@ -185,7 +246,7 @@ export default function RecordModal({ isOpen, onClose, initialDate = new Date(),
                     recordData.brokerId = null; // Clear if switching
                 }
 
-                if (editData && editType === 'record') {
+                if (editData?.id && editType === 'record') {
                     await updateDoc(doc(db, "records", editData.id), recordData);
                 } else {
                     recordData.userId = user.uid;
@@ -500,6 +561,36 @@ export default function RecordModal({ isOpen, onClose, initialDate = new Date(),
                                     )}
                                 </div>
                             </div>
+
+                            {connectedMods.length > 0 && (
+                                <div style={{
+                                    backgroundColor: 'rgba(92, 62, 240, 0.08)',
+                                    border: '1px solid rgba(92, 62, 240, 0.25)',
+                                    borderRadius: '8px',
+                                    padding: '12px',
+                                    marginTop: '12px'
+                                }}>
+                                    <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>
+                                        Bu video şu modlara bağlı:
+                                    </div>
+                                    <ul style={{ paddingLeft: '18px', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
+                                        {connectedMods.map(m => (
+                                            <li key={m.id}><strong>{m.displayName}</strong> ({m.modKey})</li>
+                                        ))}
+                                    </ul>
+                                    <p style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '8px', lineHeight: 1.4 }}>
+                                        Atama tamamlandığında YouTuber’ın aktif Minecraft oyuncularına otomatik olarak mod erişimi verilecek.
+                                    </p>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', cursor: 'pointer' }}>
+                                        <input
+                                            type="checkbox"
+                                            checked={autoGrantModAccess}
+                                            onChange={(e) => setAutoGrantModAccess(e.target.checked)}
+                                        />
+                                        <span>Minecraft mod erişimini otomatik tanımla</span>
+                                    </label>
+                                </div>
+                            )}
                         </div>
                     )}
 

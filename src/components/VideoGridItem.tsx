@@ -10,6 +10,7 @@ interface VideoGridItemProps {
         thumbnailUrl: string;
     };
     assignmentCount: number;
+    connectedModCount?: number;
     onClick: () => void;
     onDelete: (e: React.MouseEvent, id: string) => void;
     onUpdateVideo?: (id: string, newTitle: string, newUrl: string) => Promise<boolean | void> | void;
@@ -19,6 +20,7 @@ interface VideoGridItemProps {
 export function VideoGridItem({
     video,
     assignmentCount,
+    connectedModCount,
     onClick,
     onDelete,
     onUpdateVideo,
@@ -188,9 +190,23 @@ export function VideoGridItem({
                     </div>
 
                     <div className={styles.footer}>
-                        <span className={styles.assignmentCount}>
-                            {assignmentCount} YouTuber Atandı
-                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                            <span className={styles.assignmentCount}>
+                                {assignmentCount} YouTuber Atandı
+                            </span>
+                            {connectedModCount !== undefined && connectedModCount > 0 && (
+                                <span style={{
+                                    fontSize: '11px',
+                                    padding: '2px 6px',
+                                    borderRadius: '4px',
+                                    backgroundColor: 'rgba(92, 62, 240, 0.15)',
+                                    color: 'var(--accent-purple)',
+                                    fontWeight: 600
+                                }}>
+                                    {connectedModCount} Mod Bağlı
+                                </span>
+                            )}
+                        </div>
                         <a
                             href={video.url}
                             target="_blank"

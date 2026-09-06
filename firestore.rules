@@ -72,6 +72,40 @@ service cloud.firestore {
       allow read, update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
       allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
     }
+
+    // Minecraft Mod Projects
+    match /mod_projects/{docId} {
+      allow read, update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+    }
+
+    // Video - Mod Project Associations
+    match /video_mod_projects/{docId} {
+      allow read, update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+    }
+
+    // YouTuber Mod Access Grants
+    match /youtuber_mod_access/{docId} {
+      allow read, update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+    }
+
+    // Mod Access Audit Events
+    match /mod_access_events/{docId} {
+      allow read, create: if request.auth != null;
+    }
+
+    // GitHub Sync Jobs
+    match /github_sync_jobs/{docId} {
+      allow read, update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+    }
+
+    // GitHub Sync Runs Audit
+    match /github_sync_runs/{docId} {
+      allow read, create: if request.auth != null;
+    }
   }
 }
 

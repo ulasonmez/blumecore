@@ -268,6 +268,9 @@ export async function addPlayerToYoutuber(input: AddPlayerInput): Promise<Enrich
         updatedAt: Timestamp.fromDate(now)
     });
 
+    // Trigger mod sync for any active mod access this YouTuber has
+    await triggerSyncForYoutuberActiveMods(input.youtuberId, input.userId, 'PLAYER_ADDED');
+
     return {
         associationId: newAssocDoc.id,
         youtuberId: input.youtuberId,
@@ -384,6 +387,14 @@ export async function updateYoutuberPlayer(input: UpdatePlayerInput): Promise<En
         updatedAt: Timestamp.fromDate(now)
     });
 
+    // If UUID or active status changed, trigger mod sync
+    const uuidChanged = !currentTargetData || currentTargetData.uuid !== canonicalUuid;
+    const activeChanged = assocData.isActive !== input.isActive;
+    if (uuidChanged || activeChanged) {
+        const trigger = (!input.isActive && assocData.isActive) ? 'PLAYER_DEACTIVATED' : 'PLAYER_UPDATED';
+        await triggerSyncForYoutuberActiveMods(input.youtuberId, input.userId, trigger);
+    }
+
     return {
         associationId: input.associationId,
         youtuberId: input.youtuberId,
@@ -420,6 +431,10 @@ export async function deleteYoutuberPlayerAssociation(associationId: string, you
     }
 
     await deleteDoc(assocRef);
+
+    if (assocData.userId) {
+        await triggerSyncForYoutuberActiveMods(youtuberId, assocData.userId, 'PLAYER_REMOVED');
+    }
 }
 
 /**
@@ -562,4 +577,71 @@ export async function getActiveMinecraftPlayersForYoutuber(
     }
 
     return results;
+}
+
+/**
+ * Triggers GitHub Mod Sync for all ModProjects where the given YouTuber has ACTIVE access.
+ * Coalesces pending jobs and fires background execution.
+ */
+export async function triggerSyncForYoutuberActiveMods(
+    youtuberId: string,
+    userId: string,
+    triggerType: 'PLAYER_ADDED' | 'PLAYER_UPDATED' | 'PLAYER_DEACTIVATED' | 'PLAYER_REMOVED'
+): Promise<void> {
+    try {
+        const qAccess = query(
+            collection(db, 'youtuber_mod_access'),
+            where('youtuberId', '==', youtuberId),
+            where('userId', '==', userId),
+            where('status', '==', 'ACTIVE')
+        );
+        const accessSnap = await getDocs(qAccess);
+        if (accessSnap.empty) return;
+
+        for (const aDoc of accessSnap.docs) {
+            const modId = aDoc.data().modProjectId;
+            if (!modId) continue;
+
+            // Check if pending job exists to coalesce
+            const qPending = query(
+                collection(db, 'github_sync_jobs'),
+                where('modProjectId', '==', modId),
+                where('status', '==', 'PENDING')
+            );
+            const pSnap = await getDocs(qPending);
+            let jobId: string;
+
+            if (!pSnap.empty) {
+                jobId = pSnap.docs[0].id;
+            } else {
+                const newJob = await addDoc(collection(db, 'github_sync_jobs'), {
+                    modProjectId: modId,
+                    status: 'PENDING',
+                    triggerType,
+                    attemptCount: 0,
+                    nextAttemptAt: Date.now(),
+                    lockedAt: null,
+                    lockedBy: null,
+                    lastErrorCode: null,
+                    lastErrorMessage: null,
+                    userId,
+                    createdAt: Date.now(),
+                    updatedAt: Date.now()
+                });
+                jobId = newJob.id;
+            }
+
+            // Interactive execution attempt via API (fire-and-forget in background)
+            if (typeof window !== 'undefined') {
+                fetch('/api/jobs/process', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-user-id': userId },
+                    body: JSON.stringify({ jobId })
+                }).catch(() => {});
+            }
+        }
+    } catch (e) {
+        // Safe failover: do not fail user operation if job queueing fails
+        console.warn('Failed to trigger mod sync for player change:', e);
+    }
 }
