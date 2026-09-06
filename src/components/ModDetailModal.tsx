@@ -14,7 +14,11 @@ import {
     Loader2,
     Users,
     FileText,
-    AlertTriangle
+    AlertTriangle,
+    Search,
+    ChevronDown,
+    Eye,
+    EyeOff
 } from 'lucide-react';
 import { ModProject, YoutuberAccessSummary, LegacyUuidInfo } from '@/lib/mods/types';
 import { useAuth } from '@/lib/auth-context';
@@ -60,7 +64,10 @@ export default function ModDetailModal({
     // Manual grant modal state
     const [isAddYoutuberOpen, setIsAddYoutuberOpen] = useState(false);
     const [selectedYoutuberId, setSelectedYoutuberId] = useState('');
+    const [youtuberSearchTerm, setYoutuberSearchTerm] = useState('');
+    const [isYoutuberDropdownOpen, setIsYoutuberDropdownOpen] = useState(false);
     const [isGranting, setIsGranting] = useState(false);
+    const [showRevoked, setShowRevoked] = useState(false);
 
     // Revoke confirm state
     const [revokingTarget, setRevokingTarget] = useState<YoutuberAccessSummary | null>(null);
@@ -197,6 +204,8 @@ export default function ModDetailModal({
                 showToast('YouTuber erişimi verildi ve senkronizasyon tetiklendi.');
                 setIsAddYoutuberOpen(false);
                 setSelectedYoutuberId('');
+                setYoutuberSearchTerm('');
+                setIsYoutuberDropdownOpen(false);
                 loadAccessList();
                 if (onModUpdated) onModUpdated();
             } else {
@@ -523,12 +532,42 @@ export default function ModDetailModal({
                         </div>
                     )}
 
-                    {activeTab === 'youtubers' && (
+                    {activeTab === 'youtubers' && (() => {
+                        const revokedCount = accessList.filter(a => a.access.status === 'REVOKED').length;
+                        const displayedAccessList = showRevoked
+                            ? accessList
+                            : accessList.filter(a => a.access.status === 'ACTIVE');
+
+                        return (
                         <div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                                <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-                                    Bu mod için tanımlanmış YouTuber erişimleri:
-                                </span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                                        Bu mod için tanımlanmış YouTuber erişimleri:
+                                    </span>
+                                    {revokedCount > 0 && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowRevoked(prev => !prev)}
+                                            style={{
+                                                background: 'transparent',
+                                                border: '1px solid var(--border-color)',
+                                                borderRadius: '6px',
+                                                padding: '4px 8px',
+                                                fontSize: '11px',
+                                                color: showRevoked ? 'var(--accent-purple)' : 'var(--text-secondary)',
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '5px'
+                                            }}
+                                            title={showRevoked ? 'Erişimi kaldırılanları gizle' : 'Erişimi kaldırılanları göster'}
+                                        >
+                                            {showRevoked ? <EyeOff size={12} /> : <Eye size={12} />}
+                                            {showRevoked ? 'Kaldırılanları Gizle' : `Kaldırılanları Göster (${revokedCount})`}
+                                        </button>
+                                    )}
+                                </div>
                                 <button
                                     onClick={() => setIsAddYoutuberOpen(true)}
                                     className="btn-primary"
@@ -557,36 +596,145 @@ export default function ModDetailModal({
                                     marginBottom: '16px'
                                 }}>
                                     <h4 style={{ fontSize: '13px', marginBottom: '8px' }}>YouTuber&apos;a Manuel Mod Erişimi Tanımla</h4>
-                                    <div style={{ display: 'flex', gap: '8px' }}>
-                                        <select
-                                            value={selectedYoutuberId}
-                                            onChange={(e) => setSelectedYoutuberId(e.target.value)}
-                                            style={{
-                                                flex: 1,
-                                                padding: '8px 12px',
-                                                backgroundColor: 'var(--bg-color)',
-                                                border: '1px solid var(--border-color)',
-                                                borderRadius: '6px',
-                                                color: 'var(--text-primary)',
-                                                fontSize: '13px'
-                                            }}
-                                        >
-                                            <option value="">YouTuber Seçiniz...</option>
-                                            {allYoutubers.map((y) => (
-                                                <option key={y.id} value={y.id}>{y.name}</option>
-                                            ))}
-                                        </select>
+                                    <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                                        <div style={{ flex: 1, position: 'relative' }}>
+                                            <div
+                                                style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    backgroundColor: 'var(--bg-color)',
+                                                    border: '1px solid var(--border-color)',
+                                                    borderRadius: '6px',
+                                                    padding: '0 10px',
+                                                    gap: '8px'
+                                                }}
+                                            >
+                                                <Search size={14} style={{ color: 'var(--text-secondary)', flexShrink: 0 }} />
+                                                <input
+                                                    type="text"
+                                                    placeholder="YouTuber ara veya seç..."
+                                                    value={isYoutuberDropdownOpen ? youtuberSearchTerm : (allYoutubers.find(y => y.id === selectedYoutuberId)?.name || '')}
+                                                    onChange={(e) => {
+                                                        setYoutuberSearchTerm(e.target.value);
+                                                        setIsYoutuberDropdownOpen(true);
+                                                        if (!e.target.value) {
+                                                            setSelectedYoutuberId('');
+                                                        }
+                                                    }}
+                                                    onFocus={() => {
+                                                        setIsYoutuberDropdownOpen(true);
+                                                        if (selectedYoutuberId) {
+                                                            const current = allYoutubers.find(y => y.id === selectedYoutuberId);
+                                                            if (current) setYoutuberSearchTerm(current.name);
+                                                        }
+                                                    }}
+                                                    style={{
+                                                        width: '100%',
+                                                        padding: '8px 0',
+                                                        backgroundColor: 'transparent',
+                                                        border: 'none',
+                                                        color: 'var(--text-primary)',
+                                                        fontSize: '13px',
+                                                        outline: 'none'
+                                                    }}
+                                                />
+                                                <ChevronDown
+                                                    size={14}
+                                                    style={{
+                                                        color: 'var(--text-secondary)',
+                                                        cursor: 'pointer',
+                                                        transform: isYoutuberDropdownOpen ? 'rotate(180deg)' : 'none',
+                                                        transition: 'transform 0.15s ease'
+                                                    }}
+                                                    onClick={() => setIsYoutuberDropdownOpen(prev => !prev)}
+                                                />
+                                            </div>
+
+                                            {isYoutuberDropdownOpen && (
+                                                <>
+                                                    <div
+                                                        style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 19 }}
+                                                        onClick={() => {
+                                                            setIsYoutuberDropdownOpen(false);
+                                                            setYoutuberSearchTerm('');
+                                                        }}
+                                                    />
+                                                    <div style={{
+                                                        position: 'absolute',
+                                                        top: '100%',
+                                                        left: 0,
+                                                        right: 0,
+                                                        marginTop: '4px',
+                                                        backgroundColor: 'var(--bg-card)',
+                                                        border: '1px solid var(--border-color)',
+                                                        borderRadius: '6px',
+                                                        maxHeight: '180px',
+                                                        overflowY: 'auto',
+                                                        zIndex: 20,
+                                                        boxShadow: '0 8px 24px rgba(0,0,0,0.4)'
+                                                    }}>
+                                                        {allYoutubers.filter(y => y.name.toLowerCase().includes(youtuberSearchTerm.toLowerCase())).length === 0 ? (
+                                                            <div style={{ padding: '10px', color: 'var(--text-secondary)', fontSize: '12px', textAlign: 'center' }}>
+                                                                Eşleşen YouTuber bulunamadı.
+                                                            </div>
+                                                        ) : (
+                                                            allYoutubers
+                                                                .filter(y => y.name.toLowerCase().includes(youtuberSearchTerm.toLowerCase()))
+                                                                .map(y => {
+                                                                    const isSelected = selectedYoutuberId === y.id;
+                                                                    return (
+                                                                        <div
+                                                                            key={y.id}
+                                                                            onClick={() => {
+                                                                                setSelectedYoutuberId(y.id);
+                                                                                setIsYoutuberDropdownOpen(false);
+                                                                                setYoutuberSearchTerm('');
+                                                                            }}
+                                                                            style={{
+                                                                                padding: '8px 12px',
+                                                                                cursor: 'pointer',
+                                                                                fontSize: '12px',
+                                                                                color: isSelected ? 'var(--accent-purple)' : 'var(--text-primary)',
+                                                                                backgroundColor: isSelected ? 'rgba(92, 62, 240, 0.15)' : 'transparent',
+                                                                                borderBottom: '1px solid rgba(255,255,255,0.05)',
+                                                                                display: 'flex',
+                                                                                alignItems: 'center',
+                                                                                justifyContent: 'space-between',
+                                                                                transition: 'background-color 0.15s'
+                                                                            }}
+                                                                            onMouseEnter={(e) => {
+                                                                                if (!isSelected) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)';
+                                                                            }}
+                                                                            onMouseLeave={(e) => {
+                                                                                if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent';
+                                                                            }}
+                                                                        >
+                                                                            <span>{y.name}</span>
+                                                                            {isSelected && <CheckCircle2 size={13} style={{ color: 'var(--accent-purple)' }} />}
+                                                                        </div>
+                                                                    );
+                                                                })
+                                                        )}
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
                                         <button
                                             onClick={handleGrantAccess}
                                             disabled={!selectedYoutuberId || isGranting}
                                             className="btn-primary"
-                                            style={{ padding: '8px 16px', fontSize: '12px', borderRadius: '6px' }}
+                                            style={{ padding: '8px 16px', fontSize: '12px', borderRadius: '6px', height: '36px', whiteSpace: 'nowrap' }}
                                         >
                                             {isGranting ? 'Ekleniyor...' : 'Erişim Ver'}
                                         </button>
                                         <button
-                                            onClick={() => setIsAddYoutuberOpen(false)}
-                                            style={{ padding: '8px 12px', fontSize: '12px', color: 'var(--text-secondary)' }}
+                                            onClick={() => {
+                                                setIsAddYoutuberOpen(false);
+                                                setSelectedYoutuberId('');
+                                                setYoutuberSearchTerm('');
+                                                setIsYoutuberDropdownOpen(false);
+                                            }}
+                                            style={{ padding: '8px 12px', fontSize: '12px', color: 'var(--text-secondary)', height: '36px' }}
                                         >
                                             İptal
                                         </button>
@@ -598,14 +746,16 @@ export default function ModDetailModal({
                                 <div style={{ textAlign: 'center', padding: '32px', color: 'var(--text-secondary)' }}>
                                     <Loader2 size={24} className="spin" />
                                 </div>
-                            ) : accessList.length === 0 ? (
+                            ) : displayedAccessList.length === 0 ? (
                                 <div style={{ textAlign: 'center', padding: '32px', color: 'var(--text-secondary)', fontSize: '13px' }}>
                                     <Users size={32} style={{ margin: '0 auto 8px', opacity: 0.5 }} />
-                                    Bu moda henüz yetkili bir YouTuber tanımlanmamış.
+                                    {accessList.length === 0
+                                        ? 'Bu moda henüz yetkili bir YouTuber tanımlanmamış.'
+                                        : 'Aktif yetkili YouTuber bulunmamaktadır.'}
                                 </div>
                             ) : (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                    {accessList.map((item) => {
+                                    {displayedAccessList.map((item) => {
                                         const isRevoked = item.access.status === 'REVOKED';
                                         return (
                                             <div
@@ -739,7 +889,8 @@ export default function ModDetailModal({
                                 </div>
                             )}
                         </div>
-                    )}
+                        );
+                    })()}
 
                     {activeTab === 'legacy' && (
                         <div>
