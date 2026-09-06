@@ -61,5 +61,17 @@ service cloud.firestore {
       allow read, update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
       allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
     }
+
+    // Minecraft Global Players
+    match /minecraft_players/{docId} {
+      allow read, create, update: if request.auth != null;
+    }
+
+    // YouTuber Minecraft Player Associations
+    match /youtuber_minecraft_players/{docId} {
+      allow read, update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+    }
   }
 }
+

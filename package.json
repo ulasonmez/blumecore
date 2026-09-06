@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "tsx --test tests/minecraft-players.test.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -26,6 +27,7 @@
     "babel-plugin-react-compiler": "1.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
+    "tsx": "^4.23.13",
     "typescript": "^5"
   }
 }

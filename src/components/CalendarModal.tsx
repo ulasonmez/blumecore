@@ -1,6 +1,6 @@
 'use client';
 
-import { X } from 'lucide-react';
+import { X, Gamepad2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
@@ -8,6 +8,7 @@ import styles from './CalendarModal.module.css';
 import { db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { useAuth } from '@/lib/auth-context';
+import MinecraftPlayersTab from './MinecraftPlayersTab';
 
 interface CalendarModalProps {
     isOpen: boolean;
@@ -53,7 +54,7 @@ export default function CalendarModal({
     const [records, setRecords] = useState<RecordData[]>([]);
     const [assignments, setAssignments] = useState<AssignmentData[]>([]);
     const [videos, setVideos] = useState<VideoData[]>([]);
-    const [activeTab, setActiveTab] = useState<'money' | 'videos'>('money');
+    const [activeTab, setActiveTab] = useState<'money' | 'videos' | 'players'>('money');
 
     useEffect(() => {
         if (!isOpen || !user || !youtuberId) return;
@@ -155,14 +156,19 @@ export default function CalendarModal({
                     <button
                         onClick={() => setActiveTab('money')}
                         style={{
-                            padding: '8px 16px',
+                            padding: '8px 12px',
                             background: activeTab === 'money' ? 'var(--accent-purple)' : 'transparent',
                             color: activeTab === 'money' ? '#fff' : 'var(--text-secondary)',
                             border: 'none',
                             borderRadius: '8px',
                             fontWeight: 500,
+                            fontSize: '13px',
                             cursor: 'pointer',
-                            flex: 1
+                            flex: 1,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '6px'
                         }}
                     >
                         Para
@@ -170,22 +176,48 @@ export default function CalendarModal({
                     <button
                         onClick={() => setActiveTab('videos')}
                         style={{
-                            padding: '8px 16px',
+                            padding: '8px 12px',
                             background: activeTab === 'videos' ? 'var(--accent-purple)' : 'transparent',
                             color: activeTab === 'videos' ? '#fff' : 'var(--text-secondary)',
                             border: 'none',
                             borderRadius: '8px',
                             fontWeight: 500,
+                            fontSize: '13px',
                             cursor: 'pointer',
-                            flex: 1
+                            flex: 1,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '6px'
                         }}
                     >
                         Videolar
                     </button>
+                    <button
+                        onClick={() => setActiveTab('players')}
+                        style={{
+                            padding: '8px 12px',
+                            background: activeTab === 'players' ? 'var(--accent-purple)' : 'transparent',
+                            color: activeTab === 'players' ? '#fff' : 'var(--text-secondary)',
+                            border: 'none',
+                            borderRadius: '8px',
+                            fontWeight: 500,
+                            fontSize: '13px',
+                            cursor: 'pointer',
+                            flex: 1,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '6px'
+                        }}
+                    >
+                        <Gamepad2 size={15} />
+                        Oyuncular
+                    </button>
                 </div>
 
                 {/* Tab Content */}
-                <div style={{ maxHeight: '400px', overflowY: 'auto', paddingRight: '4px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ maxHeight: '420px', overflowY: 'auto', paddingRight: '4px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
 
                     {activeTab === 'money' && (
                         <>
@@ -254,6 +286,13 @@ export default function CalendarModal({
                                 });
                             })()}
                         </>
+                    )}
+
+                    {activeTab === 'players' && (
+                        <MinecraftPlayersTab
+                            youtuberId={youtuberId}
+                            youtuberTitle={title}
+                        />
                     )}
 
                 </div>
