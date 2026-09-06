@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/firebase';
-import { collection, query, where, getDocs, addDoc, doc, getDoc } from 'firebase/firestore';
+import { adminDb } from '@/lib/firebase-admin';
 import { ModProject, VideoModProject } from '@/lib/mods/types';
 import { getAuthenticatedUser } from '@/lib/server-auth';
 
@@ -16,18 +15,17 @@ export async function GET(
         }
         const userId = authUser.userId;
 
-        const qLinks = query(
-            collection(db, 'video_mod_projects'),
-            where('videoId', '==', videoId),
-            where('userId', '==', userId)
-        );
-        const linkSnap = await getDocs(qLinks);
+        const linkSnap = await adminDb
+            .collection('video_mod_projects')
+            .where('videoId', '==', videoId)
+            .where('userId', '==', userId)
+            .get();
 
         const mods: (ModProject & { linkId: string })[] = [];
         for (const lDoc of linkSnap.docs) {
             const linkData = lDoc.data() as VideoModProject;
-            const modSnap = await getDoc(doc(db, 'mod_projects', linkData.modProjectId));
-            if (modSnap.exists()) {
+            const modSnap = await adminDb.collection('mod_projects').doc(linkData.modProjectId).get();
+            if (modSnap.exists) {
                 mods.push({
                     id: modSnap.id,
                     linkId: lDoc.id,
@@ -38,8 +36,8 @@ export async function GET(
 
         return NextResponse.json({ data: mods });
     } catch (err: unknown) {
-        console.error('Error in GET /api/videos/[videoId]/mods:', err);
-        return NextResponse.json({ error: 'Bağlı modlar yüklenirken hata oluştu.' }, { status: 500 });
+        console.error('Error in GET /api/videos/[videoId]/mods:', err instanceof Error ? err.message : 'Unknown error');
+        return NextResponse.json({ error: 'Bağlı modlar yüklenirken sunucu hatası oluştu.' }, { status: 500 });
     }
 }
 
@@ -55,33 +53,39 @@ export async function POST(
         }
         const userId = authUser.userId;
 
-        const body = await request.json();
+        let body: Record<string, unknown>;
+        try {
+            body = await request.json();
+        } catch {
+            return NextResponse.json({ error: 'Geçersiz istek gövdesi.' }, { status: 400 });
+        }
+
         const { modProjectId } = body;
 
-        if (!modProjectId) {
+        if (!modProjectId || typeof modProjectId !== 'string') {
             return NextResponse.json({ error: 'modProjectId parametresi zorunludur.' }, { status: 400 });
         }
 
         // Verify video exists and belongs to user
-        const videoSnap = await getDoc(doc(db, 'youtube_videos', videoId));
-        if (!videoSnap.exists() || videoSnap.data()?.userId !== userId) {
+        const videoSnap = await adminDb.collection('youtube_videos').doc(videoId).get();
+        if (!videoSnap.exists || (!authUser.isSystemAdmin && videoSnap.data()?.userId !== userId)) {
             return NextResponse.json({ error: 'Video bulunamadı veya yetkisiz erişim.' }, { status: 404 });
         }
 
         // Verify mod exists and belongs to user
-        const modSnap = await getDoc(doc(db, 'mod_projects', modProjectId));
-        if (!modSnap.exists() || modSnap.data()?.userId !== userId) {
+        const modSnap = await adminDb.collection('mod_projects').doc(modProjectId).get();
+        if (!modSnap.exists || (!authUser.isSystemAdmin && modSnap.data()?.userId !== userId)) {
             return NextResponse.json({ error: 'Mod projesi bulunamadı veya yetkisiz erişim.' }, { status: 404 });
         }
 
         // Check if already linked
-        const qDup = query(
-            collection(db, 'video_mod_projects'),
-            where('videoId', '==', videoId),
-            where('modProjectId', '==', modProjectId),
-            where('userId', '==', userId)
-        );
-        const dupSnap = await getDocs(qDup);
+        const dupSnap = await adminDb
+            .collection('video_mod_projects')
+            .where('videoId', '==', videoId)
+            .where('modProjectId', '==', modProjectId)
+            .where('userId', '==', userId)
+            .get();
+
         if (!dupSnap.empty) {
             return NextResponse.json({ error: 'Bu mod zaten bu videoya bağlı.' }, { status: 409 });
         }
@@ -93,7 +97,7 @@ export async function POST(
             createdAt: Date.now()
         };
 
-        const linkRef = await addDoc(collection(db, 'video_mod_projects'), newLink);
+        const linkRef = await adminDb.collection('video_mod_projects').add(newLink);
 
         return NextResponse.json({
             data: {
@@ -103,8 +107,7 @@ export async function POST(
             }
         }, { status: 201 });
     } catch (err: unknown) {
-        console.error('Error in POST /api/videos/[videoId]/mods:', err);
-        const message = err instanceof Error ? err.message : 'Mod bağlanırken hata oluştu.';
-        return NextResponse.json({ error: message }, { status: 500 });
+        console.error('Error in POST /api/videos/[videoId]/mods:', err instanceof Error ? err.message : 'Unknown error');
+        return NextResponse.json({ error: 'Mod bağlanırken sunucu hatası oluştu.' }, { status: 500 });
     }
 }

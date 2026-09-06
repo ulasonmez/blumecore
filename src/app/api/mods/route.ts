@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/firebase';
-import { collection, query, where, getDocs, addDoc } from 'firebase/firestore';
+import { adminDb } from '@/lib/firebase-admin';
 import { ModProject } from '@/lib/mods/types';
 import { validateModProjectInput } from '@/lib/mods/mod-service';
 import { getAuthenticatedUser } from '@/lib/server-auth';
@@ -13,8 +12,10 @@ export async function GET(request: NextRequest) {
         }
         const userId = authUser.userId;
 
-        const qMods = query(collection(db, 'mod_projects'), where('userId', '==', userId));
-        const snap = await getDocs(qMods);
+        const snap = await adminDb
+            .collection('mod_projects')
+            .where('userId', '==', userId)
+            .get();
 
         const mods: ModProject[] = [];
         snap.forEach((d) => {
@@ -29,8 +30,8 @@ export async function GET(request: NextRequest) {
 
         return NextResponse.json({ data: mods });
     } catch (err: unknown) {
-        console.error('Error in GET /api/mods:', err);
-        return NextResponse.json({ error: 'Modlar yüklenirken bir hata oluştu.' }, { status: 500 });
+        console.error('Error in GET /api/mods:', err instanceof Error ? err.message : 'Unknown error');
+        return NextResponse.json({ error: 'Modlar yüklenirken sunucu hatası oluştu.' }, { status: 500 });
     }
 }
 
@@ -40,12 +41,19 @@ export async function POST(request: NextRequest) {
         if (!authUser) {
             return NextResponse.json({ error: 'Yetkilendirme hatası: Oturum açmanız gerekmektedir.' }, { status: 401 });
         }
+        // Strictly use userId from authenticated session
         const userId = authUser.userId;
 
-        const body = await request.json();
-        const { modKey, description } = body;
+        let body: Record<string, unknown>;
+        try {
+            body = await request.json();
+        } catch {
+            return NextResponse.json({ error: 'Geçersiz istek gövdesi.' }, { status: 400 });
+        }
 
-        const cleanModKey = (modKey || '').trim();
+        const { modKey, description } = body || {};
+
+        const cleanModKey = typeof modKey === 'string' ? modKey.trim() : '';
         if (!cleanModKey) {
             return NextResponse.json({ error: 'Mod ID alanı zorunludur.' }, { status: 400 });
         }
@@ -55,24 +63,28 @@ export async function POST(request: NextRequest) {
         const repo = cleanModKey;
         const targetBranch = 'main';
         const targetPath = 'README.md';
-        const effectiveDisplayName = (body.displayName && body.displayName.trim()) || cleanModKey;
+        const effectiveDisplayName = (typeof body.displayName === 'string' && body.displayName.trim()) || cleanModKey;
 
-        validateModProjectInput({
-            modKey: cleanModKey,
-            displayName: effectiveDisplayName,
-            githubOwner: owner,
-            githubRepository: repo,
-            branch: targetBranch,
-            allowlistPath: targetPath
-        });
+        try {
+            validateModProjectInput({
+                modKey: cleanModKey,
+                displayName: effectiveDisplayName,
+                githubOwner: owner,
+                githubRepository: repo,
+                branch: targetBranch,
+                allowlistPath: targetPath
+            });
+        } catch (valErr) {
+            return NextResponse.json({ error: valErr instanceof Error ? valErr.message : 'Geçersiz mod parametreleri.' }, { status: 400 });
+        }
 
         // Check if modKey already exists for this user
-        const qExisting = query(
-            collection(db, 'mod_projects'),
-            where('userId', '==', userId),
-            where('modKey', '==', cleanModKey)
-        );
-        const existingSnap = await getDocs(qExisting);
+        const existingSnap = await adminDb
+            .collection('mod_projects')
+            .where('userId', '==', userId)
+            .where('modKey', '==', cleanModKey)
+            .get();
+
         if (!existingSnap.empty) {
             return NextResponse.json({ error: `Bu mod kimliğine (${cleanModKey}) sahip bir mod zaten mevcut.` }, { status: 409 });
         }
@@ -81,7 +93,7 @@ export async function POST(request: NextRequest) {
         const newMod: Omit<ModProject, 'id'> = {
             modKey: cleanModKey,
             displayName: effectiveDisplayName,
-            description: description ? description.trim() : '',
+            description: typeof description === 'string' ? description.trim() : '',
             githubOwner: owner,
             githubRepository: repo,
             branch: targetBranch,
@@ -96,11 +108,11 @@ export async function POST(request: NextRequest) {
             updatedAt: now
         };
 
-        const docRef = await addDoc(collection(db, 'mod_projects'), newMod);
+        const docRef = await adminDb.collection('mod_projects').add(newMod);
 
         return NextResponse.json({ data: { id: docRef.id, ...newMod } }, { status: 201 });
     } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : 'Mod oluşturulurken bir hata oluştu.';
-        return NextResponse.json({ error: message }, { status: 400 });
+        console.error('Error in POST /api/mods:', err instanceof Error ? err.message : 'Unknown error');
+        return NextResponse.json({ error: 'Mod kaydedilirken sunucu hatası oluştu.' }, { status: 500 });
     }
 }

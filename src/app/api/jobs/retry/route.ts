@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/firebase';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { adminDb } from '@/lib/firebase-admin';
 import { processSyncJob } from '@/lib/mods/mod-service';
 import { getAuthenticatedUser } from '@/lib/server-auth';
 
@@ -11,15 +10,21 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Yetkilendirme hatası: Geçersiz veya eksik oturum.' }, { status: 401 });
         }
 
-        const body = await request.json();
+        let body: Record<string, unknown>;
+        try {
+            body = await request.json();
+        } catch {
+            return NextResponse.json({ error: 'Geçersiz istek gövdesi.' }, { status: 400 });
+        }
+
         const { jobId } = body;
-        if (!jobId) {
+        if (!jobId || typeof jobId !== 'string') {
             return NextResponse.json({ error: 'jobId gereklidir.' }, { status: 400 });
         }
 
-        const jobRef = doc(db, 'github_sync_jobs', jobId);
-        const jobSnap = await getDoc(jobRef);
-        if (!jobSnap.exists()) {
+        const jobRef = adminDb.collection('github_sync_jobs').doc(jobId);
+        const jobSnap = await jobRef.get();
+        if (!jobSnap.exists) {
             return NextResponse.json({ error: 'İş kaydı bulunamadı.' }, { status: 404 });
         }
 
@@ -28,7 +33,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Reset status to PENDING so it can be claimed and processed
-        await updateDoc(jobRef, {
+        await jobRef.update({
             status: 'PENDING',
             nextAttemptAt: Date.now(),
             lockedAt: null,
@@ -40,7 +45,7 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json({ data: execResult });
     } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : 'İş tekrar denenirken hata oluştu.';
-        return NextResponse.json({ error: message }, { status: 500 });
+        console.error('Error in POST /api/jobs/retry:', err instanceof Error ? err.message : 'Unknown error');
+        return NextResponse.json({ error: 'İş tekrar denenirken sunucu hatası oluştu.' }, { status: 500 });
     }
 }

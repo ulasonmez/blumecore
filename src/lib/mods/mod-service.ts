@@ -1,15 +1,4 @@
-import {
-    collection,
-    doc,
-    getDoc,
-    getDocs,
-    addDoc,
-    updateDoc,
-    query,
-    where,
-    runTransaction
-} from 'firebase/firestore';
-import { db } from '../firebase';
+import { adminDb } from '../firebase-admin';
 import {
     ModProject,
     VideoModProject,
@@ -20,7 +9,7 @@ import {
     DesiredModState,
     LegacyUuidInfo
 } from './types';
-import { getActiveMinecraftPlayersForYoutuber } from '../minecraft-players';
+import { normalizeUuid } from '../minecraft-players';
 import {
     parseLegacyReadme,
     renderManagedReadme,
@@ -64,6 +53,42 @@ export function validateModProjectInput(data: {
 }
 
 /**
+ * Helper to fetch active Minecraft players for a YouTuber on server side using Firebase Admin SDK.
+ */
+export async function getActiveMinecraftPlayersForYoutuberAdmin(youtuberId: string) {
+    const assocSnap = await adminDb
+        .collection('youtuber_minecraft_players')
+        .where('youtuberId', '==', youtuberId)
+        .where('isActive', '==', true)
+        .get();
+
+    if (assocSnap.empty) return [];
+
+    const results: { uuid: string; username: string; relationshipType: string; isPrimary: boolean }[] = [];
+    const seenUuids = new Set<string>();
+
+    for (const d of assocSnap.docs) {
+        const data = d.data();
+        const pSnap = await adminDb.collection('minecraft_players').doc(data.minecraftPlayerId).get();
+        if (pSnap.exists) {
+            const pData = pSnap.data();
+            const canonical = normalizeUuid(pData?.uuid || '');
+            if (canonical && !seenUuids.has(canonical)) {
+                seenUuids.add(canonical);
+                results.push({
+                    uuid: canonical,
+                    username: pData?.username || 'Bilinmeyen',
+                    relationshipType: data.relationshipType || 'other',
+                    isPrimary: !!data.isPrimary
+                });
+            }
+        }
+    }
+
+    return results;
+}
+
+/**
  * Calculates the desired state of UUIDs for a given ModProject.
  */
 export async function buildDesiredUuidState(
@@ -71,13 +96,12 @@ export async function buildDesiredUuidState(
     userId: string
 ): Promise<DesiredModState> {
     // 1. Fetch active YouTuber access records for this mod
-    const qAccess = query(
-        collection(db, 'youtuber_mod_access'),
-        where('modProjectId', '==', modProjectId),
-        where('userId', '==', userId),
-        where('status', '==', 'ACTIVE')
-    );
-    const accessSnap = await getDocs(qAccess);
+    const accessSnap = await adminDb
+        .collection('youtuber_mod_access')
+        .where('modProjectId', '==', modProjectId)
+        .where('userId', '==', userId)
+        .where('status', '==', 'ACTIVE')
+        .get();
 
     const youtuberGroups: DesiredModState['youtuberGroups'] = [];
     const allDesiredUuids: string[] = [];
@@ -87,11 +111,11 @@ export async function buildDesiredUuidState(
         const accessData = aDoc.data() as YoutuberModAccess;
 
         // Fetch YouTuber details for display name
-        const ySnap = await getDoc(doc(db, 'youtubers', accessData.youtuberId));
-        const yName = ySnap.exists() ? ySnap.data()?.name || 'Bilinmeyen YouTuber' : 'Bilinmeyen YouTuber';
+        const ySnap = await adminDb.collection('youtubers').doc(accessData.youtuberId).get();
+        const yName = ySnap.exists ? ySnap.data()?.name || 'Bilinmeyen YouTuber' : 'Bilinmeyen YouTuber';
 
-        // Fetch active Minecraft players
-        const activePlayers = await getActiveMinecraftPlayersForYoutuber(accessData.youtuberId);
+        // Fetch active Minecraft players using admin SDK
+        const activePlayers = await getActiveMinecraftPlayersForYoutuberAdmin(accessData.youtuberId);
 
         const groupPlayers: { uuid: string; username: string }[] = [];
         for (const p of activePlayers) {
@@ -129,13 +153,12 @@ export async function createOrCoalesceSyncJob(
     userId: string,
     triggerType: GitHubSyncTriggerType
 ): Promise<GitHubSyncJob> {
-    const qPending = query(
-        collection(db, 'github_sync_jobs'),
-        where('modProjectId', '==', modProjectId),
-        where('userId', '==', userId),
-        where('status', '==', 'PENDING')
-    );
-    const pendingSnap = await getDocs(qPending);
+    const pendingSnap = await adminDb
+        .collection('github_sync_jobs')
+        .where('modProjectId', '==', modProjectId)
+        .where('userId', '==', userId)
+        .where('status', '==', 'PENDING')
+        .get();
 
     const now = Date.now();
 
@@ -160,7 +183,7 @@ export async function createOrCoalesceSyncJob(
         updatedAt: now
     };
 
-    const docRef = await addDoc(collection(db, 'github_sync_jobs'), newJobData);
+    const docRef = await adminDb.collection('github_sync_jobs').add(newJobData);
     return { id: docRef.id, ...newJobData };
 }
 
@@ -171,15 +194,15 @@ export async function processSyncJob(
     jobId: string,
     workerId = 'interactive-worker'
 ): Promise<{ success: boolean; message: string; run?: GitHubSyncRun }> {
-    const jobRef = doc(db, 'github_sync_jobs', jobId);
+    const jobRef = adminDb.collection('github_sync_jobs').doc(jobId);
     const now = Date.now();
 
     // Atomic transaction claim to strictly prevent duplicate parallel execution
     let job: GitHubSyncJob;
     try {
-        job = await runTransaction(db, async (tx) => {
+        job = await adminDb.runTransaction(async (tx) => {
             const jobDoc = await tx.get(jobRef);
-            if (!jobDoc.exists()) {
+            if (!jobDoc.exists) {
                 throw new Error('İş kaydı bulunamadı.');
             }
             const currentJob = { id: jobDoc.id, ...jobDoc.data() } as GitHubSyncJob;
@@ -216,22 +239,22 @@ export async function processSyncJob(
 
     try {
         // Fetch ModProject
-        const modSnap = await getDoc(doc(db, 'mod_projects', job.modProjectId));
-        if (!modSnap.exists()) {
+        const modSnap = await adminDb.collection('mod_projects').doc(job.modProjectId).get();
+        if (!modSnap.exists) {
             throw new Error('Mod projesi veritabanında bulunamadı.');
         }
         const modProject = { id: modSnap.id, ...modSnap.data() } as ModProject;
 
         if (!modProject.isActive) {
             // Mark job success as no-op because mod is deactivated
-            await updateDoc(jobRef, {
+            await jobRef.update({
                 status: 'SUCCESS',
                 completedAt: Date.now(),
                 lockedAt: null,
                 lockedBy: null,
                 updatedAt: Date.now()
             });
-            await updateDoc(doc(db, 'mod_projects', modProject.id), {
+            await adminDb.collection('mod_projects').doc(modProject.id).update({
                 syncStatus: 'SUCCESS',
                 updatedAt: Date.now()
             });
@@ -255,7 +278,7 @@ export async function processSyncJob(
 
         if (renderResult.isMalformed) {
             const errorMsg = renderResult.error || 'README marker yapısı bozuk.';
-            await updateDoc(jobRef, {
+            await jobRef.update({
                 status: 'FAILED',
                 lastErrorCode: 'FAILED_MALFORMED_MARKERS',
                 lastErrorMessage: errorMsg,
@@ -276,7 +299,7 @@ export async function processSyncJob(
                 startedAt: startTime,
                 completedAt: Date.now()
             };
-            const rRef = await addDoc(collection(db, 'github_sync_runs'), failedRunData);
+            const rRef = await adminDb.collection('github_sync_runs').add(failedRunData);
 
             return {
                 success: false,
@@ -301,7 +324,7 @@ export async function processSyncJob(
         }
 
         // Update ModProject last sync info
-        await updateDoc(doc(db, 'mod_projects', modProject.id), {
+        await adminDb.collection('mod_projects').doc(modProject.id).update({
             lastSuccessfulSyncAt: Date.now(),
             lastSuccessfulCommitSha: commitSha || modProject.lastSuccessfulCommitSha || null,
             syncStatus: runStatus === 'NO_ACTIVE_PLAYERS' ? 'NO_ACTIVE_PLAYERS' : 'SUCCESS',
@@ -309,7 +332,7 @@ export async function processSyncJob(
         });
 
         // Complete job
-        await updateDoc(jobRef, {
+        await jobRef.update({
             status: 'SUCCESS',
             lastErrorCode: null,
             lastErrorMessage: null,
@@ -333,7 +356,7 @@ export async function processSyncJob(
             startedAt: startTime,
             completedAt: Date.now()
         };
-        const runDoc = await addDoc(collection(db, 'github_sync_runs'), runRecord);
+        const runDoc = await adminDb.collection('github_sync_runs').add(runRecord);
 
         return {
             success: true,
@@ -350,7 +373,7 @@ export async function processSyncJob(
         const backoffMinutes = [1, 5, 15, 60];
         const nextDelay = (backoffMinutes[Math.min(job.attemptCount, backoffMinutes.length - 1)] || 60) * 60 * 1000;
 
-        await updateDoc(jobRef, {
+        await jobRef.update({
             status: 'FAILED',
             lastErrorCode: errorCode,
             lastErrorMessage: errorMsg,
@@ -361,7 +384,7 @@ export async function processSyncJob(
         });
 
         try {
-            await updateDoc(doc(db, 'mod_projects', job.modProjectId), {
+            await adminDb.collection('mod_projects').doc(job.modProjectId).update({
                 syncStatus: 'FAILED',
                 updatedAt: Date.now()
             });
@@ -381,7 +404,7 @@ export async function processSyncJob(
             startedAt: startTime,
             completedAt: Date.now()
         };
-        const rRef = await addDoc(collection(db, 'github_sync_runs'), failedRunData);
+        const rRef = await adminDb.collection('github_sync_runs').add(failedRunData);
 
         return {
             success: false,
@@ -396,12 +419,11 @@ export async function processSyncJob(
  */
 export async function processPendingJobs(maxBatch = 10): Promise<{ processed: number; errors: number }> {
     const now = Date.now();
-    const qJobs = query(
-        collection(db, 'github_sync_jobs'),
-        where('status', 'in', ['PENDING', 'FAILED', 'RUNNING'])
-    );
+    const snapshot = await adminDb
+        .collection('github_sync_jobs')
+        .where('status', 'in', ['PENDING', 'FAILED', 'RUNNING'])
+        .get();
 
-    const snapshot = await getDocs(qJobs);
     let processed = 0;
     let errors = 0;
 
@@ -435,12 +457,12 @@ export async function handleVideoAssignmentModAccess(
     sourceVideoAssignmentId?: string
 ): Promise<{ affectedMods: string[]; syncResults: { modId: string; success: boolean; message: string }[] }> {
     // 1. Find all active video-mod links
-    const qLinks = query(
-        collection(db, 'video_mod_projects'),
-        where('videoId', '==', videoId),
-        where('userId', '==', userId)
-    );
-    const linkSnap = await getDocs(qLinks);
+    const linkSnap = await adminDb
+        .collection('video_mod_projects')
+        .where('videoId', '==', videoId)
+        .where('userId', '==', userId)
+        .get();
+
     if (linkSnap.empty) {
         return { affectedMods: [], syncResults: [] };
     }
@@ -453,19 +475,18 @@ export async function handleVideoAssignmentModAccess(
 
     for (const modId of modProjectIds) {
         // Verify mod is active
-        const modSnap = await getDoc(doc(db, 'mod_projects', modId));
-        if (!modSnap.exists() || !modSnap.data()?.isActive) {
+        const modSnap = await adminDb.collection('mod_projects').doc(modId).get();
+        if (!modSnap.exists || !modSnap.data()?.isActive) {
             continue;
         }
 
         // Check existing access
-        const qAccess = query(
-            collection(db, 'youtuber_mod_access'),
-            where('modProjectId', '==', modId),
-            where('youtuberId', '==', youtuberId),
-            where('userId', '==', userId)
-        );
-        const accessSnap = await getDocs(qAccess);
+        const accessSnap = await adminDb
+            .collection('youtuber_mod_access')
+            .where('modProjectId', '==', modId)
+            .where('youtuberId', '==', youtuberId)
+            .where('userId', '==', userId)
+            .get();
 
         let accessId: string;
 
@@ -481,7 +502,7 @@ export async function handleVideoAssignmentModAccess(
 
             // Otherwise activate if revoked without force deny
             if (data.status !== 'ACTIVE') {
-                await updateDoc(doc(db, 'youtuber_mod_access', accessId), {
+                await adminDb.collection('youtuber_mod_access').doc(accessId).update({
                     status: 'ACTIVE',
                     syncStatus: 'PENDING',
                     sourceVideoAssignmentId: sourceVideoAssignmentId || null,
@@ -504,11 +525,11 @@ export async function handleVideoAssignmentModAccess(
                 createdAt: now,
                 updatedAt: now
             };
-            const aRef = await addDoc(collection(db, 'youtuber_mod_access'), newAccessData);
+            const aRef = await adminDb.collection('youtuber_mod_access').add(newAccessData);
             accessId = aRef.id;
 
             // Log event
-            await addDoc(collection(db, 'mod_access_events'), {
+            await adminDb.collection('mod_access_events').add({
                 youtuberModAccessId: accessId,
                 modProjectId: modId,
                 youtuberId,
@@ -555,8 +576,8 @@ export async function checkModDrift(
     desiredContent: string;
     liveContent: string;
 }> {
-    const modSnap = await getDoc(doc(db, 'mod_projects', modProjectId));
-    if (!modSnap.exists()) {
+    const modSnap = await adminDb.collection('mod_projects').doc(modProjectId).get();
+    if (!modSnap.exists) {
         throw new Error('Mod projesi bulunamadı.');
     }
     const mod = { id: modSnap.id, ...modSnap.data() } as ModProject;
@@ -591,8 +612,8 @@ export async function checkModDrift(
 export async function getLegacyUuidsForMod(
     modProjectId: string
 ): Promise<LegacyUuidInfo[]> {
-    const modSnap = await getDoc(doc(db, 'mod_projects', modProjectId));
-    if (!modSnap.exists()) {
+    const modSnap = await adminDb.collection('mod_projects').doc(modProjectId).get();
+    if (!modSnap.exists) {
         throw new Error('Mod projesi bulunamadı.');
     }
     const mod = { id: modSnap.id, ...modSnap.data() } as ModProject;
@@ -610,8 +631,7 @@ export async function getLegacyUuidsForMod(
 
     for (const uuid of uniqueLegacyUuids) {
         // Lookup global player
-        const qP = query(collection(db, 'minecraft_players'), where('uuid', '==', uuid));
-        const pSnap = await getDocs(qP);
+        const pSnap = await adminDb.collection('minecraft_players').where('uuid', '==', uuid).get();
 
         let matchedPlayerUsername: string | null = null;
         let matchedYoutuberName: string | null = null;
@@ -621,15 +641,15 @@ export async function getLegacyUuidsForMod(
             matchedPlayerUsername = pDoc.data().username || null;
 
             // Lookup YouTuber association
-            const qA = query(
-                collection(db, 'youtuber_minecraft_players'),
-                where('minecraftPlayerId', '==', pDoc.id)
-            );
-            const aSnap = await getDocs(qA);
+            const aSnap = await adminDb
+                .collection('youtuber_minecraft_players')
+                .where('minecraftPlayerId', '==', pDoc.id)
+                .get();
+
             if (!aSnap.empty) {
                 const yId = aSnap.docs[0].data().youtuberId;
-                const yDoc = await getDoc(doc(db, 'youtubers', yId));
-                if (yDoc.exists()) {
+                const yDoc = await adminDb.collection('youtubers').doc(yId).get();
+                if (yDoc.exists) {
                     matchedYoutuberName = yDoc.data()?.name || null;
                 }
             }

@@ -14,10 +14,16 @@ export async function POST(
         }
         const userId = authUser.userId;
 
-        const body = await request.json();
+        let body: Record<string, unknown>;
+        try {
+            body = await request.json();
+        } catch {
+            return NextResponse.json({ error: 'Geçersiz istek gövdesi.' }, { status: 400 });
+        }
+
         const { youtuberId, sourceVideoAssignmentId } = body;
 
-        if (!youtuberId) {
+        if (!youtuberId || typeof youtuberId !== 'string') {
             return NextResponse.json({ error: 'youtuberId gereklidir.' }, { status: 400 });
         }
 
@@ -25,13 +31,12 @@ export async function POST(
             videoId,
             youtuberId,
             userId,
-            sourceVideoAssignmentId
+            typeof sourceVideoAssignmentId === 'string' ? sourceVideoAssignmentId : undefined
         );
 
         return NextResponse.json({ data: result });
     } catch (err: unknown) {
-        console.error('Error in POST /api/videos/[videoId]/assign-access:', err);
-        const message = err instanceof Error ? err.message : 'Atama mod erişimi işlemi sırasında hata oluştu.';
-        return NextResponse.json({ error: message }, { status: 500 });
+        console.error('Error in POST /api/videos/[videoId]/assign-access:', err instanceof Error ? err.message : 'Unknown error');
+        return NextResponse.json({ error: 'Atama mod erişimi işlemi sırasında sunucu hatası oluştu.' }, { status: 500 });
     }
 }

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/firebase';
-import { collection, query, where, getDocs, deleteDoc, doc } from 'firebase/firestore';
+import { adminDb } from '@/lib/firebase-admin';
 import { getAuthenticatedUser } from '@/lib/server-auth';
 
 export async function DELETE(
@@ -15,24 +14,24 @@ export async function DELETE(
         }
         const userId = authUser.userId;
 
-        const qLink = query(
-            collection(db, 'video_mod_projects'),
-            where('videoId', '==', videoId),
-            where('modProjectId', '==', modId),
-            where('userId', '==', userId)
-        );
-        const linkSnap = await getDocs(qLink);
+        const linkSnap = await adminDb
+            .collection('video_mod_projects')
+            .where('videoId', '==', videoId)
+            .where('modProjectId', '==', modId)
+            .where('userId', '==', userId)
+            .get();
 
         if (linkSnap.empty) {
             return NextResponse.json({ error: 'Video-mod bağlantısı bulunamadı.' }, { status: 404 });
         }
 
         for (const lDoc of linkSnap.docs) {
-            await deleteDoc(doc(db, 'video_mod_projects', lDoc.id));
+            await adminDb.collection('video_mod_projects').doc(lDoc.id).delete();
         }
 
         return NextResponse.json({ success: true, message: 'Mod bağlantısı kaldırıldı. (YouTuber erişimleri korundu).' });
     } catch (err: unknown) {
-        return NextResponse.json({ error: 'Bağlantı kaldırılırken hata oluştu.' }, { status: 500 });
+        console.error('Error in DELETE /api/videos/[videoId]/mods/[modId]:', err instanceof Error ? err.message : 'Unknown error');
+        return NextResponse.json({ error: 'Bağlantı kaldırılırken sunucu hatası oluştu.' }, { status: 500 });
     }
 }

@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { processSyncJob } from '@/lib/mods/mod-service';
 import { getAuthenticatedUser } from '@/lib/server-auth';
-import { db } from '@/lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { adminDb } from '@/lib/firebase-admin';
 
 export async function POST(request: NextRequest) {
     try {
@@ -11,19 +10,25 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Yetkilendirme hatası: Geçersiz veya eksik oturum.' }, { status: 401 });
         }
 
-        const body = await request.json();
+        let body: Record<string, unknown>;
+        try {
+            body = await request.json();
+        } catch {
+            return NextResponse.json({ error: 'Geçersiz istek gövdesi.' }, { status: 400 });
+        }
+
         const { jobId } = body;
-        if (!jobId) {
+        if (!jobId || typeof jobId !== 'string') {
             return NextResponse.json({ error: 'jobId parametresi gereklidir.' }, { status: 400 });
         }
 
         // Verify job ownership unless system admin
         if (!authUser.isSystemAdmin) {
-            const jobSnap = await getDoc(doc(db, 'github_sync_jobs', jobId));
-            if (!jobSnap.exists()) {
+            const jobSnap = await adminDb.collection('github_sync_jobs').doc(jobId).get();
+            if (!jobSnap.exists) {
                 return NextResponse.json({ error: 'İş kaydı bulunamadı.' }, { status: 404 });
             }
-            if (jobSnap.data().userId !== authUser.userId) {
+            if (jobSnap.data()?.userId !== authUser.userId) {
                 return NextResponse.json({ error: 'Bu işi çalıştırma yetkiniz yok.' }, { status: 403 });
             }
         }
@@ -32,7 +37,7 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json({ data: result });
     } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : 'İş çalıştırılırken hata oluştu.';
-        return NextResponse.json({ error: message }, { status: 500 });
+        console.error('Error in POST /api/jobs/process:', err instanceof Error ? err.message : 'Unknown error');
+        return NextResponse.json({ error: 'İş çalıştırılırken sunucu hatası oluştu.' }, { status: 500 });
     }
 }

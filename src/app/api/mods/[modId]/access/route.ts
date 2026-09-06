@@ -1,18 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/firebase';
-import {
-    doc,
-    getDoc,
-    getDocs,
-    collection,
-    query,
-    where,
-    addDoc,
-    updateDoc
-} from 'firebase/firestore';
+import { adminDb } from '@/lib/firebase-admin';
 import { YoutuberModAccess, YoutuberAccessSummary } from '@/lib/mods/types';
-import { getActiveMinecraftPlayersForYoutuber } from '@/lib/minecraft-players';
-import { createOrCoalesceSyncJob, processSyncJob } from '@/lib/mods/mod-service';
+import {
+    createOrCoalesceSyncJob,
+    processSyncJob,
+    getActiveMinecraftPlayersForYoutuberAdmin
+} from '@/lib/mods/mod-service';
 import { getAuthenticatedUser } from '@/lib/server-auth';
 
 export async function GET(
@@ -27,22 +20,27 @@ export async function GET(
         }
         const userId = authUser.userId;
 
-        const qAccess = query(
-            collection(db, 'youtuber_mod_access'),
-            where('modProjectId', '==', modId),
-            where('userId', '==', userId)
-        );
-        const accessSnap = await getDocs(qAccess);
+        // Verify mod ownership
+        const modSnap = await adminDb.collection('mod_projects').doc(modId).get();
+        if (!modSnap.exists || (!authUser.isSystemAdmin && modSnap.data()?.userId !== userId)) {
+            return NextResponse.json({ error: 'Mod bulunamadı veya yetkisiz erişim.' }, { status: 404 });
+        }
+
+        const accessSnap = await adminDb
+            .collection('youtuber_mod_access')
+            .where('modProjectId', '==', modId)
+            .where('userId', '==', userId)
+            .get();
 
         const summaries: YoutuberAccessSummary[] = [];
 
         for (const aDoc of accessSnap.docs) {
             const access = { id: aDoc.id, ...(aDoc.data() as Omit<YoutuberModAccess, 'id'>) };
 
-            const ySnap = await getDoc(doc(db, 'youtubers', access.youtuberId));
-            const youtuberName = ySnap.exists() ? ySnap.data()?.name || 'Bilinmeyen' : 'Bilinmeyen';
+            const ySnap = await adminDb.collection('youtubers').doc(access.youtuberId).get();
+            const youtuberName = ySnap.exists ? ySnap.data()?.name || 'Bilinmeyen' : 'Bilinmeyen';
 
-            const activePlayers = await getActiveMinecraftPlayersForYoutuber(access.youtuberId);
+            const activePlayers = await getActiveMinecraftPlayersForYoutuberAdmin(access.youtuberId);
 
             summaries.push({
                 access,
@@ -54,8 +52,8 @@ export async function GET(
 
         return NextResponse.json({ data: summaries });
     } catch (err: unknown) {
-        console.error('Error in GET /api/mods/[modId]/access:', err);
-        return NextResponse.json({ error: 'Yetki listesi alınırken hata oluştu.' }, { status: 500 });
+        console.error('Error in GET /api/mods/[modId]/access:', err instanceof Error ? err.message : 'Unknown error');
+        return NextResponse.json({ error: 'Yetki listesi alınırken sunucu hatası oluştu.' }, { status: 500 });
     }
 }
 
@@ -71,27 +69,32 @@ export async function POST(
         }
         const userId = authUser.userId;
 
-        const body = await request.json();
+        let body: Record<string, unknown>;
+        try {
+            body = await request.json();
+        } catch {
+            return NextResponse.json({ error: 'Geçersiz istek gövdesi.' }, { status: 400 });
+        }
+
         const { youtuberId, action, revokeReason } = body;
 
-        if (!youtuberId || !action) {
+        if (!youtuberId || typeof youtuberId !== 'string' || !action || typeof action !== 'string') {
             return NextResponse.json({ error: 'YouTuber ID ve işlem türü gereklidir.' }, { status: 400 });
         }
 
         // Verify mod ownership
-        const modSnap = await getDoc(doc(db, 'mod_projects', modId));
-        if (!modSnap.exists() || (!authUser.isSystemAdmin && modSnap.data()?.userId !== userId)) {
+        const modSnap = await adminDb.collection('mod_projects').doc(modId).get();
+        if (!modSnap.exists || (!authUser.isSystemAdmin && modSnap.data()?.userId !== userId)) {
             return NextResponse.json({ error: 'Mod bulunamadı veya yetkisiz erişim.' }, { status: 404 });
         }
 
         // Check existing access
-        const qAccess = query(
-            collection(db, 'youtuber_mod_access'),
-            where('modProjectId', '==', modId),
-            where('youtuberId', '==', youtuberId),
-            where('userId', '==', userId)
-        );
-        const accessSnap = await getDocs(qAccess);
+        const accessSnap = await adminDb
+            .collection('youtuber_mod_access')
+            .where('modProjectId', '==', modId)
+            .where('youtuberId', '==', youtuberId)
+            .where('userId', '==', userId)
+            .get();
         const existingDoc = !accessSnap.empty ? accessSnap.docs[0] : null;
 
         const now = Date.now();
@@ -105,7 +108,7 @@ export async function POST(
 
             if (existingDoc) {
                 accessId = existingDoc.id;
-                await updateDoc(doc(db, 'youtuber_mod_access', accessId), {
+                await adminDb.collection('youtuber_mod_access').doc(accessId).update({
                     status: 'ACTIVE',
                     syncStatus: 'PENDING',
                     manualDecision: 'FORCE_ALLOW',
@@ -128,7 +131,7 @@ export async function POST(
                     createdAt: now,
                     updatedAt: now
                 };
-                const ref = await addDoc(collection(db, 'youtuber_mod_access'), newAccess);
+                const ref = await adminDb.collection('youtuber_mod_access').add(newAccess);
                 accessId = ref.id;
             }
         } else if (action === 'revoke') {
@@ -140,13 +143,13 @@ export async function POST(
             }
 
             accessId = existingDoc.id;
-            await updateDoc(doc(db, 'youtuber_mod_access', accessId), {
+            await adminDb.collection('youtuber_mod_access').doc(accessId).update({
                 status: 'REVOKED',
                 syncStatus: 'PENDING',
                 manualDecision: 'FORCE_DENY',
                 revokedAt: now,
                 revokedByUserId: userId,
-                revokeReason: revokeReason || 'Manuel olarak kaldırıldı.',
+                revokeReason: typeof revokeReason === 'string' ? revokeReason : 'Manuel olarak kaldırıldı.',
                 updatedAt: now
             });
         } else {
@@ -154,13 +157,13 @@ export async function POST(
         }
 
         // Audit event
-        await addDoc(collection(db, 'mod_access_events'), {
+        await adminDb.collection('mod_access_events').add({
             youtuberModAccessId: accessId,
             modProjectId: modId,
             youtuberId,
             eventType,
             actorUserId: userId,
-            metadata: { action, reason: revokeReason || null },
+            metadata: { action, reason: typeof revokeReason === 'string' ? revokeReason : null },
             createdAt: now
         });
 
@@ -174,8 +177,7 @@ export async function POST(
             syncResult: syncExec
         });
     } catch (err: unknown) {
-        console.error('Error in POST /api/mods/[modId]/access:', err);
-        const message = err instanceof Error ? err.message : 'Erişim güncellenirken hata oluştu.';
-        return NextResponse.json({ error: message }, { status: 500 });
+        console.error('Error in POST /api/mods/[modId]/access:', err instanceof Error ? err.message : 'Unknown error');
+        return NextResponse.json({ error: 'Erişim güncellenirken sunucu hatası oluştu.' }, { status: 500 });
     }
 }

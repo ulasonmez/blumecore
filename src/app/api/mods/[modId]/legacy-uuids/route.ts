@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { adminDb } from '@/lib/firebase-admin';
 import { getLegacyUuidsForMod } from '@/lib/mods/mod-service';
 import { getAuthenticatedUser } from '@/lib/server-auth';
 
@@ -16,21 +15,20 @@ export async function GET(
         }
         const userId = authUser.userId;
 
-        const modRef = doc(db, 'mod_projects', modId);
-        const modSnap = await getDoc(modRef);
-        if (!modSnap.exists()) {
+        const modSnap = await adminDb.collection('mod_projects').doc(modId).get();
+        if (!modSnap.exists) {
             return NextResponse.json({ error: 'Mod bulunamadı.' }, { status: 404 });
         }
 
-        if (!authUser.isSystemAdmin && modSnap.data().userId !== userId) {
-            return NextResponse.json({ error: 'Yetkisiz erişim.' }, { status: 403 });
+        if (!authUser.isSystemAdmin && modSnap.data()?.userId !== userId) {
+            return NextResponse.json({ error: 'Bu mod için erişim yetkiniz yok.' }, { status: 403 });
         }
 
         const legacyUuids = await getLegacyUuidsForMod(modId);
 
         return NextResponse.json({ data: legacyUuids });
     } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : 'Legacy UUID listesi alınırken hata oluştu.';
-        return NextResponse.json({ error: message }, { status: 500 });
+        console.error('Error in GET /api/mods/[modId]/legacy-uuids:', err instanceof Error ? err.message : 'Unknown error');
+        return NextResponse.json({ error: 'Legacy UUID listesi alınırken sunucu hatası oluştu.' }, { status: 500 });
     }
 }

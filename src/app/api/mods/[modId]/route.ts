@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/firebase';
-import { doc, getDoc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { adminDb } from '@/lib/firebase-admin';
 import { ModProject } from '@/lib/mods/types';
 import { getAuthenticatedUser } from '@/lib/server-auth';
 
@@ -16,37 +15,36 @@ export async function GET(
         }
         const userId = authUser.userId;
 
-        const modRef = doc(db, 'mod_projects', modId);
-        const modSnap = await getDoc(modRef);
-        if (!modSnap.exists()) {
+        const modSnap = await adminDb.collection('mod_projects').doc(modId).get();
+        if (!modSnap.exists) {
             return NextResponse.json({ error: 'Mod bulunamadı.' }, { status: 404 });
         }
 
         const modData = { id: modSnap.id, ...modSnap.data() } as ModProject;
-        if (modData.userId !== userId) {
+        if (!authUser.isSystemAdmin && modData.userId !== userId) {
             return NextResponse.json({ error: 'Bu mod için erişim yetkiniz yok.' }, { status: 403 });
         }
 
         // Count connected videos
-        const qVideos = query(collection(db, 'video_mod_projects'), where('modProjectId', '==', modId));
-        const videoSnap = await getDocs(qVideos);
+        const videoSnap = await adminDb
+            .collection('video_mod_projects')
+            .where('modProjectId', '==', modId)
+            .get();
         const videoCount = videoSnap.size;
 
         // Count authorized youtubers
-        const qAccess = query(
-            collection(db, 'youtuber_mod_access'),
-            where('modProjectId', '==', modId),
-            where('status', '==', 'ACTIVE')
-        );
-        const accessSnap = await getDocs(qAccess);
+        const accessSnap = await adminDb
+            .collection('youtuber_mod_access')
+            .where('modProjectId', '==', modId)
+            .where('status', '==', 'ACTIVE')
+            .get();
         const authorizedYoutuberCount = accessSnap.size;
 
         // Fetch latest sync job
-        const qJobs = query(
-            collection(db, 'github_sync_jobs'),
-            where('modProjectId', '==', modId)
-        );
-        const jobSnap = await getDocs(qJobs);
+        const jobSnap = await adminDb
+            .collection('github_sync_jobs')
+            .where('modProjectId', '==', modId)
+            .get();
         let latestJob = null;
         if (!jobSnap.empty) {
             const jobs = jobSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
@@ -63,8 +61,8 @@ export async function GET(
             }
         });
     } catch (err: unknown) {
-        console.error('Error in GET /api/mods/[modId]:', err);
-        return NextResponse.json({ error: 'Mod bilgileri alınırken hata oluştu.' }, { status: 500 });
+        console.error('Error in GET /api/mods/[modId]:', err instanceof Error ? err.message : 'Unknown error');
+        return NextResponse.json({ error: 'Mod bilgileri alınırken sunucu hatası oluştu.' }, { status: 500 });
     }
 }
 
@@ -76,21 +74,27 @@ export async function PATCH(
         const { modId } = await context.params;
         const authUser = await getAuthenticatedUser(request);
         if (!authUser) {
-            return NextResponse.json({ error: 'Yetkilendirme hatası.' }, { status: 401 });
+            return NextResponse.json({ error: 'Yetkilendirme hatası: Oturum açmanız gerekmektedir.' }, { status: 401 });
         }
         const userId = authUser.userId;
 
-        const modRef = doc(db, 'mod_projects', modId);
-        const modSnap = await getDoc(modRef);
-        if (!modSnap.exists()) {
+        const modRef = adminDb.collection('mod_projects').doc(modId);
+        const modSnap = await modRef.get();
+        if (!modSnap.exists) {
             return NextResponse.json({ error: 'Mod bulunamadı.' }, { status: 404 });
         }
 
-        if (!authUser.isSystemAdmin && modSnap.data().userId !== userId) {
-            return NextResponse.json({ error: 'Yetkisiz erişim.' }, { status: 403 });
+        if (!authUser.isSystemAdmin && modSnap.data()?.userId !== userId) {
+            return NextResponse.json({ error: 'Bu işlem için yetkiniz yok.' }, { status: 403 });
         }
 
-        const body = await request.json();
+        let body: Record<string, unknown>;
+        try {
+            body = await request.json();
+        } catch {
+            return NextResponse.json({ error: 'Geçersiz istek gövdesi.' }, { status: 400 });
+        }
+
         const updates: Partial<ModProject> = {
             updatedAt: Date.now()
         };
@@ -111,12 +115,12 @@ export async function PATCH(
             updates.isActive = body.isActive;
         }
 
-        await updateDoc(modRef, updates);
+        await modRef.update(updates);
 
         return NextResponse.json({ data: { id: modId, ...modSnap.data(), ...updates } });
     } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : 'Güncelleme hatası.';
-        return NextResponse.json({ error: message }, { status: 400 });
+        console.error('Error in PATCH /api/mods/[modId]:', err instanceof Error ? err.message : 'Unknown error');
+        return NextResponse.json({ error: 'Mod güncellenirken sunucu hatası oluştu.' }, { status: 500 });
     }
 }
 
@@ -128,22 +132,22 @@ export async function DELETE(
         const { modId } = await context.params;
         const authUser = await getAuthenticatedUser(request);
         if (!authUser) {
-            return NextResponse.json({ error: 'Yetkilendirme hatası.' }, { status: 401 });
+            return NextResponse.json({ error: 'Yetkilendirme hatası: Oturum açmanız gerekmektedir.' }, { status: 401 });
         }
         const userId = authUser.userId;
 
-        const modRef = doc(db, 'mod_projects', modId);
-        const modSnap = await getDoc(modRef);
-        if (!modSnap.exists()) {
+        const modRef = adminDb.collection('mod_projects').doc(modId);
+        const modSnap = await modRef.get();
+        if (!modSnap.exists) {
             return NextResponse.json({ error: 'Mod bulunamadı.' }, { status: 404 });
         }
 
-        if (!authUser.isSystemAdmin && modSnap.data().userId !== userId) {
-            return NextResponse.json({ error: 'Yetkisiz erişim.' }, { status: 403 });
+        if (!authUser.isSystemAdmin && modSnap.data()?.userId !== userId) {
+            return NextResponse.json({ error: 'Bu işlem için yetkiniz yok.' }, { status: 403 });
         }
 
         // Soft-delete: Mark as inactive and archived without deleting historical sync records
-        await updateDoc(modRef, {
+        await modRef.update({
             isActive: false,
             isArchived: true,
             updatedAt: Date.now()
@@ -151,6 +155,7 @@ export async function DELETE(
 
         return NextResponse.json({ success: true, message: 'Mod başarıyla pasif/arşivlenmiş hale getirildi.' });
     } catch (err: unknown) {
-        return NextResponse.json({ error: 'Mod pasif hale getirilirken hata oluştu.' }, { status: 500 });
+        console.error('Error in DELETE /api/mods/[modId]:', err instanceof Error ? err.message : 'Unknown error');
+        return NextResponse.json({ error: 'Mod silinirken sunucu hatası oluştu.' }, { status: 500 });
     }
 }

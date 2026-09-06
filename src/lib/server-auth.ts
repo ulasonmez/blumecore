@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+import { adminAuth } from './firebase-admin';
 
 export interface AuthenticatedUser {
     userId: string;
@@ -11,7 +12,7 @@ export interface AuthenticatedUser {
  * 
  * Supports:
  * 1. Bearer ${CRON_SECRET} for Vercel Cron and background worker jobs
- * 2. Bearer <firebaseIdToken> verified via Firebase Auth / Google Identity Toolkit API
+ * 2. Bearer <firebaseIdToken> verified via Firebase Admin Auth (verifyIdToken)
  * 3. Safe fallback in test environments (NODE_ENV === 'test' or MOCK_AUTH === 'true')
  */
 export async function getAuthenticatedUser(request: NextRequest): Promise<AuthenticatedUser | null> {
@@ -50,8 +51,22 @@ export async function getAuthenticatedUser(request: NextRequest): Promise<Authen
         }
     }
 
-    // 3. Verify Firebase ID Token if token is present
+    // 3. Verify Firebase ID Token using Firebase Admin Auth
     if (token) {
+        try {
+            const decoded = await adminAuth.verifyIdToken(token);
+            if (decoded && decoded.uid) {
+                return {
+                    userId: decoded.uid,
+                    email: decoded.email,
+                    isSystemAdmin: false
+                };
+            }
+        } catch (adminErr) {
+            // Note: Never log raw tokens or private keys
+            const errMsg = adminErr instanceof Error ? adminErr.message : 'Unknown token error';
+            console.warn('[server-auth] Admin verifyIdToken rejected:', errMsg);
+        }
         // A. Decode and validate JWT payload structure
         let jwtPayload: { sub?: string; user_id?: string; email?: string; exp?: number; iss?: string } | null = null;
         try {
