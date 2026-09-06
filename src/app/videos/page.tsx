@@ -203,6 +203,38 @@ export default function VideosPage() {
         }
     };
 
+    // Keep selectedVideo in sync when videos list updates
+    useEffect(() => {
+        if (selectedVideo) {
+            const current = videos.find(v => v.id === selectedVideo.id);
+            if (current && (current.title !== selectedVideo.title || current.url !== selectedVideo.url)) {
+                setSelectedVideo(current);
+            }
+        }
+    }, [videos, selectedVideo]);
+
+    const handleUpdateVideo = async (videoId: string, newTitle: string, newUrl: string) => {
+        try {
+            const currentVideo = videos.find(v => v.id === videoId);
+            const updates: Partial<Video> = {
+                title: newTitle.trim(),
+                url: newUrl.trim(),
+            };
+
+            if (currentVideo && currentVideo.url !== newUrl.trim()) {
+                const info = await fetchYoutubeTitle(newUrl.trim());
+                if (info?.thumbnail_url) {
+                    updates.thumbnailUrl = info.thumbnail_url;
+                }
+            }
+
+            await updateDoc(doc(db, "youtube_videos", videoId), updates);
+        } catch (error) {
+            console.error("Error updating video:", error);
+            throw error;
+        }
+    };
+
     const handleUpdateTitle = async (videoId: string, newTitle: string) => {
         try {
             await updateDoc(doc(db, "youtube_videos", videoId), { title: newTitle });
@@ -310,6 +342,7 @@ export default function VideosPage() {
                         assignmentCount={assignmentsByVideo[video.id]?.length || 0}
                         onClick={() => setSelectedVideo(video)}
                         onDelete={handleDeleteVideo}
+                        onUpdateVideo={handleUpdateVideo}
                         onUpdateTitle={handleUpdateTitle}
                     />
                 ))}

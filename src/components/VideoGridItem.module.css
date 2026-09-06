@@ -85,58 +85,121 @@
     overflow: hidden;
 }
 
-.editMode {
+/* Edit Mode Form */
+.editingCard {
+    cursor: default;
+    border-color: rgba(92, 62, 240, 0.5);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 0 16px rgba(92, 62, 240, 0.15);
+}
+
+.editingCard:hover {
+    transform: none;
+}
+
+.editForm {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 12px;
+    width: 100%;
+}
+
+.editField {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.editLabel {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.linkInputWrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.inputIcon {
+    position: absolute;
+    left: 10px;
+    color: var(--text-secondary);
+    pointer-events: none;
 }
 
 .editInput {
     width: 100%;
     background: rgba(0, 0, 0, 0.3);
-    border: 1px solid var(--accent-purple);
+    border: 1px solid var(--border-color);
     border-radius: 6px;
     padding: 8px 12px;
     color: white;
-    font-size: 14px;
+    font-size: 13px;
     outline: none;
+    transition: all 0.2s ease;
+}
+
+.inputWithIcon {
+    padding-left: 32px !important;
 }
 
 .editInput:focus {
+    border-color: var(--accent-purple);
     box-shadow: 0 0 0 2px rgba(92, 62, 240, 0.2);
+}
+
+.editError {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--accent-red);
+    line-height: 1.3;
 }
 
 .editActions {
     display: flex;
     justify-content: flex-end;
+    align-items: center;
     gap: 8px;
+    margin-top: 4px;
 }
 
 .cancelBtn, .saveBtn {
-    background: none;
     border: none;
-    font-size: 13px;
+    font-size: 12px;
     cursor: pointer;
-    padding: 4px 8px;
-    border-radius: 4px;
+    padding: 6px 14px;
+    border-radius: 6px;
     font-weight: 500;
+    transition: all 0.2s ease;
 }
 
 .cancelBtn {
+    background: rgba(255, 255, 255, 0.05);
     color: var(--text-secondary);
 }
 
-.cancelBtn:hover {
-    background: rgba(255, 255, 255, 0.05);
+.cancelBtn:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.1);
     color: white;
 }
 
 .saveBtn {
-    color: var(--accent-purple);
+    background: var(--accent-purple);
+    color: white;
 }
 
-.saveBtn:hover {
-    background: rgba(92, 62, 240, 0.1);
+.saveBtn:hover:not(:disabled) {
+    background: var(--accent-purple-hover);
+}
+
+.cancelBtn:disabled, .saveBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 .footer {
