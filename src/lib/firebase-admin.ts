@@ -13,10 +13,11 @@ function initAdminApp(): App {
         process.env.FIREBASE_PROJECT_ID;
 
     const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL;
-    const privateKeyRaw = process.env.FIREBASE_ADMIN_PRIVATE_KEY;
+    const privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY
+        ?.replace(/\\n/g, '\n')
+        .trim();
 
-    if (clientEmail && privateKeyRaw) {
-        const privateKey = privateKeyRaw.replace(/\\n/g, '\n');
+    if (clientEmail && privateKey) {
         return initializeApp({
             credential: cert({
                 projectId,
