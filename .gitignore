@@ -42,4 +42,3 @@ next-env.d.ts
 
 *-firebase-adminsdk-*.json
 .env*
-!.env.example

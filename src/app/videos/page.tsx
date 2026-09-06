@@ -99,7 +99,10 @@ export default function VideosPage() {
         const unsubMods = onSnapshot(qMods, (snapshot) => {
             const modItems: ModProject[] = [];
             snapshot.forEach(doc => {
-                modItems.push({ id: doc.id, ...(doc.data() as Omit<ModProject, 'id'>) });
+                const data = doc.data() as Omit<ModProject, 'id'>;
+                if (!data.isArchived) {
+                    modItems.push({ id: doc.id, ...data });
+                }
             });
             modItems.sort((a, b) => {
                 if (a.isActive !== b.isActive) return a.isActive ? -1 : 1;

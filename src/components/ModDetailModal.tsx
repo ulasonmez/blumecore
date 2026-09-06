@@ -73,6 +73,10 @@ export default function ModDetailModal({
     const [revokingTarget, setRevokingTarget] = useState<YoutuberAccessSummary | null>(null);
     const [isRevoking, setIsRevoking] = useState(false);
 
+    // Delete mod state
+    const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+    const [isDeletingMod, setIsDeletingMod] = useState(false);
+
     // Sync preview modal state
     const [isSyncPreviewOpen, setIsSyncPreviewOpen] = useState(false);
 
@@ -273,6 +277,29 @@ export default function ModDetailModal({
             }
         } catch {
             showToast('Yeniden ekleme hatası.');
+        }
+    };
+
+    // Handle Delete Mod
+    const handleDeleteMod = async () => {
+        if (!user || isDeletingMod) return;
+        setIsDeletingMod(true);
+        try {
+            const res = await authenticatedFetch(`/api/mods/${mod.id}`, {
+                method: 'DELETE'
+            });
+            const json = await res.json();
+            if (res.ok) {
+                if (onModUpdated) onModUpdated();
+                setIsDeleteConfirmOpen(false);
+                onClose();
+            } else {
+                showToast(`Hata: ${json.error || 'Mod silinemedi.'}`);
+            }
+        } catch {
+            showToast('Mod silinirken hata oluştu.');
+        } finally {
+            setIsDeletingMod(false);
         }
     };
 
@@ -1139,7 +1166,26 @@ export default function ModDetailModal({
                 )}
 
                 {/* Footer */}
-                <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'flex-end' }}>
+                <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <button
+                        onClick={() => setIsDeleteConfirmOpen(true)}
+                        style={{
+                            padding: '8px 14px',
+                            borderRadius: '8px',
+                            border: '1px solid rgba(239, 68, 68, 0.3)',
+                            fontSize: '13px',
+                            color: 'var(--accent-red)',
+                            backgroundColor: 'transparent',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            cursor: 'pointer'
+                        }}
+                    >
+                        <Trash2 size={14} />
+                        Modu Sil
+                    </button>
+
                     <button
                         onClick={onClose}
                         style={{
@@ -1153,6 +1199,67 @@ export default function ModDetailModal({
                         Kapat
                     </button>
                 </div>
+
+                {/* Delete Mod Confirmation Dialog */}
+                {isDeleteConfirmOpen && (
+                    <div style={{
+                        position: 'fixed',
+                        inset: 0,
+                        backgroundColor: 'rgba(0,0,0,0.85)',
+                        zIndex: 1200,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '16px'
+                    }}>
+                        <div style={{
+                            backgroundColor: 'var(--bg-card)',
+                            border: '1px solid var(--border-color)',
+                            borderRadius: '12px',
+                            padding: '20px',
+                            maxWidth: '440px',
+                            width: '100%',
+                            boxShadow: '0 10px 30px rgba(0,0,0,0.5)'
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-red)', marginBottom: '12px' }}>
+                                <AlertTriangle size={20} />
+                                <h4 style={{ fontSize: '15px', fontWeight: 600 }}>Modu Silmek İstediğinize Emin Misiniz?</h4>
+                            </div>
+                            <p style={{ fontSize: '13px', lineHeight: 1.5, color: 'var(--text-secondary)', marginBottom: '16px' }}>
+                                <strong>{mod.displayName}</strong> ({mod.modKey}) modu sistemden kaldırılacak.
+                                <br /><br />
+                                Bağlı video ve YouTuber erişimleri korunacak ancak mod arayüzde ve yeni listelemelerde görünmeyecektir.
+                            </p>
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                                <button
+                                    onClick={() => setIsDeleteConfirmOpen(false)}
+                                    disabled={isDeletingMod}
+                                    style={{ padding: '8px 14px', borderRadius: '6px', border: '1px solid var(--border-color)', fontSize: '12px' }}
+                                >
+                                    Vazgeç
+                                </button>
+                                <button
+                                    onClick={handleDeleteMod}
+                                    disabled={isDeletingMod}
+                                    style={{
+                                        padding: '8px 16px',
+                                        borderRadius: '6px',
+                                        backgroundColor: 'var(--accent-red)',
+                                        color: '#fff',
+                                        fontSize: '12px',
+                                        fontWeight: 600,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '6px'
+                                    }}
+                                >
+                                    {isDeletingMod ? <Loader2 size={13} className="spin" /> : <Trash2 size={13} />}
+                                    {isDeletingMod ? 'Siliniyor...' : 'Evet, Modu Sil'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

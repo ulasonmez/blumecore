@@ -19,7 +19,10 @@ export async function GET(request: NextRequest) {
 
         const mods: ModProject[] = [];
         snap.forEach((d) => {
-            mods.push({ id: d.id, ...(d.data() as Omit<ModProject, 'id'>) });
+            const data = d.data() as Omit<ModProject, 'id'>;
+            if (!data.isArchived) {
+                mods.push({ id: d.id, ...data });
+            }
         });
 
         // Sort: active first, then newest
