@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
-import { getAuthenticatedUser } from '@/lib/server-auth';
+import { requireOwnerUser } from '@/lib/server-auth';
 
 export async function DELETE(
     request: NextRequest,
@@ -8,11 +8,11 @@ export async function DELETE(
 ) {
     try {
         const { videoId, modId } = await context.params;
-        const authUser = await getAuthenticatedUser(request);
-        if (!authUser) {
-            return NextResponse.json({ error: 'Yetkilendirme hatası: Oturum açmanız gerekmektedir.' }, { status: 401 });
+        const auth = await requireOwnerUser(request);
+        if (!auth.ok) {
+            return auth.response;
         }
-        const userId = authUser.userId;
+        const userId = auth.user.userId;
 
         const linkSnap = await adminDb
             .collection('video_mod_projects')
@@ -29,7 +29,20 @@ export async function DELETE(
             await adminDb.collection('video_mod_projects').doc(lDoc.id).delete();
         }
 
-        return NextResponse.json({ success: true, message: 'Mod bağlantısı kaldırıldı. (YouTuber erişimleri korundu).' });
+        // Recalculate affected accesses and sync mod if access revoked
+        const { recalculateCascadeAccess } = await import('@/lib/mods/mod-service');
+        const cascadeResult = await recalculateCascadeAccess({
+            userId,
+            action: 'VIDEO_MOD_UNLINKED',
+            videoId,
+            modProjectId: modId
+        });
+
+        return NextResponse.json({
+            success: true,
+            message: 'Mod bağlantısı kaldırıldı ve erişimler yeniden hesaplandı.',
+            data: cascadeResult
+        });
     } catch (err: unknown) {
         console.error('Error in DELETE /api/videos/[videoId]/mods/[modId]:', err instanceof Error ? err.message : 'Unknown error');
         return NextResponse.json({ error: 'Bağlantı kaldırılırken sunucu hatası oluştu.' }, { status: 500 });

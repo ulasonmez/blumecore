@@ -1,8 +1,11 @@
 export type ModSyncMode = 'LEGACY_README';
+export type ModLifecycleStatus = 'ACTIVE' | 'ARCHIVING' | 'ARCHIVED' | 'ARCHIVE_FAILED';
+export type ModArchiveStatus = ModLifecycleStatus; // Backward-compatible alias
 
 export interface ModProject {
     id: string;
     modKey: string;
+    canonicalModKey?: string;
     displayName: string;
     description?: string;
     githubOwner: string;
@@ -10,12 +13,43 @@ export interface ModProject {
     branch: string;
     allowlistPath: string;
     syncMode: ModSyncMode;
-    isActive: boolean;
-    isArchived?: boolean;
+    lifecycleStatus: ModLifecycleStatus;
+    archiveError?: string | null;
     syncStatus?: ModSyncStatus;
     lastSuccessfulSyncAt?: number | null;
     lastSuccessfulCommitSha?: string | null;
     userId: string;
+    createdAt: number;
+    updatedAt: number;
+    manualProtectedUuids?: string[];
+    // Backward-compatible deprecated fields:
+    isActive?: boolean;
+    isArchived?: boolean;
+    archiveStatus?: ModArchiveStatus;
+}
+
+export function resolveModLifecycleStatus(mod: Partial<ModProject>): ModLifecycleStatus {
+    if (mod.lifecycleStatus) {
+        return mod.lifecycleStatus;
+    }
+    if (mod.archiveStatus) {
+        return mod.archiveStatus;
+    }
+    if (mod.isArchived === true) {
+        return 'ARCHIVED';
+    }
+    if (mod.isActive === false) {
+        return 'ARCHIVED';
+    }
+    return 'ACTIVE';
+}
+
+export interface GlobalMinecraftPlayer {
+    id: string;
+    username: string;
+    uuid: string;
+    isActive: boolean;
+    description?: string | null;
     createdAt: number;
     updatedAt: number;
 }
@@ -32,6 +66,13 @@ export type ModAccessStatus = 'ACTIVE' | 'REVOKED';
 export type ModAccessGrantType = 'VIDEO_ASSIGNMENT' | 'MANUAL';
 export type ModAccessManualDecision = 'NONE' | 'FORCE_ALLOW' | 'FORCE_DENY';
 
+export interface ModAccessSource {
+    type: 'VIDEO_ASSIGNMENT' | 'MANUAL';
+    sourceVideoAssignmentId?: string | null;
+    videoId?: string | null;
+    addedAt: number;
+}
+
 export type ModSyncStatus =
     | 'PENDING'
     | 'RUNNING'
@@ -47,6 +88,7 @@ export interface YoutuberModAccess {
     status: ModAccessStatus;
     syncStatus?: ModSyncStatus;
     grantType: ModAccessGrantType;
+    grantSources?: ModAccessSource[];
     manualDecision: ModAccessManualDecision;
     sourceVideoAssignmentId?: string | null;
     grantedAt: number;
@@ -87,8 +129,16 @@ export type GitHubSyncTriggerType =
     | 'MANUAL_ACCESS_REVOKED'
     | 'PLAYER_ADDED'
     | 'PLAYER_UPDATED'
+    | 'PLAYER_ACTIVATED'
     | 'PLAYER_DEACTIVATED'
+    | 'PLAYER_UUID_CHANGED'
     | 'PLAYER_REMOVED'
+    | 'PLAYER_DELETED'
+    | 'GLOBAL_PLAYER_CHANGED'
+    | 'MOD_BACKFILL'
+    | 'MOD_ARCHIVED'
+    | 'MOD_RESTORED'
+    | 'LIFECYCLE_CASCADE'
     | 'MANUAL_RETRY'
     | 'MANUAL_SYNC'
     | 'DRIFT_REPAIR'

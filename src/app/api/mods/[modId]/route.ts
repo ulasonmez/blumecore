@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
 import { ModProject } from '@/lib/mods/types';
-import { getAuthenticatedUser } from '@/lib/server-auth';
+import { requireOwnerUser } from '@/lib/server-auth';
 
 export async function GET(
     request: NextRequest,
@@ -9,11 +9,11 @@ export async function GET(
 ) {
     try {
         const { modId } = await context.params;
-        const authUser = await getAuthenticatedUser(request);
-        if (!authUser) {
-            return NextResponse.json({ error: 'Yetkilendirme hatası: Oturum açmanız gerekmektedir.' }, { status: 401 });
+        const auth = await requireOwnerUser(request);
+        if (!auth.ok) {
+            return auth.response;
         }
-        const userId = authUser.userId;
+        const userId = auth.user.userId;
 
         const modSnap = await adminDb.collection('mod_projects').doc(modId).get();
         if (!modSnap.exists) {
@@ -21,7 +21,7 @@ export async function GET(
         }
 
         const modData = { id: modSnap.id, ...modSnap.data() } as ModProject;
-        if (!authUser.isSystemAdmin && modData.userId !== userId) {
+        if (modData.userId !== userId) {
             return NextResponse.json({ error: 'Bu mod için erişim yetkiniz yok.' }, { status: 403 });
         }
 
@@ -72,11 +72,11 @@ export async function PATCH(
 ) {
     try {
         const { modId } = await context.params;
-        const authUser = await getAuthenticatedUser(request);
-        if (!authUser) {
-            return NextResponse.json({ error: 'Yetkilendirme hatası: Oturum açmanız gerekmektedir.' }, { status: 401 });
+        const auth = await requireOwnerUser(request);
+        if (!auth.ok) {
+            return auth.response;
         }
-        const userId = authUser.userId;
+        const userId = auth.user.userId;
 
         const modRef = adminDb.collection('mod_projects').doc(modId);
         const modSnap = await modRef.get();
@@ -84,7 +84,7 @@ export async function PATCH(
             return NextResponse.json({ error: 'Mod bulunamadı.' }, { status: 404 });
         }
 
-        if (!authUser.isSystemAdmin && modSnap.data()?.userId !== userId) {
+        if (modSnap.data()?.userId !== userId) {
             return NextResponse.json({ error: 'Bu işlem için yetkiniz yok.' }, { status: 403 });
         }
 
@@ -130,11 +130,11 @@ export async function DELETE(
 ) {
     try {
         const { modId } = await context.params;
-        const authUser = await getAuthenticatedUser(request);
-        if (!authUser) {
-            return NextResponse.json({ error: 'Yetkilendirme hatası: Oturum açmanız gerekmektedir.' }, { status: 401 });
+        const auth = await requireOwnerUser(request);
+        if (!auth.ok) {
+            return auth.response;
         }
-        const userId = authUser.userId;
+        const userId = auth.user.userId;
 
         const modRef = adminDb.collection('mod_projects').doc(modId);
         const modSnap = await modRef.get();
@@ -142,20 +142,28 @@ export async function DELETE(
             return NextResponse.json({ error: 'Mod bulunamadı.' }, { status: 404 });
         }
 
-        if (!authUser.isSystemAdmin && modSnap.data()?.userId !== userId) {
+        if (modSnap.data()?.userId !== userId) {
             return NextResponse.json({ error: 'Bu işlem için yetkiniz yok.' }, { status: 403 });
         }
 
-        // Soft-delete: Mark as inactive and archived without deleting historical sync records
-        await modRef.update({
-            isActive: false,
-            isArchived: true,
-            updatedAt: Date.now()
-        });
+        // Two-phase archive: ACTIVE -> ARCHIVING -> ARCHIVED / ARCHIVE_FAILED
+        const { archiveModProject } = await import('@/lib/mods/mod-service');
+        const archiveResult = await archiveModProject(modId, userId);
 
-        return NextResponse.json({ success: true, message: 'Mod başarıyla pasif/arşivlenmiş hale getirildi.' });
+        if (!archiveResult.success) {
+            return NextResponse.json(
+                { error: archiveResult.error || 'Mod arşivlenirken GitHub senkronizasyonu başarısız oldu.', archiveStatus: 'ARCHIVE_FAILED' },
+                { status: 500 }
+            );
+        }
+
+        return NextResponse.json({
+            success: true,
+            archiveStatus: 'ARCHIVED',
+            message: 'Mod başarıyla arşivlendi ve allowlist temizlendi.'
+        });
     } catch (err: unknown) {
         console.error('Error in DELETE /api/mods/[modId]:', err instanceof Error ? err.message : 'Unknown error');
-        return NextResponse.json({ error: 'Mod silinirken sunucu hatası oluştu.' }, { status: 500 });
+        return NextResponse.json({ error: 'Mod arşivlenirken sunucu hatası oluştu.' }, { status: 500 });
     }
 }

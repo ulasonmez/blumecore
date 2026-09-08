@@ -35,26 +35,48 @@
     white-space: nowrap;
 }
 
-.addBtn {
+.topActions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.syncModsBtn {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    background-color: var(--accent-purple);
-    color: #ffffff;
-    font-size: 13px;
-    font-weight: 600;
-    padding: 6px 14px;
+    background-color: #1e2438;
+    color: #e2e8f0;
+    font-size: 12.5px;
+    font-weight: 500;
+    padding: 6px 12px;
     border-radius: var(--border-radius-sm);
+    border: 1px solid #333c54;
     cursor: pointer;
-    transition: background-color 0.2s ease, transform 0.1s ease;
+    transition: all 0.15s ease;
 }
 
-.addBtn:hover {
-    background-color: var(--accent-purple-hover);
+.syncModsBtn:hover:not(:disabled) {
+    background-color: #2a324b;
+    border-color: #475569;
+    color: #ffffff;
 }
 
-.addBtn:active {
-    transform: scale(0.98);
+.syncModsBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.warningBanner {
+    background-color: rgba(234, 179, 8, 0.1);
+    border: 1px solid rgba(234, 179, 8, 0.35);
+    color: #facc15;
+    font-size: 12.5px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 /* Empty State */

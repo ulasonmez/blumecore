@@ -6,7 +6,9 @@ import {
     normalizeUuid,
     RelationshipType
 } from '@/lib/minecraft-players';
-import { getAuthenticatedUser } from '@/lib/server-auth';
+import { requireOwnerUser } from '@/lib/server-auth';
+import { syncActiveModsForYoutuberChange } from '@/lib/mods/mod-service';
+import { logAudit, maskUuid } from '@/lib/audit-log';
 
 export async function PATCH(
     request: NextRequest,
@@ -14,11 +16,11 @@ export async function PATCH(
 ) {
     try {
         const { youtuberId, associationId } = await context.params;
-        const authUser = await getAuthenticatedUser(request);
-        if (!authUser) {
-            return NextResponse.json({ error: 'Yetkilendirme hatası: Oturum açmanız gerekmektedir.' }, { status: 401 });
+        const auth = await requireOwnerUser(request);
+        if (!auth.ok) {
+            return auth.response;
         }
-        const userId = authUser.userId;
+        const userId = auth.user.userId;
 
         let body: Record<string, unknown>;
         try {
@@ -57,13 +59,18 @@ export async function PATCH(
             return NextResponse.json({ error: 'Bu ilişki belirtilen YouTuber’a ait değil.' }, { status: 400 });
         }
 
-        if (!authUser.isSystemAdmin && assocData?.userId !== userId) {
+        if (assocData?.userId !== userId) {
             return NextResponse.json({ error: 'Bu işlem için yetkiniz yok.' }, { status: 403 });
         }
 
         const canonicalUuid = normalizeUuid(uuid as string);
         const trimmedUsername = (username as string).trim();
         const now = Date.now();
+
+        // Previous state before update
+        const prevPlayerSnap = await adminDb.collection('minecraft_players').doc(assocData.minecraftPlayerId).get();
+        const oldUuid = prevPlayerSnap.exists ? prevPlayerSnap.data()?.uuid : null;
+        const oldIsActive = assocData.isActive !== false;
 
         // 1. Update or create global player
         let targetPlayerId = assocData.minecraftPlayerId;
@@ -128,7 +135,76 @@ export async function PATCH(
             updatedAt: now
         });
 
+        // Determine if sync is needed
+        const uuidChanged = oldUuid !== canonicalUuid;
+        const activeChanged = oldIsActive !== activeFlag;
+
+        let syncSummary = {
+            affectedModCount: 0,
+            queuedJobCount: 0,
+            coalescedJobCount: 0,
+            legacyConflicts: [] as { modId: string; reason: string }[],
+            affectedModIds: [] as string[],
+            queuedJobIds: [] as string[]
+        };
+
+        if (uuidChanged || activeChanged) {
+            const triggerType = uuidChanged
+                ? 'PLAYER_UUID_CHANGED'
+                : !activeFlag
+                ? 'PLAYER_DEACTIVATED'
+                : 'PLAYER_ACTIVATED';
+
+            syncSummary = await syncActiveModsForYoutuberChange({
+                youtuberId,
+                userId,
+                triggerType,
+                playerId: targetPlayerId,
+                changedUuid: canonicalUuid,
+                oldUuid: oldUuid || undefined
+            });
+
+            // Reliable worker execution
+            const { processSyncJob } = await import('@/lib/mods/mod-service');
+            for (const jId of syncSummary.queuedJobIds) {
+                try {
+                    await processSyncJob(jId, 'player-update-worker');
+                } catch (jobErr) {
+                    console.warn(`[player-update] Worker failed for ${jId}:`, jobErr);
+                }
+            }
+
+            await logAudit({
+                eventType: triggerType,
+                actorUserId: userId,
+                timestamp: now,
+                youtuberId,
+                playerId: targetPlayerId,
+                oldUuidHash: maskUuid(oldUuid),
+                newUuidHash: maskUuid(canonicalUuid),
+                affectedModIds: syncSummary.affectedModIds,
+                queuedJobIds: syncSummary.queuedJobIds
+            });
+        } else {
+            // Metadata change only (e.g. nickname, primary, note): no sync job needed
+            await logAudit({
+                eventType: 'PLAYER_UPDATED',
+                actorUserId: userId,
+                timestamp: now,
+                youtuberId,
+                playerId: targetPlayerId,
+                oldUuidHash: maskUuid(oldUuid),
+                newUuidHash: maskUuid(canonicalUuid)
+            });
+        }
+
         return NextResponse.json({
+            success: true,
+            playerId: targetPlayerId,
+            affectedModCount: syncSummary.affectedModCount,
+            queuedJobCount: syncSummary.queuedJobCount,
+            coalescedJobCount: syncSummary.coalescedJobCount,
+            legacyConflicts: syncSummary.legacyConflicts,
             data: {
                 associationId,
                 youtuberId,
@@ -155,30 +231,108 @@ export async function DELETE(
 ) {
     try {
         const { youtuberId, associationId } = await context.params;
-        const authUser = await getAuthenticatedUser(request);
-        if (!authUser) {
-            return NextResponse.json({ error: 'Yetkilendirme hatası: Oturum açmanız gerekmektedir.' }, { status: 401 });
+        const auth = await requireOwnerUser(request);
+        if (!auth.ok) {
+            return auth.response;
         }
-        const userId = authUser.userId;
+        const userId = auth.user.userId;
+
+        let oldPlayerId = '';
+        let oldUuid: string | null = null;
+        let syncSummary: {
+            affectedModCount: number;
+            queuedJobCount: number;
+            coalescedJobCount: number;
+            legacyConflicts: { modId: string; reason: string }[];
+            affectedModIds: string[];
+            queuedJobIds: string[];
+            playerId?: string;
+        } = {
+            affectedModCount: 0,
+            queuedJobCount: 0,
+            coalescedJobCount: 0,
+            legacyConflicts: [],
+            affectedModIds: [],
+            queuedJobIds: []
+        };
 
         const assocRef = adminDb.collection('youtuber_minecraft_players').doc(associationId);
-        const assocSnap = await assocRef.get();
-        if (!assocSnap.exists) {
-            return NextResponse.json({ error: 'Oyuncu ilişkisi bulunamadı.' }, { status: 404 });
+
+        try {
+            await adminDb.runTransaction(async (tx) => {
+                const assocSnap = await tx.get(assocRef);
+                if (!assocSnap.exists) {
+                    throw new Error('NOT_FOUND:Oyuncu ilişkisi bulunamadı.');
+                }
+
+                const assocData = assocSnap.data();
+                if (assocData?.youtuberId !== youtuberId) {
+                    throw new Error('BAD_REQUEST:Bu ilişki belirtilen YouTuber’a ait değil.');
+                }
+
+                if (assocData?.userId !== userId) {
+                    throw new Error('FORBIDDEN:Bu işlem için yetkiniz yok.');
+                }
+
+                oldPlayerId = assocData.minecraftPlayerId;
+                const oldPlayerSnap = await tx.get(adminDb.collection('minecraft_players').doc(oldPlayerId));
+                oldUuid = oldPlayerSnap.exists ? oldPlayerSnap.data()?.uuid : null;
+
+                // Delete association within transaction
+                tx.delete(assocRef);
+
+                // Queue sync jobs atomically in the same transaction
+                syncSummary = await syncActiveModsForYoutuberChange({
+                    youtuberId,
+                    userId,
+                    triggerType: 'PLAYER_DELETED',
+                    playerId: oldPlayerId,
+                    oldUuid: oldUuid || undefined,
+                    tx
+                });
+            });
+        } catch (txErr: unknown) {
+            const msg = txErr instanceof Error ? txErr.message : 'İşlem sırasında hata oluştu.';
+            if (msg.startsWith('NOT_FOUND:')) return NextResponse.json({ error: msg.replace('NOT_FOUND:', '') }, { status: 404 });
+            if (msg.startsWith('BAD_REQUEST:')) return NextResponse.json({ error: msg.replace('BAD_REQUEST:', '') }, { status: 400 });
+            if (msg.startsWith('FORBIDDEN:')) return NextResponse.json({ error: msg.replace('FORBIDDEN:', '') }, { status: 403 });
+            throw txErr;
         }
 
-        const assocData = assocSnap.data();
-        if (assocData?.youtuberId !== youtuberId) {
-            return NextResponse.json({ error: 'Bu ilişki belirtilen YouTuber’a ait değil.' }, { status: 400 });
+        // Reliable worker execution: await jobs before returning (no orphan promises)
+        let allSynced = true;
+        const { processSyncJob } = await import('@/lib/mods/mod-service');
+        for (const jId of syncSummary.queuedJobIds) {
+            try {
+                const res = await processSyncJob(jId, 'player-delete-worker');
+                if (!res.success) allSynced = false;
+            } catch {
+                allSynced = false;
+            }
         }
 
-        if (!authUser.isSystemAdmin && assocData?.userId !== userId) {
-            return NextResponse.json({ error: 'Bu işlem için yetkiniz yok.' }, { status: 403 });
-        }
+        // Audit log
+        await logAudit({
+            eventType: 'PLAYER_DELETED',
+            actorUserId: userId,
+            timestamp: Date.now(),
+            youtuberId,
+            playerId: oldPlayerId,
+            oldUuidHash: maskUuid(oldUuid),
+            affectedModIds: syncSummary.affectedModIds,
+            queuedJobIds: syncSummary.queuedJobIds
+        });
 
-        await assocRef.delete();
-
-        return NextResponse.json({ success: true, message: 'Oyuncu bağlantısı başarıyla kaldırıldı.' });
+        return NextResponse.json({
+            success: true,
+            playerId: oldPlayerId,
+            syncState: allSynced ? 'SYNCED' : 'QUEUED',
+            affectedModCount: syncSummary.affectedModCount,
+            queuedJobCount: syncSummary.queuedJobCount,
+            coalescedJobCount: syncSummary.coalescedJobCount,
+            legacyConflicts: syncSummary.legacyConflicts,
+            message: 'Oyuncu bağlantısı başarıyla kaldırıldı.'
+        });
     } catch (e: unknown) {
         console.error('API Error in DELETE association:', e instanceof Error ? e.message : 'Unknown error');
         return NextResponse.json({ error: 'İşlem sırasında sunucu hatası oluştu.' }, { status: 500 });

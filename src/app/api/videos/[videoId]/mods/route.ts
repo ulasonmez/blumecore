@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
 import { ModProject, VideoModProject } from '@/lib/mods/types';
-import { getAuthenticatedUser } from '@/lib/server-auth';
+import { requireOwnerUser } from '@/lib/server-auth';
 
 export async function GET(
     request: NextRequest,
@@ -9,11 +9,11 @@ export async function GET(
 ) {
     try {
         const { videoId } = await context.params;
-        const authUser = await getAuthenticatedUser(request);
-        if (!authUser) {
-            return NextResponse.json({ error: 'Yetkilendirme hatası: Oturum açmanız gerekmektedir.' }, { status: 401 });
+        const auth = await requireOwnerUser(request);
+        if (!auth.ok) {
+            return auth.response;
         }
-        const userId = authUser.userId;
+        const userId = auth.user.userId;
 
         const linkSnap = await adminDb
             .collection('video_mod_projects')
@@ -47,11 +47,11 @@ export async function POST(
 ) {
     try {
         const { videoId } = await context.params;
-        const authUser = await getAuthenticatedUser(request);
-        if (!authUser) {
-            return NextResponse.json({ error: 'Yetkilendirme hatası: Oturum açmanız gerekmektedir.' }, { status: 401 });
+        const auth = await requireOwnerUser(request);
+        if (!auth.ok) {
+            return auth.response;
         }
-        const userId = authUser.userId;
+        const userId = auth.user.userId;
 
         let body: Record<string, unknown>;
         try {
@@ -68,13 +68,13 @@ export async function POST(
 
         // Verify video exists and belongs to user
         const videoSnap = await adminDb.collection('youtube_videos').doc(videoId).get();
-        if (!videoSnap.exists || (!authUser.isSystemAdmin && videoSnap.data()?.userId !== userId)) {
+        if (!videoSnap.exists || videoSnap.data()?.userId !== userId) {
             return NextResponse.json({ error: 'Video bulunamadı veya yetkisiz erişim.' }, { status: 404 });
         }
 
         // Verify mod exists and belongs to user
         const modSnap = await adminDb.collection('mod_projects').doc(modProjectId).get();
-        if (!modSnap.exists || (!authUser.isSystemAdmin && modSnap.data()?.userId !== userId)) {
+        if (!modSnap.exists || modSnap.data()?.userId !== userId) {
             return NextResponse.json({ error: 'Mod projesi bulunamadı veya yetkisiz erişim.' }, { status: 404 });
         }
 

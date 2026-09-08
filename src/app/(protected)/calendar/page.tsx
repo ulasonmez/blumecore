@@ -20,6 +20,7 @@ import RecordModal from '@/components/RecordModal';
 import { db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { useAuth } from '@/lib/auth-context';
+import { authenticatedFetch } from '@/lib/api-client';
 
 export default function CalendarPage() {
     const { user } = useAuth();
@@ -303,7 +304,18 @@ export default function CalendarPage() {
                                     </div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                         <button onClick={() => { setEditRecordData(assignment); setEditRecordType('assignment'); }} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '4px' }}><Edit2 size={14} /></button>
-                                        <button onClick={async () => { if (confirm('Bu videoyu silmek istediğinize emin misiniz?')) { await deleteDoc(doc(db, 'assignments', assignment.id)); } }} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '4px' }}><Trash2 size={14} /></button>
+                                        <button onClick={async () => {
+                                            if (confirm('Bu atamayı silmek istediğinize emin misiniz?')) {
+                                                const aId = assignment.id;
+                                                try {
+                                                    await authenticatedFetch(`/api/assignments/${aId}`, {
+                                                        method: 'DELETE'
+                                                    });
+                                                } catch (err) {
+                                                    console.warn('Assignment delete failed:', err);
+                                                }
+                                            }
+                                        }} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '4px' }}><Trash2 size={14} /></button>
                                     </div>
                                 </div>
                                 <div style={{ color: 'var(--text-primary)', fontSize: '14px', lineHeight: '1.4' }}>

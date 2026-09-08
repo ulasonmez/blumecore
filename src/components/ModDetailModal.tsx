@@ -18,7 +18,9 @@ import {
     Search,
     ChevronDown,
     Eye,
-    EyeOff
+    EyeOff,
+    ArrowRightLeft,
+    Check
 } from 'lucide-react';
 import { ModProject, YoutuberAccessSummary, LegacyUuidInfo } from '@/lib/mods/types';
 import { useAuth } from '@/lib/auth-context';
@@ -65,8 +67,21 @@ export default function ModDetailModal({
     const [isAddYoutuberOpen, setIsAddYoutuberOpen] = useState(false);
     const [selectedYoutuberId, setSelectedYoutuberId] = useState('');
     const [youtuberSearchTerm, setYoutuberSearchTerm] = useState('');
-    const [isYoutuberDropdownOpen, setIsYoutuberDropdownOpen] = useState(false);
+    const [grantReason, setGrantReason] = useState('');
     const [isGranting, setIsGranting] = useState(false);
+
+    // Legacy Migration preview and confirm state
+    const [migrationPreview, setMigrationPreview] = useState<{
+        legacyUuidCount: number;
+        legacyUuids: string[];
+        removedLines: string[];
+        proposedContent: string;
+        message?: string;
+    } | null>(null);
+    const [isLoadingMigrationPreview, setIsLoadingMigrationPreview] = useState(false);
+    const [isApplyingMigration, setIsApplyingMigration] = useState(false);
+    const [migrationConfirmed, setMigrationConfirmed] = useState(false);
+    const [isYoutuberDropdownOpen, setIsYoutuberDropdownOpen] = useState(false);
     const [showRevoked, setShowRevoked] = useState(false);
 
     // Revoke confirm state
@@ -280,28 +295,56 @@ export default function ModDetailModal({
         }
     };
 
-    // Handle Delete Mod
-    const handleDeleteMod = async () => {
-        if (!user || isDeletingMod) return;
-        setIsDeletingMod(true);
+    // Handle Archive Mod
+    const [isArchiving, setIsArchiving] = useState(false);
+    const [isRestoring, setIsRestoring] = useState(false);
+
+    const handleArchiveMod = async () => {
+        if (!user || isArchiving) return;
+        setIsArchiving(true);
         try {
-            const res = await authenticatedFetch(`/api/mods/${mod.id}`, {
-                method: 'DELETE'
+            const res = await authenticatedFetch(`/api/mods/${mod.id}/archive`, {
+                method: 'POST'
             });
             const json = await res.json();
             if (res.ok) {
+                showToast('Mod başarıyla arşivlendi ve allowlist temizlendi.');
                 if (onModUpdated) onModUpdated();
                 setIsDeleteConfirmOpen(false);
                 onClose();
             } else {
-                showToast(`Hata: ${json.error || 'Mod silinemedi.'}`);
+                showToast(`Arşivleme hatası: ${json.error || 'İşlem başarısız.'}`);
             }
         } catch {
-            showToast('Mod silinirken hata oluştu.');
+            showToast('Mod arşivlenirken sunucu hatası oluştu.');
         } finally {
-            setIsDeletingMod(false);
+            setIsArchiving(false);
         }
     };
+
+    const handleRestoreMod = async () => {
+        if (!user || isRestoring) return;
+        setIsRestoring(true);
+        try {
+            const res = await authenticatedFetch(`/api/mods/${mod.id}/restore`, {
+                method: 'POST'
+            });
+            const json = await res.json();
+            if (res.ok) {
+                showToast('Mod başarıyla aktifleştirildi ve güncel allowlist senkronize edildi.');
+                if (onModUpdated) onModUpdated();
+            } else {
+                showToast(`Geri yükleme hatası: ${json.error || 'İşlem başarısız.'}`);
+            }
+        } catch {
+            showToast('Mod geri yüklenirken hata oluştu.');
+        } finally {
+            setIsRestoring(false);
+        }
+    };
+
+    // Legacy alias for compatibility
+    const handleDeleteMod = handleArchiveMod;
 
     if (!isOpen) return null;
 
@@ -343,16 +386,88 @@ export default function ModDetailModal({
                     <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                             <h2 style={{ fontSize: '20px', fontWeight: 700 }}>{mod.displayName}</h2>
-                            <span style={{
-                                fontSize: '11px',
-                                padding: '2px 8px',
-                                borderRadius: '12px',
-                                backgroundColor: mod.isActive ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-                                color: mod.isActive ? '#4ade80' : 'var(--accent-red)',
-                                fontWeight: 500
-                            }}>
-                                {mod.isActive ? 'Aktif' : 'Pasif'}
-                            </span>
+                            {mod.archiveStatus === 'ARCHIVING' ? (
+                                <span style={{
+                                    fontSize: '11px',
+                                    padding: '2px 8px',
+                                    borderRadius: '12px',
+                                    backgroundColor: 'rgba(234, 179, 8, 0.15)',
+                                    color: '#facc15',
+                                    fontWeight: 500,
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px'
+                                }}>
+                                    <Loader2 size={10} className="spin" /> Arşivleniyor...
+                                </span>
+                            ) : mod.archiveStatus === 'ARCHIVED' || mod.isArchived ? (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <span style={{
+                                        fontSize: '11px',
+                                        padding: '2px 8px',
+                                        borderRadius: '12px',
+                                        backgroundColor: 'rgba(156, 163, 175, 0.15)',
+                                        color: '#9ca3af',
+                                        fontWeight: 500
+                                    }}>
+                                        Arşivlendi
+                                    </span>
+                                    <button
+                                        onClick={handleRestoreMod}
+                                        disabled={isRestoring}
+                                        style={{
+                                            padding: '2px 8px',
+                                            borderRadius: '4px',
+                                            border: '1px solid var(--border-color)',
+                                            fontSize: '11px',
+                                            cursor: 'pointer',
+                                            color: 'var(--accent-blue)',
+                                            backgroundColor: 'transparent'
+                                        }}
+                                    >
+                                        {isRestoring ? 'Geri Yükleniyor...' : 'Geri Yükle'}
+                                    </button>
+                                </div>
+                            ) : mod.archiveStatus === 'ARCHIVE_FAILED' ? (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <span style={{
+                                        fontSize: '11px',
+                                        padding: '2px 8px',
+                                        borderRadius: '12px',
+                                        backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                                        color: '#ef4444',
+                                        fontWeight: 500
+                                    }}>
+                                        Arşivleme Başarısız
+                                    </span>
+                                    <button
+                                        onClick={handleArchiveMod}
+                                        disabled={isArchiving}
+                                        style={{
+                                            padding: '2px 8px',
+                                            borderRadius: '4px',
+                                            border: '1px solid #ef4444',
+                                            fontSize: '11px',
+                                            cursor: 'pointer',
+                                            color: '#ef4444',
+                                            backgroundColor: 'transparent'
+                                        }}
+                                    >
+                                        {isArchiving ? 'Deneniyor...' : 'Tekrar Dene'}
+                                    </button>
+                                </div>
+                            ) : (
+                                <span style={{
+                                    fontSize: '11px',
+                                    padding: '2px 8px',
+                                    borderRadius: '12px',
+                                    backgroundColor: mod.isActive ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                                    color: mod.isActive ? '#4ade80' : 'var(--accent-red)',
+                                    fontWeight: 500
+                                }}>
+                                    {mod.isActive ? 'Aktif' : 'Pasif'}
+                                </span>
+                            )}
                         </div>
                         <div style={{ fontSize: '13px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '12px' }}>
                             <span>Mod ID: <strong>{mod.modKey}</strong></span>
@@ -511,6 +626,23 @@ export default function ModDetailModal({
                                     <div>
                                         <span style={{ display: 'block', color: 'var(--text-secondary)' }}>Sync Modu:</span>
                                         <span style={{ color: 'var(--text-primary)' }}>{mod.syncMode}</span>
+                                    </div>
+                                    <div>
+                                        <span style={{ display: 'block', color: 'var(--text-secondary)' }}>Senkronizasyon Durumu:</span>
+                                        <span style={{
+                                            fontWeight: 600,
+                                            color: mod.syncStatus === 'PENDING' ? '#facc15' : mod.syncStatus === 'SUCCESS' ? '#4ade80' : mod.syncStatus === 'FAILED' ? '#ef4444' : 'var(--text-primary)'
+                                        }}>
+                                            {mod.syncStatus === 'PENDING'
+                                                ? 'Senkronizasyon kuyruğa alındı'
+                                                : mod.syncStatus === 'SUCCESS'
+                                                ? 'Senkronize edildi'
+                                                : mod.syncStatus === 'FAILED'
+                                                ? 'Senkronizasyon başarısız'
+                                                : mod.syncStatus === 'DRIFTED'
+                                                ? 'Farklılık (Drift) var'
+                                                : 'Hazır'}
+                                        </span>
                                     </div>
                                 </div>
 
@@ -932,12 +1064,52 @@ export default function ModDetailModal({
                                 color: '#facc15'
                             }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600, marginBottom: '4px' }}>
-                                    <ShieldAlert size={16} /> Legacy UUID Güvenlik Bilgisi
+                                    <ShieldAlert size={16} /> Legacy UUID Güvenlik & Erişim Uyarısı
                                 </div>
                                 <div style={{ color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-                                    Bu oyuncuların UUID&apos;leri BlumeCore tarafından yönetilmeyen eski README bölümünde yer almaktadır. BlumeCore erişimi kaldırılmış olsa bile eski satır silinmeden mod erişimi devam edebilir. Bu kayıtlar BlumeCore tarafından otomatik ezilmez veya silinmez.
+                                    Bu oyuncuların UUID&apos;leri BlumeCore tarafından yönetilmeyen eski README bölümünde yer almaktadır. BlumeCore erişimi kaldırılmış olsa bile, <strong>README&apos;deki eski satır silinmeden Minecraft sunucusundaki mod erişimi devam edebilir</strong>. Bu kayıtlar BlumeCore tarafından otomatik silinmez; aşağıdaki onaylı taşıma aracını kullanarak kontrollü biçimde managed alana aktarabilirsiniz.
                                 </div>
                             </div>
+
+                            {legacyUuids.length > 0 && (
+                                <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'flex-end' }}>
+                                    <button
+                                        onClick={async () => {
+                                            setIsLoadingMigrationPreview(true);
+                                            try {
+                                                const res = await authenticatedFetch(`/api/mods/${mod.id}/legacy-migration`, {
+                                                    method: 'POST',
+                                                    headers: { 'Content-Type': 'application/json' },
+                                                    body: JSON.stringify({ preview: true })
+                                                });
+                                                const data = await res.json();
+                                                if (res.ok) {
+                                                    setMigrationPreview(data);
+                                                    setMigrationConfirmed(false);
+                                                } else {
+                                                    alert(data.error || 'Önizleme alınamadı.');
+                                                }
+                                            } catch (e) {
+                                                alert('Önizleme isteği sırasında ağ hatası oluştu.');
+                                            } finally {
+                                                setIsLoadingMigrationPreview(false);
+                                            }
+                                        }}
+                                        disabled={isLoadingMigrationPreview}
+                                        className="btn-primary"
+                                        style={{
+                                            fontSize: '12px',
+                                            padding: '8px 14px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '6px'
+                                        }}
+                                    >
+                                        {isLoadingMigrationPreview ? <Loader2 size={14} className="spin" /> : <ArrowRightLeft size={14} />}
+                                        Legacy UUID&apos;leri Managed Alana Taşı (Önizleme & Onay)
+                                    </button>
+                                </div>
+                            )}
 
                             {isLoadingLegacy ? (
                                 <div style={{ textAlign: 'center', padding: '32px', color: 'var(--text-secondary)' }}>
@@ -977,17 +1149,31 @@ export default function ModDetailModal({
                                                 </div>
                                             </div>
 
-                                            {item.isDuplicateInLegacy && (
+                                            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                                                 <span style={{
                                                     fontSize: '11px',
-                                                    padding: '2px 6px',
+                                                    padding: '2px 8px',
                                                     borderRadius: '4px',
-                                                    backgroundColor: 'rgba(239,68,68,0.15)',
-                                                    color: 'var(--accent-red)'
+                                                    backgroundColor: 'rgba(234, 179, 8, 0.15)',
+                                                    border: '1px solid rgba(234, 179, 8, 0.3)',
+                                                    color: '#facc15',
+                                                    fontWeight: 500
                                                 }}>
-                                                    Legacy Bölümde Mükerrer
+                                                    Erişim Devam Edebilir (Eski Bölüm)
                                                 </span>
-                                            )}
+
+                                                {item.isDuplicateInLegacy && (
+                                                    <span style={{
+                                                        fontSize: '11px',
+                                                        padding: '2px 6px',
+                                                        borderRadius: '4px',
+                                                        backgroundColor: 'rgba(239,68,68,0.15)',
+                                                        color: 'var(--accent-red)'
+                                                    }}>
+                                                        Legacy Bölümde Mükerrer
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
@@ -1223,24 +1409,24 @@ export default function ModDetailModal({
                         }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-red)', marginBottom: '12px' }}>
                                 <AlertTriangle size={20} />
-                                <h4 style={{ fontSize: '15px', fontWeight: 600 }}>Modu Silmek İstediğinize Emin Misiniz?</h4>
+                                <h4 style={{ fontSize: '15px', fontWeight: 600 }}>Modu Arşivlemek İstediğinize Emin Misiniz?</h4>
                             </div>
                             <p style={{ fontSize: '13px', lineHeight: 1.5, color: 'var(--text-secondary)', marginBottom: '16px' }}>
-                                <strong>{mod.displayName}</strong> ({mod.modKey}) modu sistemden kaldırılacak.
+                                <strong>{mod.displayName}</strong> ({mod.modKey}) modu iki aşamalı olarak arşivlenecektir.
                                 <br /><br />
-                                Bağlı video ve YouTuber erişimleri korunacak ancak mod arayüzde ve yeni listelemelerde görünmeyecektir.
+                                Arşivleme sırasında modun GitHub README allowlist&apos;inden tüm YouTuber UUID&apos;leri kaldırılacak, sunucu ve Global Blume UUID&apos;leri korunacaktır. GitHub senkronizasyonu başarılı olmadan mod arşivlenmiş sayılmaz.
                             </p>
                             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
                                 <button
                                     onClick={() => setIsDeleteConfirmOpen(false)}
-                                    disabled={isDeletingMod}
+                                    disabled={isArchiving}
                                     style={{ padding: '8px 14px', borderRadius: '6px', border: '1px solid var(--border-color)', fontSize: '12px' }}
                                 >
                                     Vazgeç
                                 </button>
                                 <button
-                                    onClick={handleDeleteMod}
-                                    disabled={isDeletingMod}
+                                    onClick={handleArchiveMod}
+                                    disabled={isArchiving}
                                     style={{
                                         padding: '8px 16px',
                                         borderRadius: '6px',
@@ -1253,8 +1439,182 @@ export default function ModDetailModal({
                                         gap: '6px'
                                     }}
                                 >
-                                    {isDeletingMod ? <Loader2 size={13} className="spin" /> : <Trash2 size={13} />}
-                                    {isDeletingMod ? 'Siliniyor...' : 'Evet, Modu Sil'}
+                                    {isArchiving ? <Loader2 size={13} className="spin" /> : <Trash2 size={13} />}
+                                    {isArchiving ? 'Arşivleniyor...' : 'Evet, Modu Arşivle'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Legacy Migration Preview & Confirm Modal */}
+                {migrationPreview && (
+                    <div
+                        style={{
+                            position: 'fixed',
+                            inset: 0,
+                            backgroundColor: 'rgba(0, 0, 0, 0.85)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            zIndex: 1100,
+                            padding: '20px'
+                        }}
+                        onClick={() => setMigrationPreview(null)}
+                    >
+                        <div
+                            style={{
+                                backgroundColor: 'var(--card-bg, #18181b)',
+                                border: '1px solid var(--border-color)',
+                                borderRadius: '16px',
+                                width: '100%',
+                                maxWidth: '680px',
+                                maxHeight: '90vh',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                overflow: 'hidden',
+                                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                    <ArrowRightLeft size={18} style={{ color: 'var(--accent-purple)' }} />
+                                    <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                                        Legacy UUID&apos;leri Managed Alana Taşıma Önizlemesi
+                                    </h3>
+                                </div>
+                                <button
+                                    onClick={() => setMigrationPreview(null)}
+                                    style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}
+                                >
+                                    <X size={20} />
+                                </button>
+                            </div>
+
+                            <div style={{ padding: '24px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                <div style={{
+                                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                    border: '1px solid rgba(59, 130, 246, 0.3)',
+                                    borderRadius: '8px',
+                                    padding: '12px 16px',
+                                    fontSize: '13px',
+                                    color: '#93c5fd',
+                                    lineHeight: 1.5
+                                }}>
+                                    Bu işlem, README&apos;nin yönetilmeyen (unmanaged) bölümündeki {migrationPreview.legacyUuidCount} UUID satırını kaldıracak ve BlumeCore tarafından dinamik yönetilen bölüme (Eski Oyuncular grubu altına) taşıyacaktır.
+                                </div>
+
+                                <div>
+                                    <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                                        Yönetilmeyen Bölümden Kaldırılacak Satırlar ({migrationPreview.removedLines.length}):
+                                    </label>
+                                    <div style={{
+                                        backgroundColor: 'rgba(239, 68, 68, 0.05)',
+                                        border: '1px solid rgba(239, 68, 68, 0.2)',
+                                        borderRadius: '8px',
+                                        padding: '10px',
+                                        maxHeight: '120px',
+                                        overflowY: 'auto',
+                                        fontFamily: 'monospace',
+                                        fontSize: '12px',
+                                        color: '#f87171'
+                                    }}>
+                                        {migrationPreview.removedLines.map((line, i) => (
+                                            <div key={i}>- {line}</div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                                        Yeni README Dosyası Önizlemesi:
+                                    </label>
+                                    <pre style={{
+                                        backgroundColor: 'var(--bg-primary)',
+                                        border: '1px solid var(--border-color)',
+                                        borderRadius: '8px',
+                                        padding: '12px',
+                                        maxHeight: '180px',
+                                        overflow: 'auto',
+                                        fontSize: '11px',
+                                        lineHeight: 1.4,
+                                        color: 'var(--text-primary)'
+                                    }}>
+                                        {migrationPreview.proposedContent}
+                                    </pre>
+                                </div>
+
+                                <div style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '10px',
+                                    padding: '12px',
+                                    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                                    borderRadius: '8px',
+                                    border: '1px solid var(--border-color)'
+                                }}>
+                                    <input
+                                        type="checkbox"
+                                        id="confirmMigrationCheckbox"
+                                        checked={migrationConfirmed}
+                                        onChange={(e) => setMigrationConfirmed(e.target.checked)}
+                                        style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                                    />
+                                    <label htmlFor="confirmMigrationCheckbox" style={{ fontSize: '13px', color: 'var(--text-primary)', cursor: 'pointer' }}>
+                                        Bu {migrationPreview.legacyUuidCount} UUID&apos;nin GitHub README üzerinde managed bölüme taşınmasını onaylıyorum.
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'flex-end', gap: '12px', backgroundColor: 'var(--bg-secondary)' }}>
+                                <button
+                                    onClick={() => setMigrationPreview(null)}
+                                    className="btn-secondary"
+                                    style={{ padding: '8px 16px', fontSize: '13px' }}
+                                >
+                                    İptal
+                                </button>
+                                <button
+                                    disabled={!migrationConfirmed || isApplyingMigration}
+                                    onClick={async () => {
+                                        setIsApplyingMigration(true);
+                                        try {
+                                            const res = await authenticatedFetch(`/api/mods/${mod.id}/legacy-migration`, {
+                                                method: 'POST',
+                                                headers: { 'Content-Type': 'application/json' },
+                                                body: JSON.stringify({ preview: false })
+                                            });
+                                            const data = await res.json();
+                                            if (res.ok) {
+                                                alert(data.message || 'Legacy UUID’ler başarıyla taşındı.');
+                                                setMigrationPreview(null);
+                                                const lRes = await authenticatedFetch(`/api/mods/${mod.id}/legacy-uuids`);
+                                                const lData = await lRes.json();
+                                                if (lRes.ok && lData.data) setLegacyUuids(lData.data);
+                                                if (onModUpdated) onModUpdated();
+                                            } else {
+                                                alert(data.error || 'Taşıma işlemi başarısız oldu.');
+                                            }
+                                        } catch (e) {
+                                            alert('Taşıma isteği sırasında ağ hatası oluştu.');
+                                        } finally {
+                                            setIsApplyingMigration(false);
+                                        }
+                                    }}
+                                    className="btn-primary"
+                                    style={{
+                                        padding: '8px 18px',
+                                        fontSize: '13px',
+                                        fontWeight: 600,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '6px',
+                                        opacity: !migrationConfirmed || isApplyingMigration ? 0.5 : 1
+                                    }}
+                                >
+                                    {isApplyingMigration ? <Loader2 size={14} className="spin" /> : <Check size={14} />}
+                                    {isApplyingMigration ? 'GitHub’a Yazılıyor...' : 'Onayla ve GitHub’a Taşı'}
                                 </button>
                             </div>
                         </div>

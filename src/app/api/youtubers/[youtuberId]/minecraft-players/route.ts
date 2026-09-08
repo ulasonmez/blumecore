@@ -6,7 +6,9 @@ import {
     normalizeUuid,
     RelationshipType
 } from '@/lib/minecraft-players';
-import { getAuthenticatedUser } from '@/lib/server-auth';
+import { requireOwnerUser } from '@/lib/server-auth';
+import { syncActiveModsForYoutuberChange } from '@/lib/mods/mod-service';
+import { logAudit, maskUuid } from '@/lib/audit-log';
 
 export async function GET(
     request: NextRequest,
@@ -14,11 +16,11 @@ export async function GET(
 ) {
     try {
         const { youtuberId } = await context.params;
-        const authUser = await getAuthenticatedUser(request);
-        if (!authUser) {
-            return NextResponse.json({ error: 'Yetkilendirme hatası: Oturum açmanız gerekmektedir.' }, { status: 401 });
+        const auth = await requireOwnerUser(request);
+        if (!auth.ok) {
+            return auth.response;
         }
-        const userId = authUser.userId;
+        const userId = auth.user.userId;
 
         // Verify YouTuber exists and belongs to user
         const youtuberSnap = await adminDb.collection('youtubers').doc(youtuberId).get();
@@ -26,7 +28,7 @@ export async function GET(
             return NextResponse.json({ error: 'YouTuber bulunamadı.' }, { status: 404 });
         }
 
-        if (!authUser.isSystemAdmin && youtuberSnap.data()?.userId !== userId) {
+        if (youtuberSnap.data()?.userId !== userId) {
             return NextResponse.json({ error: 'Bu işlem için yetkiniz yok.' }, { status: 403 });
         }
 
@@ -78,11 +80,11 @@ export async function POST(
 ) {
     try {
         const { youtuberId } = await context.params;
-        const authUser = await getAuthenticatedUser(request);
-        if (!authUser) {
-            return NextResponse.json({ error: 'Yetkilendirme hatası: Oturum açmanız gerekmektedir.' }, { status: 401 });
+        const auth = await requireOwnerUser(request);
+        if (!auth.ok) {
+            return auth.response;
         }
-        const userId = authUser.userId;
+        const userId = auth.user.userId;
 
         let body: Record<string, unknown>;
         try {
@@ -115,7 +117,7 @@ export async function POST(
             return NextResponse.json({ error: 'YouTuber bulunamadı.' }, { status: 404 });
         }
 
-        if (!authUser.isSystemAdmin && youtuberSnap.data()?.userId !== userId) {
+        if (youtuberSnap.data()?.userId !== userId) {
             return NextResponse.json({ error: 'Bu işlem için yetkiniz yok.' }, { status: 403 });
         }
 
@@ -123,73 +125,151 @@ export async function POST(
         const trimmedUsername = (username as string).trim();
         const now = Date.now();
 
-        // 1. Find or create global MinecraftPlayer
-        let playerId: string;
-        const playerSnap = await adminDb
-            .collection('minecraft_players')
-            .where('uuid', '==', canonicalUuid)
-            .get();
+        const primaryFlag = typeof isPrimary === 'boolean' ? isPrimary : relationshipType === 'owner';
+        let assocId = '';
+        let playerId = '';
+        let syncSummary: {
+            success: boolean;
+            playerId?: string;
+            affectedModCount: number;
+            queuedJobCount: number;
+            coalescedJobCount: number;
+            legacyConflicts: { modId: string; reason: string }[];
+            affectedModIds: string[];
+            queuedJobIds: string[];
+        } = {
+            success: true,
+            playerId: '',
+            affectedModCount: 0,
+            queuedJobCount: 0,
+            coalescedJobCount: 0,
+            legacyConflicts: [],
+            affectedModIds: [],
+            queuedJobIds: []
+        };
 
-        if (!playerSnap.empty) {
-            const pDoc = playerSnap.docs[0];
-            playerId = pDoc.id;
-            if (pDoc.data().username !== trimmedUsername) {
-                await adminDb.collection('minecraft_players').doc(playerId).update({
-                    username: trimmedUsername,
+        try {
+            await adminDb.runTransaction(async (tx) => {
+                // 1. Find or create global MinecraftPlayer
+                const playerSnap = await adminDb
+                    .collection('minecraft_players')
+                    .where('uuid', '==', canonicalUuid)
+                    .get();
+
+                let pRef: FirebaseFirestore.DocumentReference;
+                if (!playerSnap.empty) {
+                    const pDoc = playerSnap.docs[0];
+                    playerId = pDoc.id;
+                    pRef = pDoc.ref;
+                    if (pDoc.data().username !== trimmedUsername) {
+                        tx.update(pRef, {
+                            username: trimmedUsername,
+                            updatedAt: now
+                        });
+                    }
+                } else {
+                    pRef = adminDb.collection('minecraft_players').doc();
+                    playerId = pRef.id;
+                    tx.set(pRef, {
+                        username: trimmedUsername,
+                        uuid: canonicalUuid,
+                        createdAt: now,
+                        updatedAt: now
+                    });
+                }
+
+                // 2. Check duplicate association
+                const dupSnap = await adminDb
+                    .collection('youtuber_minecraft_players')
+                    .where('userId', '==', userId)
+                    .where('youtuberId', '==', youtuberId)
+                    .where('minecraftPlayerId', '==', playerId)
+                    .get();
+
+                if (!dupSnap.empty) {
+                    throw new Error('DUPLICATE_ASSOCIATION:Bu Minecraft oyuncusu zaten bu YouTuber’a bağlı.');
+                }
+
+                // 3. Update previous primary flag
+                if (primaryFlag) {
+                    const prevPrimarySnap = await adminDb
+                        .collection('youtuber_minecraft_players')
+                        .where('userId', '==', userId)
+                        .where('youtuberId', '==', youtuberId)
+                        .where('isPrimary', '==', true)
+                        .get();
+
+                    for (const doc of prevPrimarySnap.docs) {
+                        tx.update(doc.ref, { isPrimary: false, updatedAt: now });
+                    }
+                }
+
+                const assocRef = adminDb.collection('youtuber_minecraft_players').doc();
+                assocId = assocRef.id;
+                tx.set(assocRef, {
+                    userId,
+                    youtuberId,
+                    minecraftPlayerId: playerId,
+                    relationshipType,
+                    isPrimary: primaryFlag,
+                    isActive: typeof isActive === 'boolean' ? isActive : true,
+                    note: typeof note === 'string' ? note.trim() : null,
+                    createdAt: now,
                     updatedAt: now
                 });
-            }
-        } else {
-            const newPlayerDoc = await adminDb.collection('minecraft_players').add({
-                username: trimmedUsername,
-                uuid: canonicalUuid,
-                createdAt: now,
-                updatedAt: now
+
+                // 4. Atomically queue sync jobs in the same transaction
+                syncSummary = await syncActiveModsForYoutuberChange({
+                    youtuberId,
+                    userId,
+                    triggerType: 'PLAYER_ADDED',
+                    playerId,
+                    changedUuid: canonicalUuid,
+                    tx
+                });
             });
-            playerId = newPlayerDoc.id;
+        } catch (txErr: unknown) {
+            const msg = txErr instanceof Error ? txErr.message : 'İşlem sırasında hata oluştu.';
+            if (msg.startsWith('DUPLICATE_ASSOCIATION:')) {
+                return NextResponse.json({ error: msg.replace('DUPLICATE_ASSOCIATION:', '') }, { status: 409 });
+            }
+            throw txErr;
         }
 
-        // 2. Check duplicate association
-        const dupSnap = await adminDb
-            .collection('youtuber_minecraft_players')
-            .where('userId', '==', userId)
-            .where('youtuberId', '==', youtuberId)
-            .where('minecraftPlayerId', '==', playerId)
-            .get();
-
-        if (!dupSnap.empty) {
-            return NextResponse.json({ error: 'Bu Minecraft oyuncusu zaten bu YouTuber’a bağlı.' }, { status: 409 });
-        }
-
-        const primaryFlag = typeof isPrimary === 'boolean' ? isPrimary : relationshipType === 'owner';
-        if (primaryFlag) {
-            const prevPrimarySnap = await adminDb
-                .collection('youtuber_minecraft_players')
-                .where('userId', '==', userId)
-                .where('youtuberId', '==', youtuberId)
-                .where('isPrimary', '==', true)
-                .get();
-
-            for (const doc of prevPrimarySnap.docs) {
-                await doc.ref.update({ isPrimary: false, updatedAt: now });
+        // 5. Reliable worker execution: execute jobs and await before sending response (no orphan promises)
+        let allSynced = true;
+        const { processSyncJob } = await import('@/lib/mods/mod-service');
+        for (const jId of syncSummary.queuedJobIds) {
+            try {
+                const res = await processSyncJob(jId, 'player-add-worker');
+                if (!res.success) allSynced = false;
+            } catch {
+                allSynced = false;
             }
         }
 
-        const assocRef = await adminDb.collection('youtuber_minecraft_players').add({
-            userId,
+        // Audit log
+        await logAudit({
+            eventType: 'PLAYER_ADDED',
+            actorUserId: userId,
+            timestamp: now,
             youtuberId,
-            minecraftPlayerId: playerId,
-            relationshipType,
-            isPrimary: primaryFlag,
-            isActive: typeof isActive === 'boolean' ? isActive : true,
-            note: typeof note === 'string' ? note.trim() : null,
-            createdAt: now,
-            updatedAt: now
+            playerId,
+            newUuidHash: maskUuid(canonicalUuid),
+            affectedModIds: syncSummary.affectedModIds,
+            queuedJobIds: syncSummary.queuedJobIds
         });
 
         return NextResponse.json({
+            success: true,
+            playerId,
+            syncState: allSynced ? 'SYNCED' : 'QUEUED',
+            affectedModCount: syncSummary.affectedModCount,
+            queuedJobCount: syncSummary.queuedJobCount,
+            coalescedJobCount: syncSummary.coalescedJobCount,
+            legacyConflicts: syncSummary.legacyConflicts,
             data: {
-                associationId: assocRef.id,
+                associationId: assocId,
                 youtuberId,
                 relationshipType,
                 isPrimary: primaryFlag,
@@ -200,9 +280,7 @@ export async function POST(
                 player: {
                     id: playerId,
                     username: trimmedUsername,
-                    uuid: canonicalUuid,
-                    createdAt: now,
-                    updatedAt: now
+                    uuid: canonicalUuid
                 }
             }
         }, { status: 201 });

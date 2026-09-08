@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
 import { processSyncJob } from '@/lib/mods/mod-service';
-import { getAuthenticatedUser } from '@/lib/server-auth';
+import { requireOwnerUser } from '@/lib/server-auth';
 
 export async function POST(request: NextRequest) {
     try {
-        const authUser = await getAuthenticatedUser(request);
-        if (!authUser) {
-            return NextResponse.json({ error: 'Yetkilendirme hatası: Geçersiz veya eksik oturum.' }, { status: 401 });
+        const auth = await requireOwnerUser(request);
+        if (!auth.ok) {
+            return auth.response;
         }
+        const userId = auth.user.userId;
 
         let body: Record<string, unknown>;
         try {
@@ -28,7 +29,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'İş kaydı bulunamadı.' }, { status: 404 });
         }
 
-        if (!authUser.isSystemAdmin && jobSnap.data()?.userId !== authUser.userId) {
+        if (jobSnap.data()?.userId !== userId) {
             return NextResponse.json({ error: 'Yetkisiz erişim.' }, { status: 403 });
         }
 

@@ -5,6 +5,7 @@ import { auth } from './firebase';
  * Automatically attaches the current Firebase user's ID token as `Authorization: Bearer <idToken>`.
  * Also includes `x-user-id` header as context.
  * If a 401 Unauthorized response is returned, forces a token refresh and retries once.
+ * If a 403 Forbidden response is returned, detects unauthorized account and signs out.
  */
 export async function authenticatedFetch(
     input: RequestInfo | URL,
@@ -49,6 +50,22 @@ export async function authenticatedFetch(
             });
         } catch {
             // Keep initial response if refresh fails
+        }
+    }
+
+    // If 403 Forbidden with unauthorized message, kick out to login
+    if (response.status === 403) {
+        try {
+            const clone = response.clone();
+            const body = await clone.json();
+            if (body?.error && (body.error.includes('Yetkisiz') || body.error.includes('yetkiniz'))) {
+                await auth.signOut();
+                if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+                    window.location.href = '/login?error=unauthorized';
+                }
+            }
+        } catch {
+            // Ignore parse errors
         }
     }
 

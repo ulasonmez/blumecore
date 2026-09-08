@@ -29,6 +29,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+firestore-debug.log*
 
 # env files (can opt-in for committing if needed)
 .env*
@@ -41,4 +42,7 @@ yarn-error.log*
 next-env.d.ts
 
 *-firebase-adminsdk-*.json
+firebase-adminsdk*.json
+*serviceAccount*.json
+*service-account*.json
 .env*

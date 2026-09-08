@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
 import { checkModDrift } from '@/lib/mods/mod-service';
-import { getAuthenticatedUser } from '@/lib/server-auth';
+import { requireOwnerUser } from '@/lib/server-auth';
 
 export async function GET(
     request: NextRequest,
@@ -9,18 +9,18 @@ export async function GET(
 ) {
     try {
         const { modId } = await context.params;
-        const authUser = await getAuthenticatedUser(request);
-        if (!authUser) {
-            return NextResponse.json({ error: 'Yetkilendirme hatası: Oturum açmanız gerekmektedir.' }, { status: 401 });
+        const auth = await requireOwnerUser(request);
+        if (!auth.ok) {
+            return auth.response;
         }
-        const userId = authUser.userId;
+        const userId = auth.user.userId;
 
         const modSnap = await adminDb.collection('mod_projects').doc(modId).get();
         if (!modSnap.exists) {
             return NextResponse.json({ error: 'Mod bulunamadı.' }, { status: 404 });
         }
 
-        if (!authUser.isSystemAdmin && modSnap.data()?.userId !== userId) {
+        if (modSnap.data()?.userId !== userId) {
             return NextResponse.json({ error: 'Bu mod için erişim yetkiniz yok.' }, { status: 403 });
         }
 

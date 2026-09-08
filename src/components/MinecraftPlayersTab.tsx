@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     Plus,
     User,
@@ -10,18 +10,18 @@ import {
     Copy,
     Check,
     X,
-    Loader2
+    Loader2,
+    RefreshCw,
+    AlertTriangle
 } from 'lucide-react';
 import styles from './MinecraftPlayersTab.module.css';
 import { useAuth } from '@/lib/auth-context';
+import { authenticatedFetch } from '@/lib/api-client';
 import {
     EnrichedYoutuberPlayer,
     RelationshipType,
     RELATIONSHIP_LABELS,
     subscribeYoutuberPlayers,
-    addPlayerToYoutuber,
-    updateYoutuberPlayer,
-    deleteYoutuberPlayerAssociation,
     validateMinecraftUsername,
     validateMinecraftUuid
 } from '@/lib/minecraft-players';
@@ -38,6 +38,8 @@ export default function MinecraftPlayersTab({
     const { user } = useAuth();
     const [players, setPlayers] = useState<EnrichedYoutuberPlayer[]>([]);
     const [isLoadingList, setIsLoadingList] = useState(true);
+    const [activeModsCount, setActiveModsCount] = useState<number>(0);
+    const [isSyncingAll, setIsSyncingAll] = useState(false);
 
     // Form state
     const [isFormOpen, setIsFormOpen] = useState(false);
@@ -49,6 +51,7 @@ export default function MinecraftPlayersTab({
     const [formIsActive, setFormIsActive] = useState(true);
     const [formNote, setFormNote] = useState('');
     const [formError, setFormError] = useState<string | null>(null);
+    const [legacyWarning, setLegacyWarning] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Delete dialog state
@@ -63,14 +66,29 @@ export default function MinecraftPlayersTab({
         setToastMessage(msg);
         setTimeout(() => {
             setToastMessage((current) => (current === msg ? null : current));
-        }, 2500);
+        }, 3000);
     };
 
-    // Subscribe to players
+    const fetchActiveModsCount = useCallback(async () => {
+        if (!user || !youtuberId) return;
+        try {
+            const res = await authenticatedFetch(`/api/youtubers/${youtuberId}/active-mods-count`);
+            if (res.ok) {
+                const data = await res.json();
+                setActiveModsCount(typeof data.activeModCount === 'number' ? data.activeModCount : 0);
+            }
+        } catch {
+            // Ignore error
+        }
+    }, [user, youtuberId]);
+
+    // Subscribe to players and active mods count
     useEffect(() => {
         if (!user || !youtuberId) return;
 
         setIsLoadingList(true);
+        fetchActiveModsCount();
+
         const unsubscribe = subscribeYoutuberPlayers(
             youtuberId,
             user.uid,
@@ -85,7 +103,7 @@ export default function MinecraftPlayersTab({
         );
 
         return () => unsubscribe();
-    }, [user, youtuberId]);
+    }, [user, youtuberId, fetchActiveModsCount]);
 
     const activeCount = players.filter((p) => p.isActive).length;
 
@@ -101,6 +119,7 @@ export default function MinecraftPlayersTab({
         setFormIsActive(true);
         setFormNote('');
         setFormError(null);
+        setLegacyWarning(null);
         setIsFormOpen(true);
     };
 
@@ -113,6 +132,7 @@ export default function MinecraftPlayersTab({
         setFormIsActive(p.isActive);
         setFormNote(p.note || '');
         setFormError(null);
+        setLegacyWarning(null);
         setIsFormOpen(true);
     };
 
@@ -148,34 +168,79 @@ export default function MinecraftPlayersTab({
 
         setIsSubmitting(true);
         setFormError(null);
+        setLegacyWarning(null);
 
         try {
             if (editingPlayer) {
-                await updateYoutuberPlayer({
-                    associationId: editingPlayer.associationId,
-                    youtuberId,
-                    userId: user.uid,
-                    username: formUsername,
-                    uuid: formUuid,
-                    relationshipType: formRelationship,
-                    isPrimary: formIsPrimary,
-                    isActive: formIsActive,
-                    note: formNote
-                });
-                showToast('Oyuncu bilgileri başarıyla güncellendi.');
+                const res = await authenticatedFetch(
+                    `/api/youtubers/${youtuberId}/minecraft-players/${editingPlayer.associationId}`,
+                    {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            username: formUsername,
+                            uuid: formUuid,
+                            relationshipType: formRelationship,
+                            isPrimary: formIsPrimary,
+                            isActive: formIsActive,
+                            note: formNote
+                        })
+                    }
+                );
+
+                const json = await res.json();
+                if (!res.ok) {
+                    throw new Error(json.error || 'Oyuncu güncellenemedi.');
+                }
+
+                if (json.legacyConflicts?.length > 0) {
+                    setLegacyWarning('Bu UUID legacy README bölümünde bulunduğu için otomatik kaldırılamadı.');
+                }
+
+                if (json.affectedModCount > 0) {
+                    if (json.syncState === 'SYNCED') {
+                        showToast(`Oyuncu güncellendi. ${json.affectedModCount} aktif mod senkronize edildi.`);
+                    } else {
+                        showToast(`Oyuncu güncellendi. Senkronizasyon kuyruğa alındı (${json.affectedModCount} mod).`);
+                    }
+                } else {
+                    showToast('Oyuncu bilgileri başarıyla güncellendi.');
+                }
             } else {
-                await addPlayerToYoutuber({
-                    youtuberId,
-                    userId: user.uid,
-                    username: formUsername,
-                    uuid: formUuid,
-                    relationshipType: formRelationship,
-                    isPrimary: formIsPrimary,
-                    isActive: formIsActive,
-                    note: formNote
+                const res = await authenticatedFetch(`/api/youtubers/${youtuberId}/minecraft-players`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: formUsername,
+                        uuid: formUuid,
+                        relationshipType: formRelationship,
+                        isPrimary: formIsPrimary,
+                        isActive: formIsActive,
+                        note: formNote
+                    })
                 });
-                showToast('Minecraft oyuncusu başarıyla eklendi.');
+
+                const json = await res.json();
+                if (!res.ok) {
+                    throw new Error(json.error || 'Oyuncu eklenemedi.');
+                }
+
+                if (json.legacyConflicts?.length > 0) {
+                    setLegacyWarning('Bu UUID legacy README bölümünde bulunduğu için otomatik kaldırılamadı.');
+                }
+
+                if (json.affectedModCount > 0) {
+                    if (json.syncState === 'SYNCED') {
+                        showToast(`Oyuncu eklendi. ${json.affectedModCount} aktif mod senkronize edildi.`);
+                    } else {
+                        showToast(`Oyuncu eklendi. Senkronizasyon kuyruğa alındı (${json.affectedModCount} mod).`);
+                    }
+                } else {
+                    showToast('Oyuncu başarıyla eklendi.');
+                }
             }
+
+            fetchActiveModsCount();
             closeForm();
         } catch (err: unknown) {
             const message = err instanceof Error ? err.message : 'Kaydedilirken bir hata oluştu.';
@@ -190,14 +255,64 @@ export default function MinecraftPlayersTab({
 
         setIsDeleting(true);
         try {
-            await deleteYoutuberPlayerAssociation(playerToDelete.associationId, youtuberId);
-            showToast('Oyuncu bağlantısı kaldırıldı.');
+            const res = await authenticatedFetch(
+                `/api/youtubers/${youtuberId}/minecraft-players/${playerToDelete.associationId}`,
+                {
+                    method: 'DELETE'
+                }
+            );
+
+            const json = await res.json();
+            if (!res.ok) {
+                throw new Error(json.error || 'Silme işlemi başarısız oldu.');
+            }
+
+            if (json.legacyConflicts?.length > 0) {
+                setLegacyWarning('Bu UUID legacy README bölümünde bulunduğu için otomatik kaldırılamadı.');
+            }
+
+            if (json.affectedModCount > 0) {
+                if (json.syncState === 'SYNCED') {
+                    showToast(`Oyuncu kaldırıldı. ${json.affectedModCount} aktif moddan silindi ve senkronize edildi.`);
+                } else {
+                    showToast(`Oyuncu kaldırıldı. Senkronizasyon kuyruğa alındı (${json.affectedModCount} mod).`);
+                }
+            } else {
+                showToast('Oyuncu bağlantısı kaldırıldı.');
+            }
+
+            fetchActiveModsCount();
             setPlayerToDelete(null);
         } catch (err) {
             console.error('Error deleting association:', err);
-            alert('Silme işlemi başarısız oldu. Lütfen tekrar deneyin.');
+            alert(err instanceof Error ? err.message : 'Silme işlemi başarısız oldu. Lütfen tekrar deneyin.');
         } finally {
             setIsDeleting(false);
+        }
+    };
+
+    const handleSyncAllMods = async () => {
+        if (!user || isSyncingAll) return;
+
+        setIsSyncingAll(true);
+        try {
+            const res = await authenticatedFetch(`/api/youtubers/${youtuberId}/sync-mods`, {
+                method: 'POST'
+            });
+            const json = await res.json();
+            if (!res.ok) {
+                throw new Error(json.error || 'Senkronizasyon başlatılamadı.');
+            }
+
+            if (json.legacyConflicts?.length > 0) {
+                setLegacyWarning('Bu UUID legacy README bölümünde bulunduğu için otomatik kaldırılamadı.');
+            }
+
+            showToast(`${json.affectedModCount || 0} mod senkronizasyonu tamamlandı.`);
+        } catch (err) {
+            alert(err instanceof Error ? err.message : 'Senkronizasyon sırasında hata oluştu.');
+        } finally {
+            setIsSyncingAll(false);
         }
     };
 
@@ -220,17 +335,36 @@ export default function MinecraftPlayersTab({
                     <h3 className={styles.tabTitle}>Minecraft Oyuncuları</h3>
                     <span className={styles.countBadge}>{activeCount} aktif oyuncu</span>
                 </div>
-                {!isFormOpen && (
+                <div className={styles.topActions}>
                     <button
                         type="button"
-                        className={styles.addBtn}
-                        onClick={openAddForm}
+                        className={styles.syncModsBtn}
+                        onClick={handleSyncAllMods}
+                        disabled={isSyncingAll}
+                        title="Bu YouTuber'ın erişim sahibi olduğu bütün aktif mod repository'lerini senkronize et"
                     >
-                        <Plus size={15} />
-                        Oyuncu Ekle
+                        <RefreshCw size={13} className={isSyncingAll ? 'spin' : ''} />
+                        {isSyncingAll ? 'Senkronize Ediliyor...' : 'İlgili Modları Senkronize Et'}
                     </button>
-                )}
+                    {!isFormOpen && (
+                        <button
+                            type="button"
+                            className={styles.addBtn}
+                            onClick={openAddForm}
+                        >
+                            <Plus size={15} />
+                            Oyuncu Ekle
+                        </button>
+                    )}
+                </div>
             </div>
+
+            {legacyWarning && (
+                <div className={styles.warningBanner}>
+                    <AlertTriangle size={15} />
+                    <span>{legacyWarning}</span>
+                </div>
+            )}
 
             {/* Inline Add / Edit Form Card */}
             {isFormOpen && (
@@ -532,8 +666,12 @@ export default function MinecraftPlayersTab({
                     >
                         <h4 className={styles.confirmTitle}>Oyuncu bağlantısını kaldır</h4>
                         <p className={styles.confirmMessage}>
-                            <span className={styles.confirmHighlight}>“{playerToDelete.player.username}”</span> adlı Minecraft oyuncusunun{' '}
-                            <span className={styles.confirmHighlight}>{youtuberTitle}</span> ile bağlantısı kaldırılacak. Devam etmek istiyor musun?
+                            <span className={styles.confirmHighlight}>“{playerToDelete.player.username}”</span> adlı Minecraft oyuncusunun {youtuberTitle} ile bağlantısı kaldırılacak.
+                            {activeModsCount > 0 ? (
+                                <span style={{ display: 'block', marginTop: '6px', color: '#facc15' }}>
+                                    Bu oyuncu {activeModsCount} aktif modun allowlist&apos;inden kaldırılacak.
+                                </span>
+                            ) : null}
                         </p>
                         <div className={styles.confirmActions}>
                             <button

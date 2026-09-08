@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { processSyncJob } from '@/lib/mods/mod-service';
-import { getAuthenticatedUser } from '@/lib/server-auth';
+import { requireOwnerOrCron } from '@/lib/server-auth';
 import { adminDb } from '@/lib/firebase-admin';
 
 export async function POST(request: NextRequest) {
     try {
-        const authUser = await getAuthenticatedUser(request);
-        if (!authUser) {
-            return NextResponse.json({ error: 'Yetkilendirme hatası: Geçersiz veya eksik oturum.' }, { status: 401 });
+        const auth = await requireOwnerOrCron(request);
+        if (!auth.ok) {
+            return auth.response;
         }
 
         let body: Record<string, unknown>;
@@ -22,18 +22,19 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'jobId parametresi gereklidir.' }, { status: 400 });
         }
 
-        // Verify job ownership unless system admin
-        if (!authUser.isSystemAdmin) {
+        // If called by owner, verify job belongs to the owner
+        if (auth.callerType === 'owner') {
             const jobSnap = await adminDb.collection('github_sync_jobs').doc(jobId).get();
             if (!jobSnap.exists) {
                 return NextResponse.json({ error: 'İş kaydı bulunamadı.' }, { status: 404 });
             }
-            if (jobSnap.data()?.userId !== authUser.userId) {
+            if (jobSnap.data()?.userId !== auth.userId) {
                 return NextResponse.json({ error: 'Bu işi çalıştırma yetkiniz yok.' }, { status: 403 });
             }
         }
 
-        const result = await processSyncJob(jobId, authUser.isSystemAdmin ? 'system-worker' : 'user-worker');
+        const workerId = auth.callerType === 'cron' ? 'cron-worker' : 'owner-worker';
+        const result = await processSyncJob(jobId, workerId);
 
         return NextResponse.json({ data: result });
     } catch (err: unknown) {

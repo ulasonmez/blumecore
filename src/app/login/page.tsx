@@ -1,25 +1,38 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { useAuth } from '@/lib/auth-context';
 import styles from './Login.module.css';
 
+const AUTHORIZED_OWNER_UID = 'Vkp7vtLHSuPZyXU8ohOZqvRoeE22';
+
 export default function LoginPage() {
-    const [isLogin, setIsLogin] = useState(true);
     const [nickname, setNickname] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
     const router = useRouter();
+    const searchParams = useSearchParams();
     const { user, loading: authLoading } = useAuth();
 
     useEffect(() => {
+        if (searchParams.get('error') === 'unauthorized') {
+            setError('Bu hesaba BlumeCore için erişim izni verilmemiştir. Sadece yetkili yönetici giriş yapabilir.');
+        }
+    }, [searchParams]);
+
+    useEffect(() => {
         if (user && !authLoading) {
-            router.push('/home');
+            if (user.uid === AUTHORIZED_OWNER_UID) {
+                router.push('/home');
+            } else {
+                signOut(auth).catch(() => {});
+                setError('Bu hesaba BlumeCore için erişim izni verilmemiştir.');
+            }
         }
     }, [user, authLoading, router]);
 
@@ -29,40 +42,60 @@ export default function LoginPage() {
         setLoading(true);
 
         try {
-            // Arka planda sahte bir email oluşturuyoruz
             const formattedEmail = `${nickname.trim().toLowerCase()}@blumecore.app`;
+            const cred = await signInWithEmailAndPassword(auth, formattedEmail, password);
 
-            if (isLogin) {
-                await signInWithEmailAndPassword(auth, formattedEmail, password);
-            } else {
-                await createUserWithEmailAndPassword(auth, formattedEmail, password);
+            // Strict client verification
+            if (cred.user.uid !== AUTHORIZED_OWNER_UID) {
+                await signOut(auth);
+                setError('Bu hesaba BlumeCore için erişim izni verilmemiştir.');
+                setLoading(false);
+                return;
             }
+
+            // Create server session cookie
+            const idToken = await cred.user.getIdToken();
+            const sessionRes = await fetch('/api/auth/session', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ idToken })
+            });
+
+            if (!sessionRes.ok) {
+                await signOut(auth);
+                const sessionData = await sessionRes.json().catch(() => ({}));
+                setError(sessionData.error || 'Oturum oluşturulamadı: Yetkisiz hesap.');
+                setLoading(false);
+                return;
+            }
+
             router.push('/home');
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error("Auth error:", err);
-            if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+            const authError = err as { code?: string; message?: string };
+            if (authError.code === 'auth/user-not-found' || authError.code === 'auth/wrong-password' || authError.code === 'auth/invalid-credential') {
                 setError('Kullanıcı adı veya şifre hatalı.');
-            } else if (err.code === 'auth/email-already-in-use') {
-                setError('Bu kullanıcı adı zaten alınmış.');
-            } else if (err.code === 'auth/weak-password') {
-                setError('Şifre en az 6 karakter olmalıdır.');
+            } else if (authError.code === 'auth/too-many-requests') {
+                setError('Çok fazla başarısız deneme yapıldı. Lütfen biraz sonra tekrar deneyin.');
             } else {
-                setError('Bir hata oluştu. Lütfen tekrar deneyin.');
+                setError('Giriş yapılırken bir hata oluştu. Lütfen tekrar deneyin.');
             }
         } finally {
             setLoading(false);
         }
     };
 
-    if (authLoading || user) return null; // Prevent flicker while redirecting
+    if (authLoading || (user && user.uid === AUTHORIZED_OWNER_UID)) {
+        return null; // Prevent flicker while redirecting
+    }
 
     return (
         <div className={styles.container}>
             <div className={styles.card}>
                 <div className={styles.logo}>BlumeCore</div>
-                <h1 className={styles.title}>{isLogin ? 'Hoş Geldiniz' : 'Hesap Oluştur'}</h1>
+                <h1 className={styles.title}>Yönetici Girişi</h1>
                 <p className={styles.subtitle}>
-                    {isLogin ? 'Hesabınıza giriş yaparak verilere erişin' : 'Yeni bir hesap oluşturarak başlayın'}
+                    BlumeCore özel yönetim paneline erişmek için oturum açın
                 </p>
 
                 {error && <div className={styles.error}>{error}</div>}
@@ -77,7 +110,7 @@ export default function LoginPage() {
                             value={nickname}
                             onChange={(e) => setNickname(e.target.value)}
                             required
-                            placeholder="Sadece harf ve rakam"
+                            placeholder="Yönetici kullanıcı adı"
                             pattern="[a-zA-Z0-9]+"
                         />
                     </div>
@@ -94,20 +127,9 @@ export default function LoginPage() {
                         />
                     </div>
                     <button type="submit" className={`btn-primary ${styles.button}`} disabled={loading}>
-                        {loading ? 'İşleniyor...' : (isLogin ? 'Giriş Yap' : 'Kayıt Ol')}
+                        {loading ? 'Doğrulanıyor...' : 'Giriş Yap'}
                     </button>
                 </form>
-
-                <div className={styles.toggle}>
-                    {isLogin ? 'Hesabınız yok mu?' : 'Zaten bir hesabınız var mı?'}
-                    <button
-                        type="button"
-                        onClick={() => { setIsLogin(!isLogin); setError(''); }}
-                        className={styles.toggleBtn}
-                    >
-                        {isLogin ? 'Kayıt Ol' : 'Giriş Yap'}
-                    </button>
-                </div>
             </div>
         </div>
     );

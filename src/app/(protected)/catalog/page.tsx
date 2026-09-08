@@ -8,6 +8,7 @@ import GroupModal from '@/components/GroupModal';
 import { db } from '@/lib/firebase';
 import { collection, query, where, addDoc, deleteDoc, doc, onSnapshot } from 'firebase/firestore';
 import { useAuth } from '@/lib/auth-context';
+import { authenticatedFetch } from '@/lib/api-client';
 
 interface Group {
     id: string;
@@ -86,7 +87,10 @@ export default function CatalogPage() {
         e.stopPropagation();
         if (confirm("Bu kayıt silinecek, emin misiniz?")) {
             try {
-                await deleteDoc(doc(db, "youtubers", youtuberId));
+                // Server route deletes youtuber and cascades affected mod access atomically in one transaction
+                await authenticatedFetch(`/api/youtubers/${youtuberId}`, {
+                    method: 'DELETE'
+                });
             } catch (err) {
                 console.error("Error deleting youtuber:", err);
             }

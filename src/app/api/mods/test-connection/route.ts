@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { testRepositoryConnection } from '@/lib/github/client';
 import { parseLegacyReadme } from '@/lib/github/readme-parser';
-import { getAuthenticatedUser } from '@/lib/server-auth';
+import { requireOwnerUser } from '@/lib/server-auth';
 
 export async function POST(request: NextRequest) {
     try {
-        const authUser = await getAuthenticatedUser(request);
-        if (!authUser) {
-            return NextResponse.json({ error: 'Yetkilendirme hatası: Oturum açmanız gerekmektedir.' }, { status: 401 });
+        const auth = await requireOwnerUser(request);
+        if (!auth.ok) {
+            return auth.response;
         }
 
         const body = await request.json();
@@ -33,10 +33,13 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({
                 data: {
                     success: false,
+                    resultCode: connTest.resultCode,
                     repositoryFound: connTest.repositoryFound,
                     branchFound: connTest.branchFound,
                     fileFound: false,
+                    defaultBranch: connTest.defaultBranch || targetBranch,
                     writePermissionNote: connTest.writePermissionNote,
+                    requiredPermissionsNote: connTest.requiredPermissionsNote,
                     error: connTest.error || 'README dosyasına ulaşılamadı.',
                     errorCode: connTest.errorCode
                 }
@@ -48,11 +51,14 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({
             data: {
                 success: true,
+                resultCode: connTest.resultCode,
                 repositoryFound: true,
                 branchFound: true,
                 fileFound: true,
+                defaultBranch: connTest.defaultBranch || targetBranch,
                 fileSha: connTest.fileSha,
                 writePermissionNote: connTest.writePermissionNote,
+                requiredPermissionsNote: connTest.requiredPermissionsNote,
                 isManagedSectionPresent: parsed.isManagedSectionPresent,
                 hasMalformedMarkers: parsed.hasMalformedMarkers,
                 malformedReason: parsed.malformedReason || null,

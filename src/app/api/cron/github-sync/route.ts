@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { processPendingJobs } from '@/lib/mods/mod-service';
+import { requireCronSecret } from '@/lib/server-auth';
 
 export async function GET(request: NextRequest) {
     try {
-        const cronSecret = process.env.CRON_SECRET;
-        const authHeader = request.headers.get('authorization');
-
-        if (!cronSecret || !authHeader || authHeader !== `Bearer ${cronSecret}`) {
-            return NextResponse.json({ error: 'Yetkilendirme başarısız (Geçersiz CRON_SECRET).' }, { status: 401 });
+        const cronAuth = requireCronSecret(request);
+        if (!cronAuth.ok) {
+            return cronAuth.response;
         }
 
         const result = await processPendingJobs(20);

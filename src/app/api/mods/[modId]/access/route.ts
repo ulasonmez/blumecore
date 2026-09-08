@@ -6,7 +6,7 @@ import {
     processSyncJob,
     getActiveMinecraftPlayersForYoutuberAdmin
 } from '@/lib/mods/mod-service';
-import { getAuthenticatedUser } from '@/lib/server-auth';
+import { requireOwnerUser } from '@/lib/server-auth';
 
 export async function GET(
     request: NextRequest,
@@ -14,15 +14,15 @@ export async function GET(
 ) {
     try {
         const { modId } = await context.params;
-        const authUser = await getAuthenticatedUser(request);
-        if (!authUser) {
-            return NextResponse.json({ error: 'Yetkilendirme hatası: Oturum açmanız gerekmektedir.' }, { status: 401 });
+        const auth = await requireOwnerUser(request);
+        if (!auth.ok) {
+            return auth.response;
         }
-        const userId = authUser.userId;
+        const userId = auth.user.userId;
 
         // Verify mod ownership
         const modSnap = await adminDb.collection('mod_projects').doc(modId).get();
-        if (!modSnap.exists || (!authUser.isSystemAdmin && modSnap.data()?.userId !== userId)) {
+        if (!modSnap.exists || modSnap.data()?.userId !== userId) {
             return NextResponse.json({ error: 'Mod bulunamadı veya yetkisiz erişim.' }, { status: 404 });
         }
 
@@ -63,11 +63,11 @@ export async function POST(
 ) {
     try {
         const { modId } = await context.params;
-        const authUser = await getAuthenticatedUser(request);
-        if (!authUser) {
-            return NextResponse.json({ error: 'Yetkilendirme hatası: Oturum açmanız gerekmektedir.' }, { status: 401 });
+        const auth = await requireOwnerUser(request);
+        if (!auth.ok) {
+            return auth.response;
         }
-        const userId = authUser.userId;
+        const userId = auth.user.userId;
 
         let body: Record<string, unknown>;
         try {
@@ -84,7 +84,7 @@ export async function POST(
 
         // Verify mod ownership
         const modSnap = await adminDb.collection('mod_projects').doc(modId).get();
-        if (!modSnap.exists || (!authUser.isSystemAdmin && modSnap.data()?.userId !== userId)) {
+        if (!modSnap.exists || modSnap.data()?.userId !== userId) {
             return NextResponse.json({ error: 'Mod bulunamadı veya yetkisiz erişim.' }, { status: 404 });
         }
 
@@ -108,10 +108,15 @@ export async function POST(
 
             if (existingDoc) {
                 accessId = existingDoc.id;
+                const existingSources = (existingDoc.data()?.grantSources as any[]) || [];
+                const updatedSources = existingSources.filter(s => s.type !== 'MANUAL');
+                updatedSources.push({ type: 'MANUAL', addedAt: now });
+
                 await adminDb.collection('youtuber_mod_access').doc(accessId).update({
                     status: 'ACTIVE',
                     syncStatus: 'PENDING',
                     manualDecision: 'FORCE_ALLOW',
+                    grantSources: updatedSources,
                     revokedAt: null,
                     revokedByUserId: null,
                     revokeReason: null,
@@ -124,6 +129,7 @@ export async function POST(
                     status: 'ACTIVE',
                     syncStatus: 'PENDING',
                     grantType: 'MANUAL',
+                    grantSources: [{ type: 'MANUAL', addedAt: now }],
                     manualDecision: 'FORCE_ALLOW',
                     grantedAt: now,
                     grantedByUserId: userId,
@@ -143,10 +149,14 @@ export async function POST(
             }
 
             accessId = existingDoc.id;
+            const existingSources = (existingDoc.data()?.grantSources as any[]) || [];
+            const remainingSources = existingSources.filter(s => s.type !== 'MANUAL');
+
             await adminDb.collection('youtuber_mod_access').doc(accessId).update({
                 status: 'REVOKED',
                 syncStatus: 'PENDING',
                 manualDecision: 'FORCE_DENY',
+                grantSources: remainingSources,
                 revokedAt: now,
                 revokedByUserId: userId,
                 revokeReason: typeof revokeReason === 'string' ? revokeReason : 'Manuel olarak kaldırıldı.',

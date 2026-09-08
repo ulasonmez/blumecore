@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "tsx --test tests/*.test.ts"
+    "test": "tsx --test tests/*.test.ts",
+    "test:emulator": "export JAVA_HOME=/Library/Java/JavaVirtualMachines/jdk-21.jdk/Contents/Home && npx firebase-tools emulators:exec --only firestore \"tsx --test tests/emulator-firestore-rules-and-outbox.test.ts\""
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -22,6 +23,7 @@
     "react-dom": "19.2.3"
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.2",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

@@ -226,10 +226,104 @@
     color: #4ade80;
 }
 
+.testWarning {
+    background-color: rgba(234, 179, 8, 0.09);
+    border: 1px solid rgba(234, 179, 8, 0.3);
+    color: #facc15;
+}
+
 .testFailure {
     background-color: rgba(239, 68, 68, 0.08);
     border: 1px solid rgba(239, 68, 68, 0.25);
     color: #f87171;
+}
+
+.confirmOverlay {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1100;
+    padding: 16px;
+}
+
+.confirmBox {
+    background-color: #12141e;
+    border: 1px solid #333c54;
+    border-radius: 14px;
+    padding: 24px;
+    max-width: 440px;
+    width: 100%;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    animation: modalIn 0.18s ease;
+}
+
+.confirmTitle {
+    font-size: 16px;
+    font-weight: 600;
+    color: #ffffff;
+    margin: 0;
+}
+
+.confirmMessage {
+    font-size: 13.5px;
+    color: #cbd5e1;
+    line-height: 1.5;
+    margin: 0;
+}
+
+.confirmActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 8px;
+}
+
+.btnProvision {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 16px;
+    background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+    color: #ffffff;
+    border: 1px solid #6366f1;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.btnProvision:hover:not(:disabled) {
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    box-shadow: 0 0 12px rgba(99, 102, 241, 0.4);
+}
+
+.btnProvision:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.btnConfirmCancel {
+    padding: 9px 14px;
+    background: transparent;
+    border: 1px solid #2e344a;
+    border-radius: 8px;
+    color: #94a3b8;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.btnConfirmCancel:hover:not(:disabled) {
+    background-color: #1a1e2d;
+    color: #e2e8f0;
 }
 
 .testHeader {

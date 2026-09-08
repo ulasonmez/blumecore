@@ -1,16 +1,16 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse, after } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
-import { ModProject } from '@/lib/mods/types';
+import { ModProject, resolveModLifecycleStatus } from '@/lib/mods/types';
 import { validateModProjectInput } from '@/lib/mods/mod-service';
-import { getAuthenticatedUser } from '@/lib/server-auth';
+import { requireOwnerUser } from '@/lib/server-auth';
 
 export async function GET(request: NextRequest) {
     try {
-        const authUser = await getAuthenticatedUser(request);
-        if (!authUser) {
-            return NextResponse.json({ error: 'Yetkilendirme hatası: Oturum açmanız gerekmektedir.' }, { status: 401 });
+        const auth = await requireOwnerUser(request);
+        if (!auth.ok) {
+            return auth.response;
         }
-        const userId = authUser.userId;
+        const userId = auth.user.userId;
 
         const snap = await adminDb
             .collection('mod_projects')
@@ -20,14 +20,17 @@ export async function GET(request: NextRequest) {
         const mods: ModProject[] = [];
         snap.forEach((d) => {
             const data = d.data() as Omit<ModProject, 'id'>;
-            if (!data.isArchived) {
-                mods.push({ id: d.id, ...data });
+            const status = resolveModLifecycleStatus(data);
+            if (status !== 'ARCHIVED') {
+                mods.push({ id: d.id, ...data, lifecycleStatus: status });
             }
         });
 
         // Sort: active first, then newest
         mods.sort((a, b) => {
-            if (a.isActive !== b.isActive) return a.isActive ? -1 : 1;
+            const aActive = resolveModLifecycleStatus(a) === 'ACTIVE';
+            const bActive = resolveModLifecycleStatus(b) === 'ACTIVE';
+            if (aActive !== bActive) return aActive ? -1 : 1;
             return b.createdAt - a.createdAt;
         });
 
@@ -40,12 +43,11 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
     try {
-        const authUser = await getAuthenticatedUser(request);
-        if (!authUser) {
-            return NextResponse.json({ error: 'Yetkilendirme hatası: Oturum açmanız gerekmektedir.' }, { status: 401 });
+        const auth = await requireOwnerUser(request);
+        if (!auth.ok) {
+            return auth.response;
         }
-        // Strictly use userId from authenticated session
-        const userId = authUser.userId;
+        const userId = auth.user.userId;
 
         let body: Record<string, unknown>;
         try {
@@ -60,6 +62,8 @@ export async function POST(request: NextRequest) {
         if (!cleanModKey) {
             return NextResponse.json({ error: 'Mod ID alanı zorunludur.' }, { status: 400 });
         }
+
+        const canonicalModKey = cleanModKey.toLowerCase();
 
         // Server-enforced values derived directly from modKey
         const owner = process.env.GITHUB_ALLOWED_OWNER || 'blumeplugins';
@@ -81,20 +85,36 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: valErr instanceof Error ? valErr.message : 'Geçersiz mod parametreleri.' }, { status: 400 });
         }
 
-        // Check if modKey already exists for this user
+        // Case-insensitive idempotency check: do NOT silently overwrite configuration!
         const existingSnap = await adminDb
             .collection('mod_projects')
             .where('userId', '==', userId)
-            .where('modKey', '==', cleanModKey)
             .get();
 
-        if (!existingSnap.empty) {
-            return NextResponse.json({ error: `Bu mod kimliğine (${cleanModKey}) sahip bir mod zaten mevcut.` }, { status: 409 });
+        const matchedDoc = existingSnap.docs.find((d) => {
+            const data = d.data();
+            return data.canonicalModKey === canonicalModKey || (data.modKey && data.modKey.toLowerCase() === canonicalModKey);
+        });
+
+        if (matchedDoc) {
+            // Idempotently return existing record without overwriting repository/branch/path
+            return NextResponse.json(
+                {
+                    data: {
+                        id: matchedDoc.id,
+                        ...matchedDoc.data()
+                    },
+                    alreadyExisted: true,
+                    message: 'Bu Mod ID zaten mevcut. Mevcut kayıt korundu.'
+                },
+                { status: 200 }
+            );
         }
 
         const now = Date.now();
         const newMod: Omit<ModProject, 'id'> = {
             modKey: cleanModKey,
+            canonicalModKey,
             displayName: effectiveDisplayName,
             description: typeof description === 'string' ? description.trim() : '',
             githubOwner: owner,
@@ -102,7 +122,10 @@ export async function POST(request: NextRequest) {
             branch: targetBranch,
             allowlistPath: targetPath,
             syncMode: 'LEGACY_README',
+            lifecycleStatus: 'ACTIVE',
             isActive: true,
+            isArchived: false,
+            archiveStatus: 'ACTIVE',
             syncStatus: 'PENDING',
             lastSuccessfulSyncAt: null,
             lastSuccessfulCommitSha: null,
@@ -113,7 +136,32 @@ export async function POST(request: NextRequest) {
 
         const docRef = await adminDb.collection('mod_projects').add(newMod);
 
-        return NextResponse.json({ data: { id: docRef.id, ...newMod } }, { status: 201 });
+        // Automatically queue initial sync job (including Global Blume UUID)
+        let queuedJobId: string | null = null;
+        try {
+            const { createOrCoalesceSyncJob, processSyncJob } = await import('@/lib/mods/mod-service');
+            const job = await createOrCoalesceSyncJob(docRef.id, userId, 'MANUAL_SYNC');
+            queuedJobId = job.id;
+            try {
+                after(async () => {
+                    try {
+                        await processSyncJob(job.id, 'initial-mod-sync-worker');
+                    } catch (e) {
+                        console.warn(`[initModSync] Initial sync job ${job.id} failed:`, e);
+                    }
+                });
+            } catch {
+                // Outside request context; cron will reconcile
+            }
+        } catch (jobErr) {
+            console.warn('[initModSync] Warning queuing initial sync job:', jobErr);
+        }
+
+        return NextResponse.json({
+            data: { id: docRef.id, ...newMod },
+            syncState: 'QUEUED',
+            jobId: queuedJobId
+        }, { status: 201 });
     } catch (err: unknown) {
         console.error('Error in POST /api/mods:', err instanceof Error ? err.message : 'Unknown error');
         return NextResponse.json({ error: 'Mod kaydedilirken sunucu hatası oluştu.' }, { status: 500 });

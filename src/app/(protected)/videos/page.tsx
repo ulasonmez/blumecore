@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, Plus, AlertCircle, Link as LinkIcon, ExternalLink, RefreshCw, CheckCircle2 } from 'lucide-react';
+import { Search, Plus, AlertCircle, Link as LinkIcon, ExternalLink, RefreshCw, CheckCircle2, Globe } from 'lucide-react';
 import styles from './Videos.module.css';
 import { db } from '@/lib/firebase';
 import { collection, query, where, addDoc, deleteDoc, doc, updateDoc, onSnapshot } from 'firebase/firestore';
@@ -11,7 +11,7 @@ import VideoDetailModal from '@/components/VideoDetailModal';
 import ModModal from '@/components/ModModal';
 import ModDetailModal from '@/components/ModDetailModal';
 import { authenticatedFetch } from '@/lib/api-client';
-import { ModProject } from '@/lib/mods/types';
+import { ModProject, resolveModLifecycleStatus } from '@/lib/mods/types';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 
@@ -100,12 +100,15 @@ export default function VideosPage() {
             const modItems: ModProject[] = [];
             snapshot.forEach(doc => {
                 const data = doc.data() as Omit<ModProject, 'id'>;
-                if (!data.isArchived) {
-                    modItems.push({ id: doc.id, ...data });
+                const status = resolveModLifecycleStatus(data);
+                if (status !== 'ARCHIVED') {
+                    modItems.push({ id: doc.id, ...data, lifecycleStatus: status });
                 }
             });
             modItems.sort((a, b) => {
-                if (a.isActive !== b.isActive) return a.isActive ? -1 : 1;
+                const aActive = resolveModLifecycleStatus(a) === 'ACTIVE';
+                const bActive = resolveModLifecycleStatus(b) === 'ACTIVE';
+                if (aActive !== bActive) return aActive ? -1 : 1;
                 return b.createdAt - a.createdAt;
             });
             setMods(modItems);
@@ -239,10 +242,10 @@ export default function VideosPage() {
         e.stopPropagation();
         if (confirm('Bu videoyu silmek istediğinize emin misiniz?')) {
             try {
-                await deleteDoc(doc(db, "youtube_videos", videoId));
-                // Clean up assignments
-                const relatedAssignments = assignmentsByVideo[videoId] || [];
-                relatedAssignments.forEach(a => deleteDoc(doc(db, "assignments", a.id)));
+                // Single server API call: deletes video, assignments, links, and cascades access in one transaction
+                await authenticatedFetch(`/api/videos/${videoId}`, {
+                    method: 'DELETE'
+                });
 
                 if (selectedVideo?.id === videoId) setSelectedVideo(null);
             } catch (error) {
@@ -579,22 +582,51 @@ export default function VideosPage() {
                             </select>
                         </div>
 
-                        <button
-                            onClick={() => setIsAddModModalOpen(true)}
-                            className="btn-primary"
-                            style={{
-                                padding: '10px 18px',
-                                borderRadius: '8px',
-                                fontSize: '13px',
-                                fontWeight: 600,
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '8px'
-                            }}
-                        >
-                            <Plus size={16} />
-                            Yeni Mod Ekle
-                        </button>
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                            <button
+                                onClick={async () => {
+                                    try {
+                                        const res = await authenticatedFetch('/api/mods/global-backfill', { method: 'POST' });
+                                        const data = await res.json();
+                                        if (res.ok) {
+                                            alert(data.message || 'Global Blume UUID senkronizasyonu kuyruğa alındı.');
+                                        } else {
+                                            alert(data.error || 'Backfill işlemi başarısız oldu.');
+                                        }
+                                    } catch (err) {
+                                        alert('Backfill isteği sırasında ağ hatası oluştu.');
+                                    }
+                                }}
+                                className="btn-secondary"
+                                style={{
+                                    padding: '10px 14px',
+                                    borderRadius: '8px',
+                                    fontSize: '13px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '6px'
+                                }}
+                                title="Mevcut tüm aktif modların allowlist'ine Global Blume UUID'sini senkronize eder"
+                            >
+                                <Globe size={16} /> Global Blume Backfill
+                            </button>
+
+                            <button
+                                onClick={() => setIsAddModModalOpen(true)}
+                                className="btn-primary"
+                                style={{
+                                    padding: '10px 18px',
+                                    borderRadius: '8px',
+                                    fontSize: '13px',
+                                    fontWeight: 600,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px'
+                                }}
+                            >
+                                <Plus size={16} /> Yeni Mod Projesi
+                            </button>
+                        </div>
                     </div>
 
                     {/* Mod Cards Grid */}
