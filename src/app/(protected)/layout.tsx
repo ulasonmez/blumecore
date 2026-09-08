@@ -2,6 +2,8 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { verifySessionCookieOwner } from '@/lib/server-auth';
 
+export const dynamic = 'force-dynamic';
+
 export default async function ProtectedServerLayout({
     children,
 }: {

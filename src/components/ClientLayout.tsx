@@ -2,7 +2,6 @@
 
 import { usePathname } from 'next/navigation';
 import BottomNav from "@/components/BottomNav";
-import ProtectedRoute from "@/components/ProtectedRoute";
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
@@ -17,11 +16,11 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     }
 
     return (
-        <ProtectedRoute>
+        <>
             <main className="page-container">
                 {children}
             </main>
             <BottomNav />
-        </ProtectedRoute>
+        </>
     );
 }
