@@ -260,7 +260,7 @@ export async function getRepositoryFile(
 export async function updateRepositoryFile(
     modProject: Pick<ModProject, 'githubOwner' | 'githubRepository' | 'branch' | 'allowlistPath' | 'modKey'>,
     newContent: string,
-    currentSha: string,
+    currentSha?: string | null,
     retryCount = 0,
     customCommitMessage?: string
 ): Promise<GitHubUpdateResponse> {
@@ -273,14 +273,18 @@ export async function updateRepositoryFile(
     const base64Content = Buffer.from(newContent, 'utf8').toString('base64');
     const commitMessage = customCommitMessage || `BlumeCore: sync Minecraft access for ${modProject.modKey}`;
 
+    const putBody: Record<string, unknown> = {
+        message: commitMessage,
+        content: base64Content,
+        branch: modProject.branch
+    };
+    if (currentSha) {
+        putBody.sha = currentSha;
+    }
+
     const res = await githubFetch(endpoint, {
         method: 'PUT',
-        body: JSON.stringify({
-            message: commitMessage,
-            content: base64Content,
-            sha: currentSha,
-            branch: modProject.branch
-        })
+        body: JSON.stringify(putBody)
     });
 
     if (res.status === 409) {

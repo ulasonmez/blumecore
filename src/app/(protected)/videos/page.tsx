@@ -64,9 +64,38 @@ export default function VideosPage() {
     const [syncingModId, setSyncingModId] = useState<string | null>(null);
     const [modToast, setModToast] = useState<string | null>(null);
 
+    // Global Blume Backfill state
+    const [isBackfilling, setIsBackfilling] = useState(false);
+    const [isBackfillModalOpen, setIsBackfillModalOpen] = useState(false);
+
+    const activeModsCount = mods.filter(m => m.isActive && !m.isArchived).length;
+
     const showModToast = (msg: string) => {
         setModToast(msg);
-        setTimeout(() => setModToast(null), 3000);
+        setTimeout(() => setModToast(null), 3500);
+    };
+
+    const openGlobalBackfillConfirmation = () => {
+        setIsBackfillModalOpen(true);
+    };
+
+    const handleGlobalBackfill = async () => {
+        if (!user || isBackfilling) return;
+        setIsBackfilling(true);
+        try {
+            const res = await authenticatedFetch('/api/mods/global-backfill', { method: 'POST' });
+            const data = await res.json();
+            if (res.ok) {
+                showModToast(data.message || `${activeModsCount} aktif mod için Global Blume UUID senkronizasyonu kuyruğa alındı.`);
+            } else {
+                showModToast(`Hata: ${data.error || 'Backfill işlemi başarısız oldu.'}`);
+            }
+        } catch {
+            showModToast('Hata: Backfill isteği sırasında ağ hatası oluştu.');
+        } finally {
+            setIsBackfilling(false);
+            setIsBackfillModalOpen(false);
+        }
     };
 
     // Fetch Videos, Assignments, Mods, and Links
@@ -463,6 +492,7 @@ export default function VideosPage() {
                             </div>
 
                             <button
+                                type="button"
                                 className="btn-primary"
                                 onClick={handleAddSingle}
                                 disabled={loading || !bulkInput.trim()}
@@ -502,6 +532,7 @@ export default function VideosPage() {
                             </div>
                             {videos.length > 0 && (
                                 <button
+                                    type="button"
                                     className="btn-secondary"
                                     style={{
                                         borderColor: 'rgba(239, 68, 68, 0.3)',
@@ -584,19 +615,13 @@ export default function VideosPage() {
 
                         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                             <button
-                                onClick={async () => {
-                                    try {
-                                        const res = await authenticatedFetch('/api/mods/global-backfill', { method: 'POST' });
-                                        const data = await res.json();
-                                        if (res.ok) {
-                                            alert(data.message || 'Global Blume UUID senkronizasyonu kuyruğa alındı.');
-                                        } else {
-                                            alert(data.error || 'Backfill işlemi başarısız oldu.');
-                                        }
-                                    } catch (err) {
-                                        alert('Backfill isteği sırasında ağ hatası oluştu.');
-                                    }
+                                type="button"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    openGlobalBackfillConfirmation();
                                 }}
+                                disabled={isBackfilling}
                                 className="btn-secondary"
                                 style={{
                                     padding: '10px 14px',
@@ -608,10 +633,11 @@ export default function VideosPage() {
                                 }}
                                 title="Mevcut tüm aktif modların allowlist'ine Global Blume UUID'sini senkronize eder"
                             >
-                                <Globe size={16} /> Global Blume Backfill
+                                <Globe size={16} /> {isBackfilling ? 'Senkronize Ediliyor...' : 'Global Blume Backfill'}
                             </button>
 
                             <button
+                                type="button"
                                 onClick={() => setIsAddModModalOpen(true)}
                                 className="btn-primary"
                                 style={{
@@ -779,7 +805,7 @@ export default function VideosPage() {
                     isOpen={isAddModModalOpen}
                     onClose={() => setIsAddModModalOpen(false)}
                     onSuccess={() => {
-                        showModToast('Mod başarıyla oluşturuldu.');
+                        showModToast('Mod kaydedildi. İlk allowlist senkronizasyonu kuyruğa alındı.');
                     }}
                 />
             )}
@@ -793,6 +819,102 @@ export default function VideosPage() {
                         // Triggers snapshot update
                     }}
                 />
+            )}
+
+            {/* Global Blume Backfill Confirmation Modal */}
+            {isBackfillModalOpen && (
+                <div
+                    style={{
+                        position: 'fixed',
+                        inset: 0,
+                        backgroundColor: 'rgba(0, 0, 0, 0.75)',
+                        backdropFilter: 'blur(4px)',
+                        zIndex: 1000,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '16px'
+                    }}
+                    onClick={() => !isBackfilling && setIsBackfillModalOpen(false)}
+                >
+                    <div
+                        style={{
+                            backgroundColor: 'var(--bg-card, #1e2230)',
+                            border: '1px solid var(--border-color, #2e354b)',
+                            borderRadius: '16px',
+                            maxWidth: '480px',
+                            width: '100%',
+                            padding: '24px',
+                            boxShadow: '0 20px 40px rgba(0, 0, 0, 0.5)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '16px'
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <div style={{
+                                width: '40px',
+                                height: '40px',
+                                borderRadius: '10px',
+                                backgroundColor: 'rgba(92, 62, 240, 0.15)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: 'var(--accent-purple, #7c3aed)'
+                            }}>
+                                <Globe size={22} />
+                            </div>
+                            <div>
+                                <h3 style={{ fontSize: '17px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                                    Global Blume UUID Senkronizasyonu
+                                </h3>
+                                <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                                    Tüm aktif modlar için toplu allowlist senkronizasyonu
+                                </p>
+                            </div>
+                        </div>
+
+                        <p style={{ fontSize: '14px', lineHeight: 1.6, color: 'var(--text-secondary)' }}>
+                            Global Blume UUID&apos;si tüm aktif modların README allowlist&apos;ine eklenecek. {activeModsCount} aktif mod senkronizasyon kuyruğuna alınacak. Devam edilsin mi?
+                        </p>
+
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '8px' }}>
+                            <button
+                                type="button"
+                                className="btn-secondary"
+                                onClick={() => setIsBackfillModalOpen(false)}
+                                disabled={isBackfilling}
+                                style={{
+                                    padding: '9px 16px',
+                                    borderRadius: '8px',
+                                    fontSize: '13px',
+                                    fontWeight: 500
+                                }}
+                            >
+                                İptal
+                            </button>
+                            <button
+                                type="button"
+                                className="btn-primary"
+                                onClick={handleGlobalBackfill}
+                                disabled={isBackfilling}
+                                style={{
+                                    padding: '9px 18px',
+                                    borderRadius: '8px',
+                                    fontSize: '13px',
+                                    fontWeight: 600,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '6px'
+                                }}
+                            >
+                                <RefreshCw size={14} className={isBackfilling ? 'spin' : ''} />
+                                {isBackfilling ? 'Senkronize Ediliyor...' : `${activeModsCount} Modu Senkronize Et`}
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );

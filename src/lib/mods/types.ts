@@ -124,6 +124,7 @@ export interface ModAccessEvent {
 export type GitHubSyncJobStatus = 'PENDING' | 'RUNNING' | 'SUCCESS' | 'FAILED';
 
 export type GitHubSyncTriggerType =
+    | 'INITIAL_SYNC'
     | 'VIDEO_ASSIGNED'
     | 'MANUAL_ACCESS_GRANTED'
     | 'MANUAL_ACCESS_REVOKED'
@@ -176,6 +177,7 @@ export interface GitHubSyncRun {
     previousFileSha?: string | null;
     errorCode?: string | null;
     safeErrorMessage?: string | null;
+    satisfiedByLegacy?: boolean;
     startedAt: number;
     completedAt: number;
 }

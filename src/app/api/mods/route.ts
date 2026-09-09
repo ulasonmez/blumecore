@@ -98,6 +98,26 @@ export async function POST(request: NextRequest) {
 
         if (matchedDoc) {
             // Idempotently return existing record without overwriting repository/branch/path
+            let queuedJobId: string | null = null;
+            try {
+                const { createOrCoalesceSyncJob, processSyncJob } = await import('@/lib/mods/mod-service');
+                const job = await createOrCoalesceSyncJob(matchedDoc.id, userId, 'INITIAL_SYNC');
+                queuedJobId = job.id;
+                try {
+                    after(async () => {
+                        try {
+                            await processSyncJob(job.id, 'initial-mod-sync-worker');
+                        } catch (e) {
+                            console.warn(`[initModSync] Initial sync job ${job.id} failed:`, e);
+                        }
+                    });
+                } catch {
+                    // Outside request context
+                }
+            } catch (jobErr) {
+                console.warn('[initModSync] Warning queuing initial sync job for existing mod:', jobErr);
+            }
+
             return NextResponse.json(
                 {
                     data: {
@@ -105,6 +125,8 @@ export async function POST(request: NextRequest) {
                         ...matchedDoc.data()
                     },
                     alreadyExisted: true,
+                    syncState: 'QUEUED',
+                    jobId: queuedJobId,
                     message: 'Bu Mod ID zaten mevcut. Mevcut kayıt korundu.'
                 },
                 { status: 200 }
@@ -134,33 +156,35 @@ export async function POST(request: NextRequest) {
             updatedAt: now
         };
 
-        const docRef = await adminDb.collection('mod_projects').add(newMod);
+        const { createOrCoalesceSyncJob, processSyncJob } = await import('@/lib/mods/mod-service');
 
-        // Automatically queue initial sync job (including Global Blume UUID)
-        let queuedJobId: string | null = null;
+        // Create mod record and INITIAL_SYNC job in the same Firestore transaction
+        const { docId, job } = await adminDb.runTransaction(async (tx) => {
+            const modDocRef = adminDb.collection('mod_projects').doc();
+            tx.set(modDocRef, newMod);
+
+            const syncJob = await createOrCoalesceSyncJob(modDocRef.id, userId, 'INITIAL_SYNC', tx);
+            return { docId: modDocRef.id, job: syncJob };
+        });
+
+        // Best-effort immediate execution in background worker
         try {
-            const { createOrCoalesceSyncJob, processSyncJob } = await import('@/lib/mods/mod-service');
-            const job = await createOrCoalesceSyncJob(docRef.id, userId, 'MANUAL_SYNC');
-            queuedJobId = job.id;
-            try {
-                after(async () => {
-                    try {
-                        await processSyncJob(job.id, 'initial-mod-sync-worker');
-                    } catch (e) {
-                        console.warn(`[initModSync] Initial sync job ${job.id} failed:`, e);
-                    }
-                });
-            } catch {
-                // Outside request context; cron will reconcile
-            }
-        } catch (jobErr) {
-            console.warn('[initModSync] Warning queuing initial sync job:', jobErr);
+            after(async () => {
+                try {
+                    await processSyncJob(job.id, 'initial-mod-sync-worker');
+                } catch (e) {
+                    console.warn(`[initModSync] Initial sync job ${job.id} failed:`, e);
+                }
+            });
+        } catch {
+            // Outside request context; cron will reconcile
         }
 
         return NextResponse.json({
-            data: { id: docRef.id, ...newMod },
+            data: { id: docId, ...newMod },
             syncState: 'QUEUED',
-            jobId: queuedJobId
+            jobId: job.id,
+            message: 'Mod kaydedildi. İlk allowlist senkronizasyonu kuyruğa alındı.'
         }, { status: 201 });
     } catch (err: unknown) {
         console.error('Error in POST /api/mods:', err instanceof Error ? err.message : 'Unknown error');

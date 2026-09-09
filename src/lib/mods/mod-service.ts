@@ -14,7 +14,7 @@ import {
     ModAccessSource
 } from './types';
 import { normalizeUuid } from '../minecraft-players';
-import { getGlobalMinecraftPlayersAdmin } from '../global-players';
+import { getGlobalMinecraftPlayersAdmin, BLUME_GLOBAL_UUID } from '../global-players';
 import {
     parseLegacyReadme,
     renderManagedReadme,
@@ -24,7 +24,8 @@ import {
     getRepositoryFile,
     updateRepositoryFile,
     validateRepositoryParams,
-    GitHubApiError
+    GitHubApiError,
+    GitHubFileResponse
 } from '../github/client';
 import { logAudit } from '../audit-log';
 
@@ -221,14 +222,19 @@ export async function createOrCoalesceSyncJob(
             .collection('github_sync_jobs')
             .where('modProjectId', '==', modProjectId)
             .where('userId', '==', userId)
-            .where('status', '==', 'PENDING');
+            .where('status', 'in', ['PENDING', 'RUNNING']);
 
-        const pendingSnap = await tx.get(query);
+        const activeSnap = await tx.get(query);
         const now = Date.now();
 
-        if (!pendingSnap.empty) {
-            const existingDoc = pendingSnap.docs[0];
-            return { id: existingDoc.id, ...existingDoc.data() } as GitHubSyncJob;
+        if (!activeSnap.empty) {
+            for (const doc of activeSnap.docs) {
+                const data = doc.data() as Omit<GitHubSyncJob, 'id'>;
+                const isStaleRunning = data.status === 'RUNNING' && data.lockedAt && (now - data.lockedAt > 5 * 60 * 1000);
+                if (!isStaleRunning) {
+                    return { id: doc.id, ...data };
+                }
+            }
         }
 
         const docRef = adminDb.collection('github_sync_jobs').doc();
@@ -334,8 +340,22 @@ export async function processSyncJob(
         // Build desired state
         const desiredState = await buildDesiredUuidState(job.modProjectId, job.userId);
 
-        // Fetch current file from GitHub
-        const gitFile = await getRepositoryFile(modProject);
+        // Fetch current file from GitHub (if not found, start with empty content so README can be created)
+        let gitFile: GitHubFileResponse;
+        try {
+            gitFile = await getRepositoryFile(modProject);
+        } catch (fErr) {
+            if (fErr instanceof GitHubApiError && fErr.errorCode === 'NOT_FOUND') {
+                gitFile = {
+                    content: '',
+                    sha: '',
+                    path: modProject.allowlistPath,
+                    size: 0
+                };
+            } else {
+                throw fErr;
+            }
+        }
 
         // Prepare render input
         const renderInput: RenderInputGroup[] = desiredState.youtuberGroups.map((g) => ({
@@ -382,11 +402,11 @@ export async function processSyncJob(
         let runStatus: GitHubSyncRun['status'] = 'SUCCESS';
 
         if (renderResult.changed) {
-            // Commit update to GitHub
+            // Commit update to GitHub (if sha is empty, client creates the file)
             const updateRes = await updateRepositoryFile(
                 modProject,
                 renderResult.content,
-                gitFile.sha
+                gitFile.sha || undefined
             );
             commitSha = updateRes.commitSha;
         } else {
@@ -413,6 +433,7 @@ export async function processSyncJob(
         });
 
         const parsedLegacy = parseLegacyReadme(gitFile.content);
+        const satisfiedByLegacy = renderResult.skippedLegacyUuids.includes(BLUME_GLOBAL_UUID);
 
         const runRecord: Omit<GitHubSyncRun, 'id'> = {
             modProjectId: modProject.id,
@@ -422,7 +443,8 @@ export async function processSyncJob(
             writtenUuidCount: renderResult.writtenUuidCount,
             legacyUuidCount: parsedLegacy.legacyUuids.length,
             commitSha,
-            previousFileSha: gitFile.sha,
+            previousFileSha: gitFile.sha || null,
+            satisfiedByLegacy,
             startedAt: startTime,
             completedAt: Date.now()
         };

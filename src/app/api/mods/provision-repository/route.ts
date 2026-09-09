@@ -98,6 +98,26 @@ export async function POST(request: NextRequest) {
         if (!existingSnap.empty) {
             const existingDoc = existingSnap.docs[0];
             const existingData = { id: existingDoc.id, ...existingDoc.data() } as ModProject;
+
+            try {
+                const { createOrCoalesceSyncJob, processSyncJob } = await import('@/lib/mods/mod-service');
+                const job = await createOrCoalesceSyncJob(existingDoc.id, userId, 'INITIAL_SYNC');
+                try {
+                    const { after } = await import('next/server');
+                    after(async () => {
+                        try {
+                            await processSyncJob(job.id, 'provision-initial-sync-worker');
+                        } catch (e) {
+                            console.warn(`[provisionInitialSync] Job ${job.id} failed:`, e);
+                        }
+                    });
+                } catch {
+                    // Not in request context
+                }
+            } catch (jobErr) {
+                console.warn('[provisionInitialSync] Warning queuing sync for existing mod:', jobErr);
+            }
+
             return NextResponse.json(
                 {
                     success: true,
@@ -144,9 +164,31 @@ export async function POST(request: NextRequest) {
             updatedAt: now
         };
 
-        let docRef;
+        let docRefId = '';
+        let initialJobId: string | null = null;
         try {
-            docRef = await adminDb.collection('mod_projects').add(newModData);
+            const { createOrCoalesceSyncJob, processSyncJob } = await import('@/lib/mods/mod-service');
+            const res = await adminDb.runTransaction(async (tx) => {
+                const modRef = adminDb.collection('mod_projects').doc();
+                tx.set(modRef, newModData);
+                const syncJob = await createOrCoalesceSyncJob(modRef.id, userId, 'INITIAL_SYNC', tx);
+                return { id: modRef.id, jobId: syncJob.id };
+            });
+            docRefId = res.id;
+            initialJobId = res.jobId;
+
+            try {
+                const { after } = await import('next/server');
+                after(async () => {
+                    try {
+                        await processSyncJob(initialJobId!, 'provision-initial-sync-worker');
+                    } catch (e) {
+                        console.warn(`[provisionInitialSync] Job ${initialJobId} failed:`, e);
+                    }
+                });
+            } catch {
+                // Not in request context
+            }
         } catch (firestoreErr) {
             // Partial failure: GitHub repo was created, but Firestore record failed.
             // DO NOT delete repository on GitHub!
@@ -182,7 +224,7 @@ export async function POST(request: NextRequest) {
             modId: rawModId,
             owner,
             details: {
-                docId: docRef.id,
+                docId: docRefId,
                 branch: effectiveBranch,
                 readmeSha: provisionResult.readmeSha
             }
@@ -192,12 +234,14 @@ export async function POST(request: NextRequest) {
             {
                 success: true,
                 data: {
-                    id: docRef.id,
-                    mod: { id: docRef.id, ...newModData },
+                    id: docRefId,
+                    mod: { id: docRefId, ...newModData },
                     repositoryUrl: provisionResult.repositoryUrl,
                     branch: effectiveBranch,
                     readmeSha: provisionResult.readmeSha,
-                    alreadyExisted: provisionResult.alreadyExisted
+                    alreadyExisted: provisionResult.alreadyExisted,
+                    jobId: initialJobId,
+                    syncState: 'QUEUED'
                 }
             },
             { status: 201 }

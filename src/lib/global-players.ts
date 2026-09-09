@@ -6,52 +6,72 @@ export const BLUME_GLOBAL_UUID = normalizeUuid('058aa284-c0cf-4826-beae-9df1cb41
 export const BLUME_GLOBAL_PLAYER_ID = 'blume-global-core-player';
 export const BLUME_GLOBAL_USERNAME = 'BlumeCore';
 
+export interface RequiredGlobalPlayer {
+    id: string;
+    nickname: string;
+    uuid: string;
+    protected: boolean;
+    isActive: boolean;
+}
+
+export const REQUIRED_GLOBAL_PLAYERS: RequiredGlobalPlayer[] = [
+    {
+        id: 'blume',
+        nickname: 'Blume',
+        uuid: '058aa284-c0cf-4826-beae-9df1cb411623',
+        protected: true,
+        isActive: true
+    }
+];
+
 /**
- * Fetches all active global Minecraft players from the dedicated globalMinecraftPlayers collection.
- * If the collection is empty or does not contain the default Blume server UUID,
- * seeds the default Blume UUID automatically.
+ * Fetches all active global Minecraft players.
+ * Combines built-in REQUIRED_GLOBAL_PLAYERS (such as Blume UUID) with the
+ * dedicated Firestore globalMinecraftPlayers collection, deduplicating by UUID.
+ * Guarantees that even if Firestore is empty or unseeded, Blume UUID is always present.
  */
 export async function getGlobalMinecraftPlayersAdmin(): Promise<GlobalMinecraftPlayer[]> {
-    const snap = await adminDb
-        .collection('globalMinecraftPlayers')
-        .where('isActive', '==', true)
-        .get();
-
     const players: GlobalMinecraftPlayer[] = [];
-    let hasDefaultBlumeUuid = false;
+    const seenUuids = new Set<string>();
 
-    snap.forEach((doc) => {
-        const data = doc.data() as Omit<GlobalMinecraftPlayer, 'id'>;
-        const canonical = normalizeUuid(data.uuid);
-        if (canonical === BLUME_GLOBAL_UUID) {
-            hasDefaultBlumeUuid = true;
+    // 1. Built-in required global players
+    for (const req of REQUIRED_GLOBAL_PLAYERS) {
+        if (req.isActive) {
+            const canonical = normalizeUuid(req.uuid);
+            seenUuids.add(canonical);
+            players.push({
+                id: req.id,
+                username: req.nickname,
+                uuid: canonical,
+                isActive: true,
+                description: 'Built-in Global Blume Player',
+                createdAt: 0,
+                updatedAt: 0
+            });
         }
-        players.push({
-            id: doc.id,
-            ...data,
-            uuid: canonical
+    }
+
+    // 2. Fetch from Firestore globalMinecraftPlayers
+    try {
+        const snap = await adminDb
+            .collection('globalMinecraftPlayers')
+            .where('isActive', '==', true)
+            .get();
+
+        snap.forEach((doc) => {
+            const data = doc.data() as Omit<GlobalMinecraftPlayer, 'id'>;
+            const canonical = normalizeUuid(data.uuid);
+            if (!seenUuids.has(canonical)) {
+                seenUuids.add(canonical);
+                players.push({
+                    id: doc.id,
+                    ...data,
+                    uuid: canonical
+                });
+            }
         });
-    });
-
-    if (!hasDefaultBlumeUuid) {
-        // Auto-seed default Blume global UUID
-        const now = Date.now();
-        const defaultPlayer: Omit<GlobalMinecraftPlayer, 'id'> = {
-            username: BLUME_GLOBAL_USERNAME,
-            uuid: BLUME_GLOBAL_UUID,
-            isActive: true,
-            description: 'Global Blume Server UUID',
-            createdAt: now,
-            updatedAt: now
-        };
-
-        const docRef = adminDb.collection('globalMinecraftPlayers').doc(BLUME_GLOBAL_PLAYER_ID);
-        await docRef.set(defaultPlayer, { merge: true });
-
-        players.unshift({
-            id: BLUME_GLOBAL_PLAYER_ID,
-            ...defaultPlayer
-        });
+    } catch (err) {
+        console.warn('[getGlobalMinecraftPlayersAdmin] Warning loading from Firestore:', err);
     }
 
     return players;
