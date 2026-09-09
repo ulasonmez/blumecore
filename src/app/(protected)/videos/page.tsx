@@ -336,32 +336,6 @@ export default function VideosPage() {
         }
     };
 
-    const handleBulkDeleteAll = async () => {
-        if (videos.length === 0) return;
-
-        if (confirm('Tüm videoları ve onlara bağlı atamaları kalıcı olarak silmek istediğinize emin misiniz? Bu işlem geri alınamaz!')) {
-            setLoading(true);
-            try {
-                // To avoid overloading, we process them in chunks or simply loop and delete
-                for (const video of videos) {
-                    await deleteDoc(doc(db, "youtube_videos", video.id));
-
-                    const relatedAssignments = assignmentsByVideo[video.id] || [];
-                    for (const a of relatedAssignments) {
-                        await deleteDoc(doc(db, "assignments", a.id));
-                    }
-                }
-                setSelectedVideo(null);
-                setSuccessMessage('Tüm videolar başarıyla silindi.');
-                setTimeout(() => setSuccessMessage(''), 3000);
-            } catch (err) {
-                console.error("Error bulk deleting:", err);
-                setError('Toplu silme sırasında bir hata oluştu.');
-            } finally {
-                setLoading(false);
-            }
-        }
-    };
 
     // Keep selectedVideo in sync when videos list updates
     useEffect(() => {
@@ -579,22 +553,6 @@ export default function VideosPage() {
                             <div className={styles.statsBadge}>
                                 Toplam: <span>{filteredVideos.length} Video</span>
                             </div>
-                            {videos.length > 0 && (
-                                <button
-                                    type="button"
-                                    className="btn-secondary"
-                                    style={{
-                                        borderColor: 'rgba(239, 68, 68, 0.3)',
-                                        color: 'var(--accent-red)',
-                                        fontSize: '13px',
-                                        padding: '8px 16px'
-                                    }}
-                                    onClick={handleBulkDeleteAll}
-                                    disabled={loading}
-                                >
-                                    {loading ? 'Siliniyor...' : 'Tümünü Sil'}
-                                </button>
-                            )}
                         </div>
                     </div>
 
