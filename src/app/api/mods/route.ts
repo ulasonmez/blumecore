@@ -166,16 +166,85 @@ export async function POST(request: NextRequest) {
             updatedAt: now
         };
 
-        const { createOrCoalesceSyncJob, processSyncJob } = await import('@/lib/mods/mod-service');
+        const { prepareSyncJobInTx, applySyncJobInTx, processSyncJob } = await import('@/lib/mods/mod-service');
 
-        // Create mod record and INITIAL_SYNC job in the same Firestore transaction
-        const { docId, job } = await adminDb.runTransaction(async (tx) => {
-            const modDocRef = adminDb.collection('mod_projects').doc();
-            tx.set(modDocRef, newMod);
+        // Create mod record and INITIAL_SYNC job in the same Firestore transaction,
+        // strictly executing ALL reads before ANY writes (Firestore transaction invariant).
+        let transactionResult: {
+            docId: string;
+            job: import('@/lib/mods/types').GitHubSyncJob;
+            conflictCode?: 'STALE_ARCHIVED_RECORD' | 'ALREADY_EXISTS';
+            conflictDoc?: import('@/lib/mods/types').ModProject;
+        };
 
-            const syncJob = await createOrCoalesceSyncJob(modDocRef.id, userId, 'INITIAL_SYNC', tx);
-            return { docId: modDocRef.id, job: syncJob };
-        });
+        try {
+            transactionResult = await adminDb.runTransaction(async (tx) => {
+                // 1. READ: Case-insensitive check on mod_projects for this user
+                const modQuery = adminDb
+                    .collection('mod_projects')
+                    .where('userId', '==', userId);
+                const userModsSnap = await tx.get(modQuery);
+
+                const existingInTx = userModsSnap.docs.find((d) => {
+                    const data = d.data();
+                    return data.canonicalModKey === canonicalModKey || (data.modKey && data.modKey.toLowerCase() === canonicalModKey);
+                });
+
+                if (existingInTx) {
+                    const existingData = { id: existingInTx.id, ...existingInTx.data() } as ModProject;
+                    const isArchived = existingData.isArchived === true || existingData.lifecycleStatus === 'ARCHIVED' || existingData.isActive === false;
+                    return {
+                        docId: existingInTx.id,
+                        job: null as any,
+                        conflictCode: isArchived ? 'STALE_ARCHIVED_RECORD' : 'ALREADY_EXISTS',
+                        conflictDoc: existingData
+                    };
+                }
+
+                // 2. READ: Prepare sync job coalescing check (reads existing PENDING/RUNNING jobs)
+                const newModDocRef = adminDb.collection('mod_projects').doc();
+                const preparedJob = await prepareSyncJobInTx(tx, newModDocRef.id, userId, 'INITIAL_SYNC');
+
+                // 3. ALL READS COMPLETE. NOW PERFORM ALL WRITES:
+                tx.set(newModDocRef, newMod);
+                const syncJob = applySyncJobInTx(tx, preparedJob);
+
+                return { docId: newModDocRef.id, job: syncJob };
+            });
+        } catch (txErr) {
+            const errorMsg = txErr instanceof Error ? txErr.message : 'Unknown transaction error';
+            console.error('[POST /api/mods] Firestore transaction failed:', {
+                error: errorMsg,
+                modKey: cleanModKey,
+                userId
+            });
+            return NextResponse.json({ error: 'Mod kaydedilirken sunucu hatası oluştu.' }, { status: 500 });
+        }
+
+        if (transactionResult.conflictCode === 'STALE_ARCHIVED_RECORD') {
+            return NextResponse.json(
+                {
+                    error: 'Bu Mod ID için eski bir arşiv kaydı mevcut. Yeni mod eklemeden önce eski kaydı kalıcı olarak temizleyin.',
+                    code: 'STALE_ARCHIVED_RECORD',
+                    modId: transactionResult.docId,
+                    modKey: transactionResult.conflictDoc?.modKey || cleanModKey
+                },
+                { status: 409 }
+            );
+        }
+
+        if (transactionResult.conflictCode === 'ALREADY_EXISTS') {
+            return NextResponse.json(
+                {
+                    data: transactionResult.conflictDoc,
+                    alreadyExisted: true,
+                    message: 'Bu Mod ID zaten mevcut. Mevcut kayıt korundu.'
+                },
+                { status: 200 }
+            );
+        }
+
+        const { docId, job } = transactionResult;
 
         // Best-effort immediate execution in background worker
         try {
@@ -197,7 +266,8 @@ export async function POST(request: NextRequest) {
             message: 'Mod kaydedildi. İlk allowlist senkronizasyonu kuyruğa alındı.'
         }, { status: 201 });
     } catch (err: unknown) {
-        console.error('Error in POST /api/mods:', err instanceof Error ? err.message : 'Unknown error');
+        const errorMsg = err instanceof Error ? err.message : 'Unknown error';
+        console.error('Error in POST /api/mods:', errorMsg);
         return NextResponse.json({ error: 'Mod kaydedilirken sunucu hatası oluştu.' }, { status: 500 });
     }
 }

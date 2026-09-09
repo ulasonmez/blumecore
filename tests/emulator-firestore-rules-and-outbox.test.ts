@@ -9,6 +9,7 @@ import {
     assertSucceeds
 } from '@firebase/rules-unit-testing';
 import { doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
+import { initializeApp, getApps } from 'firebase/app';
 import { AUTHORIZED_FIREBASE_UID } from '../src/lib/server-auth';
 
 import * as net from 'node:net';
@@ -42,6 +43,14 @@ describe('Real Firestore Rules & Transaction Outbox Emulator Tests', () => {
         if (!emulatorAvailable) {
             console.log('\n[INFO] Firestore Emulator is not running on 127.0.0.1:8080. Skipping emulator integration tests. (Run with: npm run test:emulator)\n');
             return;
+        }
+
+        if (!getApps().length) {
+            initializeApp({
+                projectId: PROJECT_ID,
+                apiKey: 'mock-key',
+                authDomain: 'mock-auth'
+            });
         }
 
         const rulesPath = path.resolve(__dirname, '../firestore.rules');
@@ -287,6 +296,99 @@ describe('Real Firestore Rules & Transaction Outbox Emulator Tests', () => {
             assert.strictEqual(data?.status, 'RUNNING');
             assert.strictEqual(data?.lockedBy, 'recovered-worker');
             assert.strictEqual(data?.attemptCount, 2);
+        });
+
+        it('creates mod and INITIAL_SYNC job atomically in transaction adhering to reads-before-writes', async (t) => {
+            if (!emulatorAvailable) {
+                t.skip('Firestore emulator not running on port 8080');
+                return;
+            }
+            process.env.FIRESTORE_EMULATOR_HOST = '127.0.0.1:8080';
+            const { adminDb } = await import('../src/lib/firebase-admin');
+            const { prepareSyncJobInTx, applySyncJobInTx } = await import('../src/lib/mods/mod-service');
+
+            const testUserId = AUTHORIZED_FIREBASE_UID;
+            const newModKey = 'AtomicTestMod';
+            const now = Date.now();
+
+            const txResult = await adminDb.runTransaction(async (tx) => {
+                // 1. ALL READS:
+                const modQuery = adminDb.collection('mod_projects').where('userId', '==', testUserId);
+                const userModsSnap = await tx.get(modQuery);
+                const existing = userModsSnap.docs.find(d => d.data().canonicalModKey === newModKey.toLowerCase());
+                assert.strictEqual(existing, undefined);
+
+                const newModDocRef = adminDb.collection('mod_projects').doc();
+                // Read pending/running jobs for coalescing
+                const preparedJob = await prepareSyncJobInTx(tx, newModDocRef.id, testUserId, 'INITIAL_SYNC');
+
+                // 2. ALL WRITES:
+                tx.set(newModDocRef, {
+                    modKey: newModKey,
+                    canonicalModKey: newModKey.toLowerCase(),
+                    displayName: newModKey,
+                    userId: testUserId,
+                    isActive: true,
+                    isArchived: false,
+                    lifecycleStatus: 'ACTIVE',
+                    createdAt: now,
+                    updatedAt: now
+                });
+                const syncJob = applySyncJobInTx(tx, preparedJob);
+
+                return { modId: newModDocRef.id, jobId: syncJob.id };
+            });
+
+            assert.ok(txResult.modId);
+            assert.ok(txResult.jobId);
+
+            // Verify mod document was written
+            const modSnap = await adminDb.collection('mod_projects').doc(txResult.modId).get();
+            assert.strictEqual(modSnap.exists, true);
+            assert.strictEqual(modSnap.data()?.modKey, newModKey);
+
+            // Verify INITIAL_SYNC job was written in same transaction
+            const jobSnap = await adminDb.collection('github_sync_jobs').doc(txResult.jobId).get();
+            assert.strictEqual(jobSnap.exists, true);
+            assert.strictEqual(jobSnap.data()?.modProjectId, txResult.modId);
+            assert.strictEqual(jobSnap.data()?.triggerType, 'INITIAL_SYNC');
+            assert.strictEqual(jobSnap.data()?.status, 'PENDING');
+        });
+
+        it('coalesces sync job in transaction if an active job already exists', async (t) => {
+            if (!emulatorAvailable) {
+                t.skip('Firestore emulator not running on port 8080');
+                return;
+            }
+            process.env.FIRESTORE_EMULATOR_HOST = '127.0.0.1:8080';
+            const { adminDb } = await import('../src/lib/firebase-admin');
+            const { prepareSyncJobInTx, applySyncJobInTx } = await import('../src/lib/mods/mod-service');
+
+            const testUserId = AUTHORIZED_FIREBASE_UID;
+            const modId = 'mod-coalesce-test';
+
+            // Create an existing PENDING job
+            const existingJobRef = adminDb.collection('github_sync_jobs').doc('existing-pending-job');
+            await existingJobRef.set({
+                modProjectId: modId,
+                userId: testUserId,
+                triggerType: 'MANUAL',
+                status: 'PENDING',
+                createdAt: Date.now(),
+                updatedAt: Date.now()
+            });
+
+            // Run transaction that prepares and applies sync job
+            const txResult = await adminDb.runTransaction(async (tx: any) => {
+                const prepared = await prepareSyncJobInTx(tx, modId, testUserId, 'INITIAL_SYNC');
+                assert.ok(prepared.coalescedJob, 'Should find existing coalesced job');
+                assert.strictEqual(prepared.coalescedJob?.id, 'existing-pending-job');
+
+                const job = applySyncJobInTx(tx, prepared);
+                return job;
+            });
+
+            assert.strictEqual(txResult.id, 'existing-pending-job');
         });
     });
 });

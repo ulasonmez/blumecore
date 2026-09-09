@@ -165,11 +165,17 @@ export async function POST(request: NextRequest) {
         let docRefId = '';
         let initialJobId: string | null = null;
         try {
-            const { createOrCoalesceSyncJob, processSyncJob } = await import('@/lib/mods/mod-service');
+            const { prepareSyncJobInTx, applySyncJobInTx, processSyncJob } = await import('@/lib/mods/mod-service');
             const res = await adminDb.runTransaction(async (tx) => {
                 const modRef = adminDb.collection('mod_projects').doc();
+
+                // 1. ALL READS: Read pending/running sync jobs for coalescing before writing
+                const preparedJob = await prepareSyncJobInTx(tx, modRef.id, userId, 'INITIAL_SYNC');
+
+                // 2. ALL WRITES: Execute writes strictly after all reads
                 tx.set(modRef, newModData);
-                const syncJob = await createOrCoalesceSyncJob(modRef.id, userId, 'INITIAL_SYNC', tx);
+                const syncJob = applySyncJobInTx(tx, preparedJob);
+
                 return { id: modRef.id, jobId: syncJob.id };
             });
             docRefId = res.id;

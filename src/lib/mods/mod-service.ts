@@ -206,6 +206,94 @@ export async function buildDesiredUuidState(
     };
 }
 
+export interface PreparedSyncJob {
+    coalescedJob?: GitHubSyncJob;
+    newJobRef: FirebaseFirestore.DocumentReference;
+    newJobData: Omit<GitHubSyncJob, 'id'>;
+}
+
+/**
+ * PHASE 1 (READ): Prepares a sync job inside a transaction BEFORE any write operations occur.
+ * Reads existing PENDING/RUNNING jobs for coalescing.
+ */
+export async function prepareSyncJobInTx(
+    tx: FirebaseFirestore.Transaction,
+    modProjectId: string,
+    userId: string,
+    triggerType: GitHubSyncTriggerType
+): Promise<PreparedSyncJob> {
+    const query = adminDb
+        .collection('github_sync_jobs')
+        .where('modProjectId', '==', modProjectId)
+        .where('userId', '==', userId)
+        .where('status', 'in', ['PENDING', 'RUNNING']);
+
+    const activeSnap = await tx.get(query);
+    const now = Date.now();
+
+    if (!activeSnap.empty) {
+        for (const doc of activeSnap.docs) {
+            const data = doc.data() as Omit<GitHubSyncJob, 'id'>;
+            const isStaleRunning = data.status === 'RUNNING' && data.lockedAt && (now - data.lockedAt > 5 * 60 * 1000);
+            if (!isStaleRunning) {
+                return {
+                    coalescedJob: { id: doc.id, ...data },
+                    newJobRef: adminDb.collection('github_sync_jobs').doc(),
+                    newJobData: {
+                        modProjectId,
+                        status: 'PENDING',
+                        triggerType,
+                        attemptCount: 0,
+                        nextAttemptAt: now,
+                        lockedAt: null,
+                        lockedBy: null,
+                        lastErrorCode: null,
+                        lastErrorMessage: null,
+                        userId,
+                        createdAt: now,
+                        updatedAt: now
+                    }
+                };
+            }
+        }
+    }
+
+    const docRef = adminDb.collection('github_sync_jobs').doc();
+    const newJobData: Omit<GitHubSyncJob, 'id'> = {
+        modProjectId,
+        status: 'PENDING',
+        triggerType,
+        attemptCount: 0,
+        nextAttemptAt: now,
+        lockedAt: null,
+        lockedBy: null,
+        lastErrorCode: null,
+        lastErrorMessage: null,
+        userId,
+        createdAt: now,
+        updatedAt: now
+    };
+
+    return {
+        newJobRef: docRef,
+        newJobData
+    };
+}
+
+/**
+ * PHASE 2 (WRITE): Applies a prepared sync job inside a transaction AFTER all reads are done.
+ */
+export function applySyncJobInTx(
+    tx: FirebaseFirestore.Transaction,
+    prepared: PreparedSyncJob
+): GitHubSyncJob {
+    if (prepared.coalescedJob) {
+        return prepared.coalescedJob;
+    }
+    tx.set(prepared.newJobRef, prepared.newJobData);
+    return { id: prepared.newJobRef.id, ...prepared.newJobData };
+}
+
 /**
  * Creates or coalesces a sync job for a ModProject.
  * If there is already a PENDING job for this mod, returns that job instead of creating a duplicate.
@@ -218,43 +306,8 @@ export async function createOrCoalesceSyncJob(
     existingTx?: FirebaseFirestore.Transaction
 ): Promise<GitHubSyncJob> {
     const runInTx = async (tx: FirebaseFirestore.Transaction): Promise<GitHubSyncJob> => {
-        const query = adminDb
-            .collection('github_sync_jobs')
-            .where('modProjectId', '==', modProjectId)
-            .where('userId', '==', userId)
-            .where('status', 'in', ['PENDING', 'RUNNING']);
-
-        const activeSnap = await tx.get(query);
-        const now = Date.now();
-
-        if (!activeSnap.empty) {
-            for (const doc of activeSnap.docs) {
-                const data = doc.data() as Omit<GitHubSyncJob, 'id'>;
-                const isStaleRunning = data.status === 'RUNNING' && data.lockedAt && (now - data.lockedAt > 5 * 60 * 1000);
-                if (!isStaleRunning) {
-                    return { id: doc.id, ...data };
-                }
-            }
-        }
-
-        const docRef = adminDb.collection('github_sync_jobs').doc();
-        const newJobData: Omit<GitHubSyncJob, 'id'> = {
-            modProjectId,
-            status: 'PENDING',
-            triggerType,
-            attemptCount: 0,
-            nextAttemptAt: now,
-            lockedAt: null,
-            lockedBy: null,
-            lastErrorCode: null,
-            lastErrorMessage: null,
-            userId,
-            createdAt: now,
-            updatedAt: now
-        };
-
-        tx.set(docRef, newJobData);
-        return { id: docRef.id, ...newJobData };
+        const prepared = await prepareSyncJobInTx(tx, modProjectId, userId, triggerType);
+        return applySyncJobInTx(tx, prepared);
     };
 
     if (existingTx) {
