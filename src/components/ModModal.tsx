@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, CheckCircle2, AlertTriangle, Loader2, ExternalLink, ShieldCheck, FolderGit2, Plus } from 'lucide-react';
+import { X, CheckCircle2, AlertTriangle, Loader2, ExternalLink, ShieldCheck, FolderGit2, Plus, Trash2 } from 'lucide-react';
 import { ModProject } from '@/lib/mods/types';
 import { useAuth } from '@/lib/auth-context';
 import { authenticatedFetch } from '@/lib/api-client';
@@ -56,6 +56,8 @@ export default function ModModal({
 
     const [fieldError, setFieldError] = useState<string | null>(null);
     const [formError, setFormError] = useState<string | null>(null);
+    const [staleArchivedModId, setStaleArchivedModId] = useState<string | null>(null);
+    const [isCleaningStale, setIsCleaningStale] = useState(false);
 
     useEffect(() => {
         if (initialMod) {
@@ -68,6 +70,7 @@ export default function ModModal({
         setTestResult(null);
         setFieldError(null);
         setFormError(null);
+        setStaleArchivedModId(null);
         setShowProvisionModal(false);
         setProvisionSuccessInfo(null);
     }, [initialMod, isOpen]);
@@ -77,6 +80,7 @@ export default function ModModal({
         setTestResult(null);
         setShowProvisionModal(false);
         setProvisionSuccessInfo(null);
+        setStaleArchivedModId(null);
         if (fieldError) setFieldError(null);
         if (formError) setFormError(null);
     };
@@ -159,6 +163,7 @@ export default function ModModal({
         setIsProvisioning(true);
         setFormError(null);
         setFieldError(null);
+        setStaleArchivedModId(null);
 
         try {
             const res = await authenticatedFetch('/api/mods/provision-repository', {
@@ -173,6 +178,13 @@ export default function ModModal({
             });
 
             const json = await res.json();
+
+            if (res.status === 409 && json.code === 'STALE_ARCHIVED_RECORD') {
+                setStaleArchivedModId(json.modId || null);
+                setFormError(json.error || 'Bu Mod ID için eski bir arşiv kaydı mevcut.');
+                setShowProvisionModal(false);
+                return;
+            }
 
             if (!res.ok) {
                 if (json.partialFailure) {
@@ -217,6 +229,105 @@ export default function ModModal({
         }
     };
 
+    const handleCleanStaleArchived = async () => {
+        if (!staleArchivedModId || !user || isCleaningStale) return;
+        setIsCleaningStale(true);
+        try {
+            const delRes = await authenticatedFetch(`/api/mods/${staleArchivedModId}`, {
+                method: 'DELETE'
+            });
+            const delJson = await delRes.json();
+            if (delRes.ok) {
+                setStaleArchivedModId(null);
+                setFormError(null);
+                // After clearing stale record, continue saving
+                await performSave();
+            } else {
+                setFormError(`Eski kayıt temizlenemedi: ${delJson.error || 'Bilinmeyen hata'}`);
+            }
+        } catch {
+            setFormError('Eski kayıt temizlenirken ağ hatası oluştu.');
+        } finally {
+            setIsCleaningStale(false);
+        }
+    };
+
+    const performSave = async () => {
+        setIsSaving(true);
+        setFormError(null);
+        setFieldError(null);
+        setStaleArchivedModId(null);
+
+        try {
+            if (initialMod) {
+                const res = await authenticatedFetch(`/api/mods/${initialMod.id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ description: description.trim() })
+                });
+                const json = await res.json();
+                if (!res.ok) throw new Error(json.error || 'Mod güncellenemedi.');
+                onSuccess(json.data);
+                onClose();
+                return;
+            }
+
+            // Step 1: Check if GitHub repository exists
+            const testRes = await authenticatedFetch('/api/mods/test-connection', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    modKey: trimmedModKey,
+                    githubOwner: effectiveOwner,
+                    githubRepository: effectiveRepo,
+                    branch: effectiveBranch,
+                    allowlistPath: effectivePath
+                })
+            });
+
+            const testJson = await testRes.json();
+            const connData = testJson.data;
+            if (connData) {
+                setTestResult(connData);
+            }
+
+            if (!connData || !connData.repositoryFound) {
+                // Repository does not exist on GitHub! Show provision confirmation modal
+                setShowProvisionModal(true);
+                return;
+            }
+
+            // Step 2: Repository exists on GitHub! Import it
+            const res = await authenticatedFetch('/api/mods', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    modKey: trimmedModKey,
+                    displayName: trimmedModKey,
+                    description: description.trim()
+                })
+            });
+
+            const json = await res.json();
+            if (res.status === 409 && json.code === 'STALE_ARCHIVED_RECORD') {
+                setStaleArchivedModId(json.modId || null);
+                setFormError(json.error || 'Bu Mod ID için eski bir arşiv kaydı mevcut.');
+                return;
+            }
+
+            if (!res.ok) {
+                throw new Error(json.error || 'Mod kaydedilemedi.');
+            }
+
+            onSuccess(json.data);
+            onClose();
+        } catch (err: unknown) {
+            setFormError(err instanceof Error ? err.message : 'Kaydedilirken hata oluştu.');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!user || isSaving || isProvisioning) return;
@@ -231,44 +342,7 @@ export default function ModModal({
             return;
         }
 
-        setIsSaving(true);
-        setFormError(null);
-        setFieldError(null);
-
-        try {
-            const url = initialMod ? `/api/mods/${initialMod.id}` : '/api/mods';
-            const method = initialMod ? 'PATCH' : 'POST';
-
-            const payload = initialMod
-                ? {
-                    description: description.trim()
-                }
-                : {
-                    modKey: trimmedModKey,
-                    displayName: trimmedModKey,
-                    description: description.trim()
-                };
-
-            const res = await authenticatedFetch(url, {
-                method,
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(payload)
-            });
-
-            const json = await res.json();
-            if (!res.ok) {
-                throw new Error(json.error || 'Mod kaydedilemedi.');
-            }
-
-            onSuccess(json.data);
-            onClose();
-        } catch (err: unknown) {
-            setFormError(err instanceof Error ? err.message : 'Kaydedilirken hata oluştu.');
-        } finally {
-            setIsSaving(false);
-        }
+        await performSave();
     };
 
     if (!isOpen) return null;
@@ -465,8 +539,34 @@ export default function ModModal({
                     )}
 
                     {formError && !fieldError && (
-                        <div className={styles.fieldError}>
-                            <AlertTriangle size={14} /> {formError}
+                        <div className={styles.fieldError} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <AlertTriangle size={14} /> {formError}
+                            </div>
+                            {staleArchivedModId && (
+                                <button
+                                    type="button"
+                                    onClick={handleCleanStaleArchived}
+                                    disabled={isCleaningStale}
+                                    style={{
+                                        padding: '6px 12px',
+                                        borderRadius: '6px',
+                                        backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                                        border: '1px solid var(--accent-red)',
+                                        color: 'var(--accent-red)',
+                                        fontSize: '12px',
+                                        fontWeight: 600,
+                                        cursor: 'pointer',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '6px',
+                                        alignSelf: 'flex-start'
+                                    }}
+                                >
+                                    {isCleaningStale ? <Loader2 size={12} className="spin" /> : <Trash2 size={12} />}
+                                    {isCleaningStale ? 'Eski Kayıt Temizleniyor...' : 'Eski Kaydı Kalıcı Olarak Temizle ve Devam Et'}
+                                </button>
+                            )}
                         </div>
                     )}
 

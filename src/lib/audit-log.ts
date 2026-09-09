@@ -15,6 +15,7 @@ export type AuditEventType =
     | 'REPOSITORY_PROVISION_FIRESTORE_FAILED'
     | 'MOD_ARCHIVED'
     | 'MOD_RESTORED'
+    | 'MOD_DELETED'
     | 'DATA_CONFLICT_DETECTED';
 
 export interface AuditLogEntry {

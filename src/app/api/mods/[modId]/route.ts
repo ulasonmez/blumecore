@@ -146,24 +146,16 @@ export async function DELETE(
             return NextResponse.json({ error: 'Bu işlem için yetkiniz yok.' }, { status: 403 });
         }
 
-        // Two-phase archive: ACTIVE -> ARCHIVING -> ARCHIVED / ARCHIVE_FAILED
-        const { archiveModProject } = await import('@/lib/mods/mod-service');
-        const archiveResult = await archiveModProject(modId, userId);
-
-        if (!archiveResult.success) {
-            return NextResponse.json(
-                { error: archiveResult.error || 'Mod arşivlenirken GitHub senkronizasyonu başarısız oldu.', archiveStatus: 'ARCHIVE_FAILED' },
-                { status: 500 }
-            );
-        }
+        // Hard delete mod and relations from BlumeCore (preserving GitHub repo)
+        const { deleteModProject } = await import('@/lib/mods/mod-service');
+        await deleteModProject(modId, userId);
 
         return NextResponse.json({
             success: true,
-            archiveStatus: 'ARCHIVED',
-            message: 'Mod başarıyla arşivlendi ve allowlist temizlendi.'
+            message: 'Mod başarıyla BlumeCore veritabanından silindi.'
         });
     } catch (err: unknown) {
         console.error('Error in DELETE /api/mods/[modId]:', err instanceof Error ? err.message : 'Unknown error');
-        return NextResponse.json({ error: 'Mod arşivlenirken sunucu hatası oluştu.' }, { status: 500 });
+        return NextResponse.json({ error: 'Mod silinirken sunucu hatası oluştu.' }, { status: 500 });
     }
 }

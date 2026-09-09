@@ -121,7 +121,7 @@ export interface ModAccessEvent {
     createdAt: number;
 }
 
-export type GitHubSyncJobStatus = 'PENDING' | 'RUNNING' | 'SUCCESS' | 'FAILED';
+export type GitHubSyncJobStatus = 'PENDING' | 'RUNNING' | 'SUCCESS' | 'FAILED' | 'CANCELLED';
 
 export type GitHubSyncTriggerType =
     | 'INITIAL_SYNC'

@@ -33,13 +33,15 @@ interface ModDetailModalProps {
     onClose: () => void;
     mod: ModProject;
     onModUpdated?: () => void;
+    onModDeleted?: (modId: string) => void;
 }
 
 export default function ModDetailModal({
     isOpen,
     onClose,
     mod,
-    onModUpdated
+    onModUpdated,
+    onModDeleted
 }: ModDetailModalProps) {
     const { user } = useAuth();
     const [activeTab, setActiveTab] = useState<'general' | 'youtubers' | 'legacy'>('general');
@@ -295,56 +297,35 @@ export default function ModDetailModal({
         }
     };
 
-    // Handle Archive Mod
-    const [isArchiving, setIsArchiving] = useState(false);
-    const [isRestoring, setIsRestoring] = useState(false);
+    // Handle Delete Mod
+    const [isDeleting, setIsDeleting] = useState(false);
 
-    const handleArchiveMod = async () => {
-        if (!user || isArchiving) return;
-        setIsArchiving(true);
+    const handleDeleteMod = async () => {
+        if (!user || isDeleting) return;
+        setIsDeleting(true);
         try {
-            const res = await authenticatedFetch(`/api/mods/${mod.id}/archive`, {
-                method: 'POST'
+            const res = await authenticatedFetch(`/api/mods/${mod.id}`, {
+                method: 'DELETE'
             });
             const json = await res.json();
             if (res.ok) {
-                showToast('Mod başarıyla arşivlendi ve allowlist temizlendi.');
-                if (onModUpdated) onModUpdated();
+                showToast('Mod başarıyla BlumeCore veritabanından silindi.');
                 setIsDeleteConfirmOpen(false);
+                if (onModDeleted) {
+                    onModDeleted(mod.id);
+                } else if (onModUpdated) {
+                    onModUpdated();
+                }
                 onClose();
             } else {
-                showToast(`Arşivleme hatası: ${json.error || 'İşlem başarısız.'}`);
+                showToast(`Silme hatası: ${json.error || 'İşlem başarısız.'}`);
             }
         } catch {
-            showToast('Mod arşivlenirken sunucu hatası oluştu.');
+            showToast('Mod silinirken sunucu hatası oluştu.');
         } finally {
-            setIsArchiving(false);
+            setIsDeleting(false);
         }
     };
-
-    const handleRestoreMod = async () => {
-        if (!user || isRestoring) return;
-        setIsRestoring(true);
-        try {
-            const res = await authenticatedFetch(`/api/mods/${mod.id}/restore`, {
-                method: 'POST'
-            });
-            const json = await res.json();
-            if (res.ok) {
-                showToast('Mod başarıyla aktifleştirildi ve güncel allowlist senkronize edildi.');
-                if (onModUpdated) onModUpdated();
-            } else {
-                showToast(`Geri yükleme hatası: ${json.error || 'İşlem başarısız.'}`);
-            }
-        } catch {
-            showToast('Mod geri yüklenirken hata oluştu.');
-        } finally {
-            setIsRestoring(false);
-        }
-    };
-
-    // Legacy alias for compatibility
-    const handleDeleteMod = handleArchiveMod;
 
     if (!isOpen) return null;
 
@@ -386,88 +367,6 @@ export default function ModDetailModal({
                     <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                             <h2 style={{ fontSize: '20px', fontWeight: 700 }}>{mod.displayName}</h2>
-                            {mod.archiveStatus === 'ARCHIVING' ? (
-                                <span style={{
-                                    fontSize: '11px',
-                                    padding: '2px 8px',
-                                    borderRadius: '12px',
-                                    backgroundColor: 'rgba(234, 179, 8, 0.15)',
-                                    color: '#facc15',
-                                    fontWeight: 500,
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '4px'
-                                }}>
-                                    <Loader2 size={10} className="spin" /> Arşivleniyor...
-                                </span>
-                            ) : mod.archiveStatus === 'ARCHIVED' || mod.isArchived ? (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                    <span style={{
-                                        fontSize: '11px',
-                                        padding: '2px 8px',
-                                        borderRadius: '12px',
-                                        backgroundColor: 'rgba(156, 163, 175, 0.15)',
-                                        color: '#9ca3af',
-                                        fontWeight: 500
-                                    }}>
-                                        Arşivlendi
-                                    </span>
-                                    <button
-                                        onClick={handleRestoreMod}
-                                        disabled={isRestoring}
-                                        style={{
-                                            padding: '2px 8px',
-                                            borderRadius: '4px',
-                                            border: '1px solid var(--border-color)',
-                                            fontSize: '11px',
-                                            cursor: 'pointer',
-                                            color: 'var(--accent-blue)',
-                                            backgroundColor: 'transparent'
-                                        }}
-                                    >
-                                        {isRestoring ? 'Geri Yükleniyor...' : 'Geri Yükle'}
-                                    </button>
-                                </div>
-                            ) : mod.archiveStatus === 'ARCHIVE_FAILED' ? (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                    <span style={{
-                                        fontSize: '11px',
-                                        padding: '2px 8px',
-                                        borderRadius: '12px',
-                                        backgroundColor: 'rgba(239, 68, 68, 0.15)',
-                                        color: '#ef4444',
-                                        fontWeight: 500
-                                    }}>
-                                        Arşivleme Başarısız
-                                    </span>
-                                    <button
-                                        onClick={handleArchiveMod}
-                                        disabled={isArchiving}
-                                        style={{
-                                            padding: '2px 8px',
-                                            borderRadius: '4px',
-                                            border: '1px solid #ef4444',
-                                            fontSize: '11px',
-                                            cursor: 'pointer',
-                                            color: '#ef4444',
-                                            backgroundColor: 'transparent'
-                                        }}
-                                    >
-                                        {isArchiving ? 'Deneniyor...' : 'Tekrar Dene'}
-                                    </button>
-                                </div>
-                            ) : (
-                                <span style={{
-                                    fontSize: '11px',
-                                    padding: '2px 8px',
-                                    borderRadius: '12px',
-                                    backgroundColor: mod.isActive ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-                                    color: mod.isActive ? '#4ade80' : 'var(--accent-red)',
-                                    fontWeight: 500
-                                }}>
-                                    {mod.isActive ? 'Aktif' : 'Pasif'}
-                                </span>
-                            )}
                         </div>
                         <div style={{ fontSize: '13px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '12px' }}>
                             <span>Mod ID: <strong>{mod.modKey}</strong></span>
@@ -1358,18 +1257,19 @@ export default function ModDetailModal({
                         style={{
                             padding: '8px 14px',
                             borderRadius: '8px',
-                            border: '1px solid rgba(239, 68, 68, 0.3)',
+                            border: '1px solid rgba(239, 68, 68, 0.4)',
                             fontSize: '13px',
                             color: 'var(--accent-red)',
-                            backgroundColor: 'transparent',
+                            backgroundColor: 'rgba(239, 68, 68, 0.08)',
                             display: 'flex',
                             alignItems: 'center',
                             gap: '6px',
-                            cursor: 'pointer'
+                            cursor: 'pointer',
+                            fontWeight: 500
                         }}
                     >
                         <Trash2 size={14} />
-                        Modu Sil
+                        Modu BlumeCore’dan Sil
                     </button>
 
                     <button
@@ -1402,33 +1302,37 @@ export default function ModDetailModal({
                             backgroundColor: 'var(--bg-card)',
                             border: '1px solid var(--border-color)',
                             borderRadius: '12px',
-                            padding: '20px',
-                            maxWidth: '440px',
+                            padding: '24px',
+                            maxWidth: '480px',
                             width: '100%',
                             boxShadow: '0 10px 30px rgba(0,0,0,0.5)'
                         }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-red)', marginBottom: '12px' }}>
-                                <AlertTriangle size={20} />
-                                <h4 style={{ fontSize: '15px', fontWeight: 600 }}>Modu Arşivlemek İstediğinize Emin Misiniz?</h4>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--accent-red)', marginBottom: '14px' }}>
+                                <AlertTriangle size={22} />
+                                <h4 style={{ fontSize: '16px', fontWeight: 600 }}>Modu BlumeCore’dan Sil</h4>
                             </div>
-                            <p style={{ fontSize: '13px', lineHeight: 1.5, color: 'var(--text-secondary)', marginBottom: '16px' }}>
-                                <strong>{mod.displayName}</strong> ({mod.modKey}) modu iki aşamalı olarak arşivlenecektir.
-                                <br /><br />
-                                Arşivleme sırasında modun GitHub README allowlist&apos;inden tüm YouTuber UUID&apos;leri kaldırılacak, sunucu ve Global Blume UUID&apos;leri korunacaktır. GitHub senkronizasyonu başarılı olmadan mod arşivlenmiş sayılmaz.
+                            <p style={{ fontSize: '13px', lineHeight: 1.6, color: 'var(--text-secondary)', marginBottom: '14px' }}>
+                                <strong>{mod.displayName}</strong> ({mod.modKey}) modu BlumeCore sisteminden kalıcı olarak silinecektir:
                             </p>
-                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                            <ul style={{ fontSize: '12px', lineHeight: 1.6, color: 'var(--text-secondary)', marginBottom: '20px', paddingLeft: '20px' }}>
+                                <li><strong>Yalnızca BlumeCore verileri silinecektir.</strong></li>
+                                <li><strong>GitHub repository ve README.md KESİNLİKLE SİLİNMEYECEK</strong> ve değiştirilmeyecektir.</li>
+                                <li>Video bağlantıları, YouTuber erişimleri ve bekleyen senkronizasyon işleri kaldırılacaktır.</li>
+                                <li>Bu mod daha sonra aynı ID ile BlumeCore&apos;a yeniden eklenebilir.</li>
+                            </ul>
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
                                 <button
                                     onClick={() => setIsDeleteConfirmOpen(false)}
-                                    disabled={isArchiving}
-                                    style={{ padding: '8px 14px', borderRadius: '6px', border: '1px solid var(--border-color)', fontSize: '12px' }}
+                                    disabled={isDeleting}
+                                    style={{ padding: '8px 16px', borderRadius: '6px', border: '1px solid var(--border-color)', fontSize: '12px', cursor: 'pointer', backgroundColor: 'transparent', color: 'var(--text-secondary)' }}
                                 >
                                     Vazgeç
                                 </button>
                                 <button
-                                    onClick={handleArchiveMod}
-                                    disabled={isArchiving}
+                                    onClick={handleDeleteMod}
+                                    disabled={isDeleting}
                                     style={{
-                                        padding: '8px 16px',
+                                        padding: '8px 18px',
                                         borderRadius: '6px',
                                         backgroundColor: 'var(--accent-red)',
                                         color: '#fff',
@@ -1436,11 +1340,13 @@ export default function ModDetailModal({
                                         fontWeight: 600,
                                         display: 'flex',
                                         alignItems: 'center',
-                                        gap: '6px'
+                                        gap: '6px',
+                                        cursor: 'pointer',
+                                        border: 'none'
                                     }}
                                 >
-                                    {isArchiving ? <Loader2 size={13} className="spin" /> : <Trash2 size={13} />}
-                                    {isArchiving ? 'Arşivleniyor...' : 'Evet, Modu Arşivle'}
+                                    {isDeleting ? <Loader2 size={13} className="spin" /> : <Trash2 size={13} />}
+                                    {isDeleting ? 'Siliniyor...' : 'Evet, BlumeCore’dan Sil'}
                                 </button>
                             </div>
                         </div>

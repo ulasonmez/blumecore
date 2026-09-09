@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, Plus, AlertCircle, Link as LinkIcon, ExternalLink, RefreshCw, CheckCircle2, Globe } from 'lucide-react';
+import { Search, Plus, AlertCircle, Link as LinkIcon, ExternalLink, RefreshCw, CheckCircle2, Globe, Trash2, Loader2 } from 'lucide-react';
 import styles from './Videos.module.css';
 import { db } from '@/lib/firebase';
 import { collection, query, where, addDoc, deleteDoc, doc, updateDoc, onSnapshot } from 'firebase/firestore';
@@ -55,7 +55,6 @@ export default function VideosPage() {
 
     // Mod filter states
     const [modSearchTerm, setModSearchTerm] = useState('');
-    const [modStatusFilter, setModStatusFilter] = useState<'all' | 'active' | 'passive'>('all');
 
     // Modal State
     const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
@@ -67,6 +66,18 @@ export default function VideosPage() {
     // Global Blume Backfill state
     const [isBackfilling, setIsBackfilling] = useState(false);
     const [isBackfillModalOpen, setIsBackfillModalOpen] = useState(false);
+
+    // Stale Archived Cleanup state
+    const [isCleanupModalOpen, setIsCleanupModalOpen] = useState(false);
+    const [cleanupPreview, setCleanupPreview] = useState<{
+        archivedMods: { id: string; modKey: string; displayName: string; videoCount: number; accessCount: number; jobCount: number }[];
+        totalMods: number;
+        totalVideos: number;
+        totalAccesses: number;
+        totalJobs: number;
+    } | null>(null);
+    const [isLoadingCleanupPreview, setIsLoadingCleanupPreview] = useState(false);
+    const [isExecutingCleanup, setIsExecutingCleanup] = useState(false);
 
     const activeModsCount = mods.filter(m => m.isActive && !m.isArchived).length;
 
@@ -95,6 +106,48 @@ export default function VideosPage() {
         } finally {
             setIsBackfilling(false);
             setIsBackfillModalOpen(false);
+        }
+    };
+
+    const openCleanupModal = async () => {
+        setIsCleanupModalOpen(true);
+        setIsLoadingCleanupPreview(true);
+        try {
+            const res = await authenticatedFetch('/api/mods/cleanup-archived');
+            const json = await res.json();
+            if (res.ok && json.data) {
+                setCleanupPreview(json.data);
+            } else {
+                showModToast('Eski arşiv kayıtları önizlemesi alınamadı.');
+            }
+        } catch {
+            showModToast('Ağ hatası oluştu.');
+        } finally {
+            setIsLoadingCleanupPreview(false);
+        }
+    };
+
+    const handleExecuteCleanup = async () => {
+        if (!user || isExecutingCleanup) return;
+        setIsExecutingCleanup(true);
+        try {
+            const res = await authenticatedFetch('/api/mods/cleanup-archived', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ confirm: true })
+            });
+            const json = await res.json();
+            if (res.ok) {
+                showModToast(json.message || 'Eski arşiv kayıtları başarıyla temizlendi.');
+                setIsCleanupModalOpen(false);
+                setCleanupPreview(null);
+            } else {
+                showModToast(`Temizleme hatası: ${json.error || 'İşlem başarısız'}`);
+            }
+        } catch {
+            showModToast('Temizleme sırasında ağ hatası oluştu.');
+        } finally {
+            setIsExecutingCleanup(false);
         }
     };
 
@@ -359,15 +412,11 @@ export default function VideosPage() {
 
     // Filtering mods
     const filteredMods = mods.filter(m => {
-        const matchesSearch =
+        return (
             m.displayName.toLowerCase().includes(modSearchTerm.toLowerCase()) ||
             m.modKey.toLowerCase().includes(modSearchTerm.toLowerCase()) ||
-            m.githubRepository.toLowerCase().includes(modSearchTerm.toLowerCase());
-
-        if (!matchesSearch) return false;
-        if (modStatusFilter === 'active') return m.isActive;
-        if (modStatusFilter === 'passive') return !m.isActive;
-        return true;
+            m.githubRepository.toLowerCase().includes(modSearchTerm.toLowerCase())
+        );
     });
 
     const handleQuickSyncMod = async (modId: string, e: React.MouseEvent) => {
@@ -594,26 +643,26 @@ export default function VideosPage() {
                                     onChange={(e) => setModSearchTerm(e.target.value)}
                                 />
                             </div>
-
-                            <select
-                                value={modStatusFilter}
-                                onChange={(e) => setModStatusFilter(e.target.value as 'all' | 'active' | 'passive')}
-                                style={{
-                                    padding: '10px 14px',
-                                    backgroundColor: 'var(--bg-card)',
-                                    border: '1px solid var(--border-color)',
-                                    borderRadius: '8px',
-                                    color: 'var(--text-primary)',
-                                    fontSize: '13px'
-                                }}
-                            >
-                                <option value="all">Tüm Durumlar</option>
-                                <option value="active">Yalnızca Aktif</option>
-                                <option value="passive">Yalnızca Pasif</option>
-                            </select>
                         </div>
 
-                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                            <button
+                                type="button"
+                                onClick={openCleanupModal}
+                                className="btn-secondary"
+                                style={{
+                                    padding: '10px 14px',
+                                    borderRadius: '8px',
+                                    fontSize: '13px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '6px'
+                                }}
+                                title="Eski arşivlenmiş mod kayıtlarını ve ilişkilerini BlumeCore'dan temizler"
+                            >
+                                <Trash2 size={16} /> Eski Arşivleri Temizle
+                            </button>
+
                             <button
                                 type="button"
                                 onClick={(e) => {
@@ -691,17 +740,6 @@ export default function VideosPage() {
                                                     {m.modKey}
                                                 </span>
                                             </div>
-
-                                            <span style={{
-                                                fontSize: '11px',
-                                                padding: '2px 8px',
-                                                borderRadius: '12px',
-                                                backgroundColor: m.isActive ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-                                                color: m.isActive ? '#4ade80' : 'var(--accent-red)',
-                                                fontWeight: 500
-                                            }}>
-                                                {m.isActive ? 'Aktif' : 'Pasif'}
-                                            </span>
                                         </div>
 
                                         <div style={{ fontSize: '12px', color: 'var(--accent-blue)', marginBottom: '12px' }}>
@@ -815,6 +853,10 @@ export default function VideosPage() {
                     isOpen={!!selectedModForDetail}
                     onClose={() => setSelectedModForDetail(null)}
                     mod={selectedModForDetail}
+                    onModDeleted={(deletedId) => {
+                        setMods(prev => prev.filter(m => m.id !== deletedId));
+                        setSelectedModForDetail(null);
+                    }}
                     onModUpdated={() => {
                         // Triggers snapshot update
                     }}
@@ -912,6 +954,147 @@ export default function VideosPage() {
                                 <RefreshCw size={14} className={isBackfilling ? 'spin' : ''} />
                                 {isBackfilling ? 'Senkronize Ediliyor...' : `${activeModsCount} Modu Senkronize Et`}
                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* Stale Archived Cleanup Modal */}
+            {isCleanupModalOpen && (
+                <div
+                    style={{
+                        position: 'fixed',
+                        inset: 0,
+                        backgroundColor: 'rgba(0, 0, 0, 0.75)',
+                        backdropFilter: 'blur(4px)',
+                        zIndex: 1000,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '16px'
+                    }}
+                    onClick={() => !isExecutingCleanup && setIsCleanupModalOpen(false)}
+                >
+                    <div
+                        style={{
+                            backgroundColor: 'var(--bg-card, #1e2230)',
+                            border: '1px solid var(--border-color, #2e354b)',
+                            borderRadius: '16px',
+                            maxWidth: '540px',
+                            width: '100%',
+                            padding: '24px',
+                            boxShadow: '0 20px 40px rgba(0, 0, 0, 0.5)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '16px'
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <div style={{
+                                width: '40px',
+                                height: '40px',
+                                borderRadius: '10px',
+                                backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: 'var(--accent-red)'
+                            }}>
+                                <Trash2 size={22} />
+                            </div>
+                            <div>
+                                <h3 style={{ fontSize: '17px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                                    Eski Arşiv Kayıtlarını Temizle
+                                </h3>
+                                <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                                    BlumeCore&apos;da kalan eski arşiv modlarını ve ilişkilerini kalıcı olarak siler
+                                </p>
+                            </div>
+                        </div>
+
+                        {isLoadingCleanupPreview ? (
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px', gap: '8px', color: 'var(--text-secondary)' }}>
+                                <Loader2 size={18} className="spin" /> Arşivlenmiş kayıtlar taranıyor...
+                            </div>
+                        ) : cleanupPreview && cleanupPreview.totalMods > 0 ? (
+                            <>
+                                <p style={{ fontSize: '13px', lineHeight: 1.6, color: 'var(--text-secondary)' }}>
+                                    Aşağıdaki <strong>{cleanupPreview.totalMods}</strong> mod projesi ve bağlı ilişkileri BlumeCore&apos;dan silinecektir:
+                                </p>
+
+                                <div style={{
+                                    maxHeight: '180px',
+                                    overflowY: 'auto',
+                                    border: '1px solid var(--border-color)',
+                                    borderRadius: '8px',
+                                    padding: '8px 12px',
+                                    backgroundColor: 'rgba(0,0,0,0.2)'
+                                }}>
+                                    {cleanupPreview.archivedMods.map((item) => (
+                                        <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid rgba(255,255,255,0.05)', fontSize: '12px' }}>
+                                            <span style={{ fontWeight: 600 }}>{item.displayName} ({item.modKey})</span>
+                                            <span style={{ color: 'var(--text-secondary)' }}>
+                                                {item.videoCount} video, {item.accessCount} erişim, {item.jobCount} sync işi
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div style={{
+                                    padding: '12px',
+                                    borderRadius: '8px',
+                                    backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                                    border: '1px solid rgba(34, 197, 94, 0.2)',
+                                    fontSize: '12px',
+                                    color: '#4ade80'
+                                }}>
+                                    ✓ <strong>GitHub repository ve README.md dosyalarına KESİNLİKLE DOKUNULMAZ.</strong>
+                                </div>
+                            </>
+                        ) : (
+                            <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '13px' }}>
+                                Temizlenecek eski arşiv kaydı bulunamadı. Tüm mod kayıtları güncel!
+                            </div>
+                        )}
+
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '8px' }}>
+                            <button
+                                type="button"
+                                className="btn-secondary"
+                                onClick={() => setIsCleanupModalOpen(false)}
+                                disabled={isExecutingCleanup}
+                                style={{
+                                    padding: '9px 16px',
+                                    borderRadius: '8px',
+                                    fontSize: '13px',
+                                    fontWeight: 500
+                                }}
+                            >
+                                {cleanupPreview && cleanupPreview.totalMods > 0 ? 'Vazgeç' : 'Kapat'}
+                            </button>
+                            {cleanupPreview && cleanupPreview.totalMods > 0 && (
+                                <button
+                                    type="button"
+                                    onClick={handleExecuteCleanup}
+                                    disabled={isExecutingCleanup}
+                                    style={{
+                                        padding: '9px 18px',
+                                        borderRadius: '8px',
+                                        fontSize: '13px',
+                                        fontWeight: 600,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '6px',
+                                        backgroundColor: 'var(--accent-red)',
+                                        color: '#fff',
+                                        border: 'none',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    {isExecutingCleanup ? <Loader2 size={14} className="spin" /> : <Trash2 size={14} />}
+                                    {isExecutingCleanup ? 'Temizleniyor...' : `${cleanupPreview.totalMods} Arşiv Kaydını Kalıcı Sil`}
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>

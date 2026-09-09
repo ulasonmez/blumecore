@@ -21,18 +21,14 @@ export async function GET(request: NextRequest) {
         snap.forEach((d) => {
             const data = d.data() as Omit<ModProject, 'id'>;
             const status = resolveModLifecycleStatus(data);
-            if (status !== 'ARCHIVED') {
-                mods.push({ id: d.id, ...data, lifecycleStatus: status });
+            const isArchived = data.isArchived === true || data.lifecycleStatus === 'ARCHIVED' || data.isActive === false || status === 'ARCHIVED';
+            if (!isArchived) {
+                mods.push({ id: d.id, ...data, lifecycleStatus: 'ACTIVE', isActive: true, isArchived: false });
             }
         });
 
-        // Sort: active first, then newest
-        mods.sort((a, b) => {
-            const aActive = resolveModLifecycleStatus(a) === 'ACTIVE';
-            const bActive = resolveModLifecycleStatus(b) === 'ACTIVE';
-            if (aActive !== bActive) return aActive ? -1 : 1;
-            return b.createdAt - a.createdAt;
-        });
+        // Sort: newest first
+        mods.sort((a, b) => b.createdAt - a.createdAt);
 
         return NextResponse.json({ data: mods });
     } catch (err: unknown) {
@@ -97,42 +93,56 @@ export async function POST(request: NextRequest) {
         });
 
         if (matchedDoc) {
-            // Idempotently return existing record without overwriting repository/branch/path
-            let queuedJobId: string | null = null;
-            try {
-                const { createOrCoalesceSyncJob, processSyncJob } = await import('@/lib/mods/mod-service');
-                const job = await createOrCoalesceSyncJob(matchedDoc.id, userId, 'INITIAL_SYNC');
-                queuedJobId = job.id;
-                try {
-                    after(async () => {
-                        try {
-                            await processSyncJob(job.id, 'initial-mod-sync-worker');
-                        } catch (e) {
-                            console.warn(`[initModSync] Initial sync job ${job.id} failed:`, e);
-                        }
-                    });
-                } catch {
-                    // Outside request context
-                }
-            } catch (jobErr) {
-                console.warn('[initModSync] Warning queuing initial sync job for existing mod:', jobErr);
+            const mData = matchedDoc.data();
+            const isArchived = mData.isArchived === true || mData.lifecycleStatus === 'ARCHIVED' || mData.isActive === false;
+
+            if (isArchived) {
+                // Bug fix: Return 409 STALE_ARCHIVED_RECORD so UI can offer permanent cleanup
+                return NextResponse.json(
+                    {
+                        error: 'Bu Mod ID için eski bir arşiv kaydı mevcut. Yeni mod eklemeden önce eski kaydı kalıcı olarak temizleyin.',
+                        code: 'STALE_ARCHIVED_RECORD',
+                        modId: matchedDoc.id,
+                        modKey: mData.modKey
+                    },
+                    { status: 409 }
+                );
             }
 
             return NextResponse.json(
                 {
                     data: {
                         id: matchedDoc.id,
-                        ...matchedDoc.data()
+                        ...mData
                     },
                     alreadyExisted: true,
-                    syncState: 'QUEUED',
-                    jobId: queuedJobId,
                     message: 'Bu Mod ID zaten mevcut. Mevcut kayıt korundu.'
                 },
                 { status: 200 }
             );
         }
 
+        // Verify GitHub repository actually exists before saving to Firestore and queuing sync
+        const { testRepositoryConnection } = await import('@/lib/github/client');
+        const conn = await testRepositoryConnection({
+            githubOwner: owner,
+            githubRepository: repo,
+            branch: targetBranch,
+            allowlistPath: targetPath
+        });
+
+        if (!conn.repositoryFound) {
+            return NextResponse.json(
+                {
+                    error: `GitHub üzerinde '${owner}/${repo}' repository'si bulunamadı. Önce repository oluşturulmalıdır.`,
+                    code: 'REPOSITORY_NOT_FOUND',
+                    repositoryFound: false
+                },
+                { status: 404 }
+            );
+        }
+
+        const effectiveBranch = conn.defaultBranch || targetBranch;
         const now = Date.now();
         const newMod: Omit<ModProject, 'id'> = {
             modKey: cleanModKey,
@@ -141,7 +151,7 @@ export async function POST(request: NextRequest) {
             description: typeof description === 'string' ? description.trim() : '',
             githubOwner: owner,
             githubRepository: repo,
-            branch: targetBranch,
+            branch: effectiveBranch,
             allowlistPath: targetPath,
             syncMode: 'LEGACY_README',
             lifecycleStatus: 'ACTIVE',

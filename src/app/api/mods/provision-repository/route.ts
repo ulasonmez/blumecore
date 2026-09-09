@@ -89,33 +89,31 @@ export async function POST(request: NextRequest) {
 
     try {
         // Check if ModProject already exists for this user in Firestore
+        const canonicalModKey = rawModId.toLowerCase();
         const existingSnap = await adminDb
             .collection('mod_projects')
             .where('userId', '==', userId)
-            .where('modKey', '==', rawModId)
             .get();
 
-        if (!existingSnap.empty) {
-            const existingDoc = existingSnap.docs[0];
-            const existingData = { id: existingDoc.id, ...existingDoc.data() } as ModProject;
+        const existingDoc = existingSnap.docs.find((d) => {
+            const data = d.data();
+            return data.canonicalModKey === canonicalModKey || (data.modKey && data.modKey.toLowerCase() === canonicalModKey);
+        });
 
-            try {
-                const { createOrCoalesceSyncJob, processSyncJob } = await import('@/lib/mods/mod-service');
-                const job = await createOrCoalesceSyncJob(existingDoc.id, userId, 'INITIAL_SYNC');
-                try {
-                    const { after } = await import('next/server');
-                    after(async () => {
-                        try {
-                            await processSyncJob(job.id, 'provision-initial-sync-worker');
-                        } catch (e) {
-                            console.warn(`[provisionInitialSync] Job ${job.id} failed:`, e);
-                        }
-                    });
-                } catch {
-                    // Not in request context
-                }
-            } catch (jobErr) {
-                console.warn('[provisionInitialSync] Warning queuing sync for existing mod:', jobErr);
+        if (existingDoc) {
+            const existingData = { id: existingDoc.id, ...existingDoc.data() } as ModProject;
+            const isArchived = existingData.isArchived === true || existingData.lifecycleStatus === 'ARCHIVED' || existingData.isActive === false;
+
+            if (isArchived) {
+                return NextResponse.json(
+                    {
+                        error: 'Bu Mod ID için eski bir arşiv kaydı mevcut. Yeni mod eklemeden önce eski kaydı kalıcı olarak temizleyin.',
+                        code: 'STALE_ARCHIVED_RECORD',
+                        modId: existingDoc.id,
+                        modKey: existingData.modKey
+                    },
+                    { status: 409 }
+                );
             }
 
             return NextResponse.json(

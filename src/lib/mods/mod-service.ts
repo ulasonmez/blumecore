@@ -317,7 +317,14 @@ export async function processSyncJob(
         // Fetch ModProject
         const modSnap = await adminDb.collection('mod_projects').doc(job.modProjectId).get();
         if (!modSnap.exists) {
-            throw new Error('Mod projesi veritabanında bulunamadı.');
+            await jobRef.update({
+                status: 'CANCELLED',
+                completedAt: Date.now(),
+                lockedAt: null,
+                lockedBy: null,
+                updatedAt: Date.now()
+            });
+            return { success: true, message: 'Mod projesi silindiği için senkronizasyon iptal edildi.' };
         }
         const modProject = { id: modSnap.id, ...modSnap.data() } as ModProject;
 
@@ -1262,5 +1269,191 @@ export async function recalculateCascadeAccess(params: {
     }
 
     return { affectedModIds: Array.from(affectedModIds), queuedJobIds };
+}
+
+/**
+ * Hard-deletes a mod project and all its related BlumeCore data.
+ * CRITICAL INVARIANT: NEVER modifies or deletes the GitHub repository or README.
+ */
+export async function deleteModProject(
+    modProjectId: string,
+    userId: string
+): Promise<{ success: boolean; error?: string }> {
+    const modRef = adminDb.collection('mod_projects').doc(modProjectId);
+    const modSnap = await modRef.get();
+    if (!modSnap.exists) {
+        throw new Error('Mod projesi bulunamadı.');
+    }
+    const mod = { id: modSnap.id, ...modSnap.data() } as ModProject;
+    if (mod.userId !== userId) {
+        throw new Error('Bu işlem için yetkiniz yok.');
+    }
+
+    const now = Date.now();
+
+    // 1. Delete video_mod_projects connections
+    const videoLinksSnap = await adminDb
+        .collection('video_mod_projects')
+        .where('modProjectId', '==', modProjectId)
+        .get();
+    for (const d of videoLinksSnap.docs) {
+        await d.ref.delete();
+    }
+
+    // 2. Delete youtuber_mod_access records
+    const accessSnap = await adminDb
+        .collection('youtuber_mod_access')
+        .where('modProjectId', '==', modProjectId)
+        .get();
+    for (const d of accessSnap.docs) {
+        await d.ref.delete();
+    }
+
+    // 3. Delete mod_access_events
+    const eventSnap = await adminDb
+        .collection('mod_access_events')
+        .where('modProjectId', '==', modProjectId)
+        .get();
+    for (const d of eventSnap.docs) {
+        await d.ref.delete();
+    }
+
+    // 4. Handle github_sync_jobs:
+    // PENDING jobs are removed; RUNNING jobs are safely marked CANCELLED
+    const jobsSnap = await adminDb
+        .collection('github_sync_jobs')
+        .where('modProjectId', '==', modProjectId)
+        .get();
+    for (const d of jobsSnap.docs) {
+        const jData = d.data();
+        if (jData.status === 'RUNNING') {
+            await d.ref.update({
+                status: 'CANCELLED',
+                lockedAt: null,
+                lockedBy: null,
+                updatedAt: now
+            });
+        } else {
+            await d.ref.delete();
+        }
+    }
+
+    // 5. Delete github_sync_runs
+    const runsSnap = await adminDb
+        .collection('github_sync_runs')
+        .where('modProjectId', '==', modProjectId)
+        .get();
+    for (const d of runsSnap.docs) {
+        await d.ref.delete();
+    }
+
+    // 6. Delete mod_projects record itself
+    await modRef.delete();
+
+    // 7. Audit log
+    await logAudit({
+        eventType: 'MOD_DELETED',
+        actorUserId: userId,
+        timestamp: now,
+        modId: mod.modKey,
+        owner: mod.githubOwner
+    });
+
+    return { success: true };
+}
+
+export interface ArchivedCleanupPreviewItem {
+    id: string;
+    modKey: string;
+    displayName: string;
+    videoCount: number;
+    accessCount: number;
+    jobCount: number;
+}
+
+export interface ArchivedCleanupPreview {
+    archivedMods: ArchivedCleanupPreviewItem[];
+    totalMods: number;
+    totalVideos: number;
+    totalAccesses: number;
+    totalJobs: number;
+}
+
+/**
+ * Previews stale archived mod projects and their associated data for cleanup.
+ */
+export async function previewArchivedModsCleanup(userId: string): Promise<ArchivedCleanupPreview> {
+    const snap = await adminDb
+        .collection('mod_projects')
+        .where('userId', '==', userId)
+        .get();
+
+    const archivedDocs = snap.docs.filter((d) => {
+        const data = d.data() as ModProject;
+        return data.isArchived === true || data.lifecycleStatus === 'ARCHIVED' || data.isActive === false;
+    });
+
+    const items: ArchivedCleanupPreviewItem[] = [];
+    let totalVideos = 0;
+    let totalAccesses = 0;
+    let totalJobs = 0;
+
+    for (const doc of archivedDocs) {
+        const data = doc.data() as ModProject;
+        const [vSnap, aSnap, jSnap] = await Promise.all([
+            adminDb.collection('video_mod_projects').where('modProjectId', '==', doc.id).get(),
+            adminDb.collection('youtuber_mod_access').where('modProjectId', '==', doc.id).get(),
+            adminDb.collection('github_sync_jobs').where('modProjectId', '==', doc.id).get()
+        ]);
+
+        const videoCount = vSnap.size;
+        const accessCount = aSnap.size;
+        const jobCount = jSnap.size;
+
+        totalVideos += videoCount;
+        totalAccesses += accessCount;
+        totalJobs += jobCount;
+
+        items.push({
+            id: doc.id,
+            modKey: data.modKey,
+            displayName: data.displayName || data.modKey,
+            videoCount,
+            accessCount,
+            jobCount
+        });
+    }
+
+    return {
+        archivedMods: items,
+        totalMods: items.length,
+        totalVideos,
+        totalAccesses,
+        totalJobs
+    };
+}
+
+/**
+ * Permanently cleans up all stale archived mod projects and relations.
+ * CRITICAL INVARIANT: NEVER modifies or deletes GitHub repositories or READMEs.
+ */
+export async function executeArchivedModsCleanup(userId: string): Promise<{
+    success: boolean;
+    deletedModCount: number;
+    deletedModKeys: string[];
+}> {
+    const preview = await previewArchivedModsCleanup(userId);
+    const deletedModKeys: string[] = [];
+
+    for (const item of preview.archivedMods) {
+        await deleteModProject(item.id, userId);
+        deletedModKeys.push(item.modKey);
+    }
+
+    return {
+        success: true,
+        deletedModCount: deletedModKeys.length,
+        deletedModKeys
+    };
 }
 
