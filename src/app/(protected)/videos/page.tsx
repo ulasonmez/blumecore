@@ -450,7 +450,7 @@ export default function VideosPage() {
                     style={{
                         padding: '8px 20px',
                         borderRadius: '8px',
-                        backgroundColor: activeMainTab === 'videos' ? 'var(--accent-primary)' : 'transparent',
+                        backgroundColor: activeMainTab === 'videos' ? 'var(--action-green)' : 'transparent',
                         color: activeMainTab === 'videos' ? '#fff' : 'var(--text-secondary)',
                         fontWeight: 600,
                         fontSize: '13px'
@@ -464,7 +464,7 @@ export default function VideosPage() {
                     style={{
                         padding: '8px 20px',
                         borderRadius: '8px',
-                        backgroundColor: activeMainTab === 'mods' ? 'var(--accent-primary)' : 'transparent',
+                        backgroundColor: activeMainTab === 'mods' ? 'var(--action-green)' : 'transparent',
                         color: activeMainTab === 'mods' ? '#fff' : 'var(--text-secondary)',
                         fontWeight: 600,
                         fontSize: '13px'
@@ -857,7 +857,7 @@ export default function VideosPage() {
                                 width: '40px',
                                 height: '40px',
                                 borderRadius: '10px',
-                                backgroundColor: 'rgba(40, 105, 75, 0.15)',
+                                backgroundColor: 'rgba(181, 228, 208, 0.15)',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
@@ -1043,7 +1043,7 @@ export default function VideosPage() {
                                         display: 'flex',
                                         alignItems: 'center',
                                         gap: '6px',
-                                        backgroundColor: 'var(--accent-red)',
+                                        backgroundColor: 'var(--action-red)',
                                         color: '#fff',
                                         border: 'none',
                                         cursor: 'pointer'

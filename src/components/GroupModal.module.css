@@ -83,7 +83,7 @@
 }
 
 .addBtn {
-    background-color: var(--accent-primary);
+    background-color: var(--action-green);
     color: white;
     border-radius: var(--border-radius-sm);
     padding: 0 24px;
@@ -92,7 +92,7 @@
 }
 
 .addBtn:hover:not(:disabled) {
-    background-color: var(--accent-primary-hover);
+    background-color: var(--action-green-hover);
 }
 
 .addBtn:disabled {

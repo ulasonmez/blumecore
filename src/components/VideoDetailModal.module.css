@@ -52,7 +52,7 @@
 .header {
     padding: 20px 24px 16px 24px;
     border-bottom: 1px solid var(--border-color);
-    background: linear-gradient(180deg, rgba(40, 77, 54, 0.03) 0%, transparent 100%);
+    background: linear-gradient(180deg, rgba(234, 243, 238, 0.03) 0%, transparent 100%);
 }
 
 .topRow {
@@ -71,8 +71,8 @@
     text-transform: uppercase;
     letter-spacing: 0.6px;
     color: var(--accent-primary);
-    background: rgba(40, 105, 75, 0.12);
-    border: 1px solid rgba(40, 105, 75, 0.25);
+    background: rgba(181, 228, 208, 0.12);
+    border: 1px solid rgba(181, 228, 208, 0.25);
     padding: 3px 8px;
     border-radius: 6px;
 }
@@ -91,7 +91,7 @@
 
 .closeBtn:hover {
     color: var(--text-primary);
-    background: rgba(40, 77, 54, 0.08);
+    background: rgba(234, 243, 238, 0.08);
 }
 
 .videoTitle {
@@ -151,12 +151,12 @@
 }
 
 .contentBody::-webkit-scrollbar-thumb {
-    background: rgba(40, 77, 54, 0.1);
+    background: rgba(234, 243, 238, 0.1);
     border-radius: 3px;
 }
 
 .contentBody::-webkit-scrollbar-thumb:hover {
-    background: rgba(40, 77, 54, 0.2);
+    background: rgba(234, 243, 238, 0.2);
 }
 
 .sectionHeader {
@@ -178,7 +178,7 @@
     font-size: 12px;
     font-weight: 500;
     color: var(--accent-primary);
-    background: rgba(40, 105, 75, 0.1);
+    background: rgba(181, 228, 208, 0.1);
     padding: 2px 8px;
     border-radius: 12px;
 }
@@ -221,7 +221,7 @@
     width: 32px;
     height: 32px;
     border-radius: 8px;
-    background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-primary-hover) 100%);
+    background: linear-gradient(135deg, var(--action-green) 0%, var(--action-green-hover) 100%);
     color: #ffffff;
     display: flex;
     align-items: center;
@@ -229,7 +229,7 @@
     font-weight: 700;
     font-size: 13px;
     text-transform: uppercase;
-    box-shadow: 0 2px 6px rgba(40, 105, 75, 0.25);
+    box-shadow: 0 2px 6px rgba(181, 228, 208, 0.25);
     flex-shrink: 0;
 }
 

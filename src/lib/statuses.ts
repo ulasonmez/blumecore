@@ -31,14 +31,14 @@ export interface StatusStyle {
 // Safely convert Hex to RGBA format for modern transparency layers
 export function hexToRgba(hex: string, alpha: number): string {
     // Basic fallback if invalid
-    if (!hex || typeof hex !== 'string') return `rgba(40, 105, 75, ${alpha})`;
+    if (!hex || typeof hex !== 'string') return `rgba(181, 228, 208, ${alpha})`;
     
     let cleanHex = hex.replace('#', '');
     if (cleanHex.length === 3) {
         cleanHex = cleanHex[0] + cleanHex[0] + cleanHex[1] + cleanHex[1] + cleanHex[2] + cleanHex[2];
     }
     
-    if (cleanHex.length !== 6) return `rgba(40, 105, 75, ${alpha})`;
+    if (cleanHex.length !== 6) return `rgba(181, 228, 208, ${alpha})`;
 
     const r = parseInt(cleanHex.substring(0, 2), 16);
     const g = parseInt(cleanHex.substring(2, 4), 16);
@@ -49,7 +49,7 @@ export function hexToRgba(hex: string, alpha: number): string {
 
 // Generate premium glassmorphic tag styles dynamically for any custom status color
 export function getStatusStyle(color: string): StatusStyle {
-    const hex = color && color.startsWith('#') ? color : '#28694B';
+    const hex = color && color.startsWith('#') ? color : '#B5E4D0';
     return {
         bg: hexToRgba(hex, 0.12),
         text: 'var(--text-primary)',

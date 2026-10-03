@@ -6,6 +6,14 @@ Her görev için kısa kayıt tut: ne/neden değişti, ilgili dosyalar, gerçekt
 
 > 2026-10-03: Deponun public yapılmasının ardından Vercel dağıtımını yeniden tetiklemek için dokümantasyon commit'i oluşturuldu.
 
+## 2026-10-03 — Açık vurgulu koyu arayüz
+
+- **Değişiklik ve neden:** Önceki açık tema kullanıcının görsel referansına göre fazla parlaktı. Zemin antrasit (`#1E1E24`), kartlar koyu gri, başlık ve seçim vurguları açık nane yeşili (`#B5E4D0`) yapıldı. Beyaz yazılı düğmelerde ayrı koyu yeşil/kırmızı yüzeyler, koyu temaya uygun saydam arka planlar ve açık takip aşaması renk paleti kullanıldı. Kayıtlı aşama renkleri değiştirilmedi.
+- **Dosyalar:** `src/app/globals.css`, `src/app/login/Login.module.css`, ilgili `src/app/(protected)` ekranları ve `src/components` kart/modal stilleri ile satır içi stiller, `src/lib/statuses.ts`, `docs/PROJECT_MAP.md`.
+- **Harita:** Görsel tema ve aşama rengi açıklaması koyu tema için güncellendi.
+- **Doğrulama:** `npx tsc --noEmit --incremental false`, `npm run build`, `git diff --check` geçti. `npm test`: 175 başarılı, Firestore emülatörü çalışmadığı için 8 atlandı. Yerel giriş ekranı tarayıcıda görsel olarak kontrol edildi. Açık nane metninin koyu zeminle hesaplanan kontrastı 11,82:1; beyaz yazılı yeşil düğmenin kontrastı 4,74:1. `npm run lint` önceki kayıtla aynı 31 mevcut hata ve 36 uyarı nedeniyle başarısız.
+- **Kalan iş:** Oturum gerektiren ekranlar yerel tarayıcıda görsel olarak doğrulanmadı; mevcut lint hataları ayrı çalışmada ele alınmalı.
+
 ## 2026-10-03 — Açık yeşil ve gri arayüz paleti
 
 - **Değişiklik ve neden:** Koyu mor tema yerine açık gri zemin, beyaz kart, yumuşak yeşil vurgu ve koyu okunaklı metin kullanıldı. Giriş, alt menü, korumalı sayfalar, ödeme/video/oyuncu kartları ve modalların sabit koyu renkleri yeni palete uyarlandı. Aşama rozetlerinin metni açık zeminde koyu gösterildi; eski Home CSS import yolları düzeltildi.

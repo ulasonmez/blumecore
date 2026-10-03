@@ -255,7 +255,7 @@ export default function VideoDetailModal({
                                 <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
                                     Bağlı Modlar
                                 </span>
-                                <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '12px', backgroundColor: 'rgba(40, 105, 75, 0.15)', color: 'var(--accent-primary)', fontWeight: 600 }}>
+                                <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '12px', backgroundColor: 'rgba(181, 228, 208, 0.15)', color: 'var(--accent-primary)', fontWeight: 600 }}>
                                     {linkedMods.length} Mod
                                 </span>
                             </div>
@@ -271,7 +271,7 @@ export default function VideoDetailModal({
                                         padding: '6px 12px',
                                         borderRadius: '6px',
                                         border: '1px solid var(--border-color)',
-                                        backgroundColor: 'rgba(40, 77, 54, 0.08)',
+                                        backgroundColor: 'rgba(234, 243, 238, 0.08)',
                                         color: 'var(--text-primary)',
                                         fontSize: '12px',
                                         fontWeight: 500
@@ -334,7 +334,7 @@ export default function VideoDetailModal({
                                                             justifyContent: 'space-between',
                                                             alignItems: 'center'
                                                         }}
-                                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(40, 77, 54, 0.08)'}
+                                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(234, 243, 238, 0.08)'}
                                                         onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                                                     >
                                                         <div>
@@ -383,7 +383,7 @@ export default function VideoDetailModal({
                             <div style={{
                                 padding: '12px',
                                 borderRadius: '8px',
-                                backgroundColor: 'rgba(40, 77, 54, 0.05)',
+                                backgroundColor: 'rgba(234, 243, 238, 0.05)',
                                 border: '1px dashed var(--border-color)',
                                 fontSize: '12px',
                                 color: 'var(--text-secondary)',
@@ -397,7 +397,7 @@ export default function VideoDetailModal({
                                     <div
                                         key={m.id}
                                         style={{
-                                            backgroundColor: 'rgba(40, 77, 54, 0.05)',
+                                            backgroundColor: 'rgba(234, 243, 238, 0.05)',
                                             border: '1px solid var(--border-color)',
                                             borderRadius: '8px',
                                             padding: '10px 14px',
@@ -410,7 +410,7 @@ export default function VideoDetailModal({
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                 <strong style={{ fontSize: '13px', color: 'var(--text-primary)' }}>{m.displayName}</strong>
                                                 <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>({m.modKey})</span>
-                                                <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '4px', backgroundColor: 'rgba(40, 77, 54, 0.09)', color: 'var(--text-secondary)' }}>
+                                                <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '4px', backgroundColor: 'rgba(234, 243, 238, 0.09)', color: 'var(--text-secondary)' }}>
                                                     {m.syncMode}
                                                 </span>
                                             </div>
@@ -508,7 +508,7 @@ export default function VideoDetailModal({
                                             <div style={{
                                                 marginTop: '12px',
                                                 paddingTop: '10px',
-                                                borderTop: '1px solid rgba(40, 77, 54, 0.08)',
+                                                borderTop: '1px solid rgba(234, 243, 238, 0.08)',
                                                 fontSize: '12px'
                                             }}>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-secondary)', marginBottom: '8px', fontSize: '11px', fontWeight: 600 }}>
@@ -545,7 +545,7 @@ export default function VideoDetailModal({
                                                                             ? 'rgba(34, 197, 94, 0.15)'
                                                                             : isRevoked
                                                                                 ? 'rgba(239, 68, 68, 0.15)'
-                                                                                : 'rgba(40, 77, 54, 0.08)',
+                                                                                : 'rgba(234, 243, 238, 0.08)',
                                                                         color: isActive ? 'var(--accent-green)' : isRevoked ? 'var(--accent-red)' : 'var(--text-secondary)',
                                                                         fontWeight: 600
                                                                     }}>
@@ -568,7 +568,7 @@ export default function VideoDetailModal({
                                                                         padding: '3px 8px',
                                                                         borderRadius: '4px',
                                                                         border: '1px solid var(--border-color)',
-                                                                        backgroundColor: 'rgba(40, 77, 54, 0.08)',
+                                                                        backgroundColor: 'rgba(234, 243, 238, 0.08)',
                                                                         color: 'var(--text-primary)',
                                                                         fontSize: '11px',
                                                                         fontWeight: 500

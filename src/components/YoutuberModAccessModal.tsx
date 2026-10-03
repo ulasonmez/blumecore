@@ -176,8 +176,8 @@ export default function YoutuberModAccessModal({
                     <div style={{
                         padding: '8px 12px',
                         marginBottom: '16px',
-                        backgroundColor: 'rgba(40, 105, 75, 0.2)',
-                        border: '1px solid rgba(40, 105, 75, 0.3)',
+                        backgroundColor: 'rgba(181, 228, 208, 0.2)',
+                        border: '1px solid rgba(181, 228, 208, 0.3)',
                         borderRadius: '6px',
                         fontSize: '12px',
                         color: 'var(--text-primary)',
@@ -192,7 +192,7 @@ export default function YoutuberModAccessModal({
 
                 {/* Details list */}
                 <div style={{
-                    backgroundColor: 'rgba(40, 77, 54, 0.05)',
+                    backgroundColor: 'rgba(234, 243, 238, 0.05)',
                     border: '1px solid var(--border-color)',
                     borderRadius: '10px',
                     padding: '16px',
@@ -217,7 +217,7 @@ export default function YoutuberModAccessModal({
                                 ? 'rgba(34, 197, 94, 0.15)'
                                 : isRevoked
                                     ? 'rgba(239, 68, 68, 0.15)'
-                                    : 'rgba(40, 77, 54, 0.08)',
+                                    : 'rgba(234, 243, 238, 0.08)',
                             color: isActive ? 'var(--accent-green)' : isRevoked ? 'var(--accent-red)' : 'var(--text-secondary)',
                             fontWeight: 600
                         }}>
@@ -335,7 +335,7 @@ export default function YoutuberModAccessModal({
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 gap: '6px',
-                                backgroundColor: 'rgba(40, 105, 75, 0.15)'
+                                backgroundColor: 'rgba(181, 228, 208, 0.15)'
                             }}
                         >
                             {isGranting ? <Loader2 size={13} className="spin" /> : <RotateCcw size={13} />}
@@ -404,7 +404,7 @@ export default function YoutuberModAccessModal({
                                     style={{
                                         padding: '8px 16px',
                                         borderRadius: '6px',
-                                        backgroundColor: 'var(--accent-red)',
+                                        backgroundColor: 'var(--action-red)',
                                         color: '#fff',
                                         fontSize: '12px',
                                         fontWeight: 600

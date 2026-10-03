@@ -292,7 +292,7 @@ export default function RecordModal({ isOpen, onClose, initialDate = new Date(),
                                 padding: '10px 4px',
                                 borderRadius: '8px',
                                 border: `1px solid ${recordType === 'income' ? 'var(--accent-primary)' : 'var(--border-color)'}`,
-                                backgroundColor: recordType === 'income' ? 'rgba(40, 105, 75, 0.15)' : 'var(--bg-color)',
+                                backgroundColor: recordType === 'income' ? 'rgba(181, 228, 208, 0.15)' : 'var(--bg-color)',
                                 color: recordType === 'income' ? 'var(--accent-primary)' : 'var(--text-secondary)',
                                 display: 'flex',
                                 alignItems: 'center',
@@ -431,14 +431,14 @@ export default function RecordModal({ isOpen, onClose, initialDate = new Date(),
                                                             cursor: 'pointer',
                                                             fontSize: '13px',
                                                             color: selectedId === opt.id ? 'var(--accent-primary)' : 'var(--text-primary)',
-                                                            backgroundColor: selectedId === opt.id ? 'rgba(40, 105, 75, 0.1)' : 'transparent',
+                                                            backgroundColor: selectedId === opt.id ? 'rgba(181, 228, 208, 0.1)' : 'transparent',
                                                             borderBottom: '1px solid var(--border-color)',
                                                             whiteSpace: 'nowrap',
                                                             overflow: 'hidden',
                                                             textOverflow: 'ellipsis'
                                                         }}
                                                         onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-color)'}
-                                                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = selectedId === opt.id ? 'rgba(40, 105, 75, 0.1)' : 'transparent'}
+                                                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = selectedId === opt.id ? 'rgba(181, 228, 208, 0.1)' : 'transparent'}
                                                     >
                                                         {opt.name}
                                                     </div>
@@ -543,14 +543,14 @@ export default function RecordModal({ isOpen, onClose, initialDate = new Date(),
                                                                 cursor: 'pointer',
                                                                 fontSize: '13px',
                                                                 color: selectedVideoId === v.id ? 'var(--accent-primary)' : 'var(--text-primary)',
-                                                                backgroundColor: selectedVideoId === v.id ? 'rgba(40, 105, 75, 0.1)' : 'transparent',
+                                                                backgroundColor: selectedVideoId === v.id ? 'rgba(181, 228, 208, 0.1)' : 'transparent',
                                                                 borderBottom: '1px solid var(--border-color)',
                                                                 whiteSpace: 'nowrap',
                                                                 overflow: 'hidden',
                                                                 textOverflow: 'ellipsis'
                                                             }}
                                                             onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-color)'}
-                                                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = selectedVideoId === v.id ? 'rgba(40, 105, 75, 0.1)' : 'transparent'}
+                                                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = selectedVideoId === v.id ? 'rgba(181, 228, 208, 0.1)' : 'transparent'}
                                                         >
                                                             {v.title}
                                                         </div>
@@ -564,8 +564,8 @@ export default function RecordModal({ isOpen, onClose, initialDate = new Date(),
 
                             {connectedMods.length > 0 && (
                                 <div style={{
-                                    backgroundColor: 'rgba(40, 105, 75, 0.08)',
-                                    border: '1px solid rgba(40, 105, 75, 0.25)',
+                                    backgroundColor: 'rgba(181, 228, 208, 0.08)',
+                                    border: '1px solid rgba(181, 228, 208, 0.25)',
                                     borderRadius: '8px',
                                     padding: '12px',
                                     marginTop: '12px'

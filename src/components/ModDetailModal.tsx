@@ -391,7 +391,7 @@ export default function ModDetailModal({
                     display: 'flex',
                     borderBottom: '1px solid var(--border-color)',
                     padding: '0 24px',
-                    backgroundColor: 'rgba(40, 77, 54, 0.03)'
+                    backgroundColor: 'rgba(234, 243, 238, 0.03)'
                 }}>
                     <button
                         onClick={() => setActiveTab('general')}
@@ -454,7 +454,7 @@ export default function ModDetailModal({
                         <div>
                             {/* Sync status card */}
                             <div style={{
-                                backgroundColor: 'rgba(40, 77, 54, 0.05)',
+                                backgroundColor: 'rgba(234, 243, 238, 0.05)',
                                 border: '1px solid var(--border-color)',
                                 borderRadius: '12px',
                                 padding: '16px',
@@ -647,7 +647,7 @@ export default function ModDetailModal({
                             {/* Manual Add Form */}
                             {isAddYoutuberOpen && (
                                 <div style={{
-                                    backgroundColor: 'rgba(40, 77, 54, 0.06)',
+                                    backgroundColor: 'rgba(234, 243, 238, 0.06)',
                                     border: '1px solid var(--border-color)',
                                     borderRadius: '8px',
                                     padding: '16px',
@@ -753,15 +753,15 @@ export default function ModDetailModal({
                                                                                 cursor: 'pointer',
                                                                                 fontSize: '12px',
                                                                                 color: isSelected ? 'var(--accent-primary)' : 'var(--text-primary)',
-                                                                                backgroundColor: isSelected ? 'rgba(40, 105, 75, 0.15)' : 'transparent',
-                                                                                borderBottom: '1px solid rgba(40, 77, 54, 0.08)',
+                                                                                backgroundColor: isSelected ? 'rgba(181, 228, 208, 0.15)' : 'transparent',
+                                                                                borderBottom: '1px solid rgba(234, 243, 238, 0.08)',
                                                                                 display: 'flex',
                                                                                 alignItems: 'center',
                                                                                 justifyContent: 'space-between',
                                                                                 transition: 'background-color 0.15s'
                                                                             }}
                                                                             onMouseEnter={(e) => {
-                                                                                if (!isSelected) e.currentTarget.style.backgroundColor = 'rgba(40, 77, 54, 0.08)';
+                                                                                if (!isSelected) e.currentTarget.style.backgroundColor = 'rgba(234, 243, 238, 0.08)';
                                                                             }}
                                                                             onMouseLeave={(e) => {
                                                                                 if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent';
@@ -819,7 +819,7 @@ export default function ModDetailModal({
                                             <div
                                                 key={item.access.id}
                                                 style={{
-                                                    backgroundColor: 'rgba(40, 77, 54, 0.05)',
+                                                    backgroundColor: 'rgba(234, 243, 238, 0.05)',
                                                     border: '1px solid var(--border-color)',
                                                     borderRadius: '8px',
                                                     padding: '12px 16px',
@@ -934,7 +934,7 @@ export default function ModDetailModal({
                                                 style={{
                                                     padding: '8px 16px',
                                                     borderRadius: '6px',
-                                                    backgroundColor: 'var(--accent-red)',
+                                                    backgroundColor: 'var(--action-red)',
                                                     color: '#fff',
                                                     fontSize: '12px',
                                                     fontWeight: 600
@@ -1025,7 +1025,7 @@ export default function ModDetailModal({
                                         <div
                                             key={`${item.uuid}-${idx}`}
                                             style={{
-                                                backgroundColor: 'rgba(40, 77, 54, 0.05)',
+                                                backgroundColor: 'rgba(234, 243, 238, 0.05)',
                                                 border: '1px solid var(--border-color)',
                                                 borderRadius: '8px',
                                                 padding: '12px 16px',
@@ -1128,8 +1128,8 @@ export default function ModDetailModal({
 
                             <div style={{ padding: '24px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
                                 <div style={{
-                                    backgroundColor: 'rgba(40, 105, 75, 0.08)',
-                                    border: '1px solid rgba(40, 105, 75, 0.25)',
+                                    backgroundColor: 'rgba(181, 228, 208, 0.08)',
+                                    border: '1px solid rgba(181, 228, 208, 0.25)',
                                     borderRadius: '10px',
                                     padding: '14px 16px',
                                     fontSize: '13px'
@@ -1334,7 +1334,7 @@ export default function ModDetailModal({
                                     style={{
                                         padding: '8px 18px',
                                         borderRadius: '6px',
-                                        backgroundColor: 'var(--accent-red)',
+                                        backgroundColor: 'var(--action-red)',
                                         color: '#fff',
                                         fontSize: '12px',
                                         fontWeight: 600,
@@ -1456,7 +1456,7 @@ export default function ModDetailModal({
                                     alignItems: 'center',
                                     gap: '10px',
                                     padding: '12px',
-                                    backgroundColor: 'rgba(40, 77, 54, 0.06)',
+                                    backgroundColor: 'rgba(234, 243, 238, 0.06)',
                                     borderRadius: '8px',
                                     border: '1px solid var(--border-color)'
                                 }}>

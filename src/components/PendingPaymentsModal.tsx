@@ -258,14 +258,14 @@ export default function PendingPaymentsModal({ isOpen, onClose }: PendingPayment
                                                         cursor: 'pointer',
                                                         fontSize: '13px',
                                                         color: selectedYt === opt.id ? 'var(--accent-primary)' : 'var(--text-primary)',
-                                                        backgroundColor: selectedYt === opt.id ? 'rgba(40, 105, 75, 0.1)' : 'transparent',
+                                                        backgroundColor: selectedYt === opt.id ? 'rgba(181, 228, 208, 0.1)' : 'transparent',
                                                         borderBottom: '1px solid var(--border-color)',
                                                         whiteSpace: 'nowrap',
                                                         overflow: 'hidden',
                                                         textOverflow: 'ellipsis'
                                                     }}
                                                     onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-color)'}
-                                                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = selectedYt === opt.id ? 'rgba(40, 105, 75, 0.1)' : 'transparent'}
+                                                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = selectedYt === opt.id ? 'rgba(181, 228, 208, 0.1)' : 'transparent'}
                                                 >
                                                     {opt.name}
                                                 </div>
@@ -298,7 +298,7 @@ export default function PendingPaymentsModal({ isOpen, onClose }: PendingPayment
                             onClick={handleAdd}
                             disabled={!selectedYt || !amount}
                             style={{
-                                padding: '0 16px', backgroundColor: 'var(--accent-primary)', color: 'white',
+                                padding: '0 16px', backgroundColor: 'var(--action-green)', color: 'white',
                                 borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: 500,
                                 opacity: (!selectedYt || !amount) ? 0.5 : 1,
                                 display: 'flex', alignItems: 'center', gap: '4px'

@@ -43,9 +43,9 @@ Tablodaki yollar depo köküne göredir. Sayfa klasörlerindeki `*.module.css` d
 
 ### Görsel tema
 
-Arayüz açık temayı kullanır (`src/app/globals.css` içinde `color-scheme: light`). Ortak renk rolleri CSS değişkenleriyle tanımlıdır: açık gri zemin `--bg-color` (`#F4F7F5`), beyaz kart `--bg-card`, koyu metin `--text-primary`, ikincil metin `--text-secondary`, yeşil ana eylem `--accent-primary` (`#28694B`) ve açık yeşil vurgu yüzeyi `--accent-primary-soft`. Hata, bilgi ve uyarı renkleri ayrı rollerdir. Sayfa/modalların CSS Modules dosyaları ile bazı TSX satır içi stillerinde bu tokenlar kullanılır; yalnızca `globals.css` değiştirilerek bütün ekranın rengi doğrulanmış sayılmaz.
+Arayüz sabit koyu temayı kullanır (`src/app/globals.css` içinde `color-scheme: dark`). Ortak renk rolleri CSS değişkenleriyle tanımlıdır: antrasit zemin `--bg-color` (`#1E1E24`), koyu gri kart `--bg-card` (`#282D2D`), açık metin `--text-primary`, ikincil açık gri metin `--text-secondary` ve başlık/seçim vurgusu için nane yeşili `--accent-primary` (`#B5E4D0`). Beyaz yazılı birincil düğmeler `--action-green` (`#3A805F`), yıkıcı düğmeler `--action-red` kullanır; açık vurgu rengini bu düğmelerin zemininde kullanma. `--accent-primary-soft` koyu yeşil vurgu yüzeyidir. Hata, bilgi ve uyarı metinleri için ayrı açık renk rolleri vardır. Sayfa/modalların CSS Modules dosyaları ile bazı TSX satır içi stillerinde bu tokenlar kullanılır; yalnızca `globals.css` değiştirilerek bütün ekranın rengi doğrulanmış sayılmaz.
 
-Takip aşamalarının kayıtlı özel renkleri arka plan/kenarlık tonunu belirler; `getStatusStyle` açık yüzeyde okunabilirlik için aşama metnini ortak koyu metin rengine bağlar. Yeni aşama renkleri `StatusesModal` içindeki paletten seçilir. `src/app/page.module.css` yönlendirme sayfasınca kullanılmayan eski şablon stilidir; aktif tema kaynağı değildir.
+Takip aşamalarının kayıtlı özel renkleri arka plan/kenarlık tonunu belirler; `getStatusStyle` koyu yüzeyde okunabilirlik için aşama metnini ortak açık metin rengine bağlar. Yeni aşama renkleri `StatusesModal` içindeki açık tonlu paletten seçilir; kayıtlı eski renkler değiştirilmez. `src/app/page.module.css` yönlendirme sayfasınca kullanılmayan eski şablon stilidir; aktif tema kaynağı değildir.
 
 ## 3. Veri ve sunucu sınırları
 

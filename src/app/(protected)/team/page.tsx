@@ -224,7 +224,7 @@ export default function TeamPage() {
                         className={styles.filterBadge}
                         style={{
                             flex: 1,
-                            backgroundColor: newRole === 'member' ? 'rgba(40, 105, 75, 0.15)' : 'var(--bg-color)',
+                            backgroundColor: newRole === 'member' ? 'rgba(181, 228, 208, 0.15)' : 'var(--bg-color)',
                             borderColor: newRole === 'member' ? 'var(--accent-primary)' : 'var(--border-color)',
                             color: newRole === 'member' ? 'var(--accent-primary)' : 'var(--text-secondary)'
                         }}

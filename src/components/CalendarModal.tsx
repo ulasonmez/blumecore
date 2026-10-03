@@ -157,7 +157,7 @@ export default function CalendarModal({
                         onClick={() => setActiveTab('money')}
                         style={{
                             padding: '8px 12px',
-                            background: activeTab === 'money' ? 'var(--accent-primary)' : 'transparent',
+                            background: activeTab === 'money' ? 'var(--action-green)' : 'transparent',
                             color: activeTab === 'money' ? '#fff' : 'var(--text-secondary)',
                             border: 'none',
                             borderRadius: '8px',
@@ -177,7 +177,7 @@ export default function CalendarModal({
                         onClick={() => setActiveTab('videos')}
                         style={{
                             padding: '8px 12px',
-                            background: activeTab === 'videos' ? 'var(--accent-primary)' : 'transparent',
+                            background: activeTab === 'videos' ? 'var(--action-green)' : 'transparent',
                             color: activeTab === 'videos' ? '#fff' : 'var(--text-secondary)',
                             border: 'none',
                             borderRadius: '8px',
@@ -197,7 +197,7 @@ export default function CalendarModal({
                         onClick={() => setActiveTab('players')}
                         style={{
                             padding: '8px 12px',
-                            background: activeTab === 'players' ? 'var(--accent-primary)' : 'transparent',
+                            background: activeTab === 'players' ? 'var(--action-green)' : 'transparent',
                             color: activeTab === 'players' ? '#fff' : 'var(--text-secondary)',
                             border: 'none',
                             borderRadius: '8px',

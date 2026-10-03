@@ -14,7 +14,7 @@
 
 .videoCard:hover {
     transform: translateY(-2px);
-    border-color: rgba(40, 105, 75, 0.4);
+    border-color: rgba(181, 228, 208, 0.4);
     box-shadow: 0 8px 24px var(--shadow-color);
 }
 
@@ -46,7 +46,7 @@
 }
 
 .actionBtn:hover {
-    background: rgba(40, 77, 54, 0.1);
+    background: rgba(234, 243, 238, 0.1);
     color: var(--text-primary);
 }
 
@@ -88,7 +88,7 @@
 /* Edit Mode Form */
 .editingCard {
     cursor: default;
-    border-color: rgba(40, 105, 75, 0.5);
+    border-color: rgba(181, 228, 208, 0.5);
     box-shadow: 0 8px 24px var(--shadow-color), 0 0 0 2px var(--accent-primary-soft);
 }
 
@@ -148,7 +148,7 @@
 
 .editInput:focus {
     border-color: var(--accent-primary);
-    box-shadow: 0 0 0 2px rgba(40, 105, 75, 0.2);
+    box-shadow: 0 0 0 2px rgba(181, 228, 208, 0.2);
 }
 
 .editError {
@@ -179,22 +179,22 @@
 }
 
 .cancelBtn {
-    background: rgba(40, 77, 54, 0.05);
+    background: rgba(234, 243, 238, 0.05);
     color: var(--text-secondary);
 }
 
 .cancelBtn:hover:not(:disabled) {
-    background: rgba(40, 77, 54, 0.1);
+    background: rgba(234, 243, 238, 0.1);
     color: var(--text-primary);
 }
 
 .saveBtn {
-    background: var(--accent-primary);
+    background: var(--action-green);
     color: white;
 }
 
 .saveBtn:hover:not(:disabled) {
-    background: var(--accent-primary-hover);
+    background: var(--action-green-hover);
 }
 
 .cancelBtn:disabled, .saveBtn:disabled {
@@ -215,7 +215,7 @@
     font-size: 12px;
     font-weight: 500;
     color: var(--accent-primary);
-    background: rgba(40, 105, 75, 0.1);
+    background: rgba(181, 228, 208, 0.1);
     padding: 4px 10px;
     border-radius: 20px;
 }

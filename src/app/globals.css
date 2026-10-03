@@ -1,26 +1,29 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
-  color-scheme: light;
-  --bg-color: #F4F7F5;
-  --bg-card: #FFFFFF;
-  --bg-card-hover: #EDF4EF;
-  --bg-subtle: #F7FAF8;
-  --text-primary: #1E3027;
-  --text-secondary: #56695E;
-  --border-color: #D7E3DB;
-  --input-border: #84988B;
-  --accent-primary: #28694B;
-  --accent-primary-hover: #20583E;
-  --accent-primary-soft: #E6F3E9;
-  --accent-primary-border: #ACD0B7;
-  --accent-green: #216B46;
-  --accent-red: #B4232F;
-  --accent-blue: #1E6091;
-  --accent-yellow: #8A6200;
-  --nav-bg: #FCFDFC;
-  --overlay-bg: rgba(24, 45, 33, 0.42);
-  --shadow-color: rgba(27, 51, 39, 0.12);
+  color-scheme: dark;
+  --bg-color: #1E1E24;
+  --bg-card: #282D2D;
+  --bg-card-hover: #303B35;
+  --bg-subtle: #23272B;
+  --text-primary: #F0F3F1;
+  --text-secondary: #B5C0BA;
+  --border-color: #3D4B44;
+  --input-border: #69796F;
+  --accent-primary: #B5E4D0;
+  --accent-primary-hover: #D2F3E2;
+  --accent-primary-soft: #2F4F40;
+  --accent-primary-border: #5E9073;
+  --action-green: #3A805F;
+  --action-green-hover: #3F8363;
+  --accent-green: #98DDB7;
+  --accent-red: #F69DA2;
+  --action-red: #AD3D48;
+  --accent-blue: #8FBFEE;
+  --accent-yellow: #F2C878;
+  --nav-bg: #202127;
+  --overlay-bg: rgba(5, 8, 7, 0.68);
+  --shadow-color: rgba(0, 0, 0, 0.28);
 
   --border-radius-lg: 16px;
   --border-radius-md: 12px;
@@ -92,6 +95,7 @@ input:focus, textarea:focus {
   font-size: 28px;
   font-weight: 700;
   margin-bottom: var(--spacing-xs);
+  color: var(--accent-primary);
 }
 
 .page-subtitle {
@@ -110,7 +114,7 @@ input:focus, textarea:focus {
 
 /* Buttons */
 .btn-primary {
-  background-color: var(--accent-primary);
+  background-color: var(--action-green);
   color: white;
   padding: 12px 24px;
   border-radius: var(--border-radius-md);
@@ -123,11 +127,11 @@ input:focus, textarea:focus {
 }
 
 .btn-primary:hover {
-  background-color: var(--accent-primary-hover);
+  background-color: var(--action-green-hover);
 }
 
 .btn-secondary {
-  background-color: var(--bg-card-hover);
+  background-color: var(--bg-subtle);
   color: var(--text-primary);
   padding: 12px 24px;
   border-radius: var(--border-radius-md);
@@ -137,7 +141,7 @@ input:focus, textarea:focus {
 }
 
 .btn-secondary:hover {
-  background-color: #DDECE1;
+  background-color: var(--bg-card-hover);
 }
 
 .btn-danger {

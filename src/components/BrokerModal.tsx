@@ -144,7 +144,7 @@ export default function BrokerModal({
                         onClick={() => setActiveTab('money')}
                         style={{
                             padding: '8px 16px',
-                            background: activeTab === 'money' ? 'var(--accent-primary)' : 'transparent',
+                            background: activeTab === 'money' ? 'var(--action-green)' : 'transparent',
                             color: activeTab === 'money' ? '#fff' : 'var(--text-secondary)',
                             border: 'none',
                             borderRadius: '8px',
@@ -159,7 +159,7 @@ export default function BrokerModal({
                         onClick={() => setActiveTab('videos')}
                         style={{
                             padding: '8px 16px',
-                            background: activeTab === 'videos' ? 'var(--accent-primary)' : 'transparent',
+                            background: activeTab === 'videos' ? 'var(--action-green)' : 'transparent',
                             color: activeTab === 'videos' ? '#fff' : 'var(--text-secondary)',
                             border: 'none',
                             borderRadius: '8px',

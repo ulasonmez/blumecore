@@ -390,7 +390,7 @@ export default function HomePage() {
                         style={{
                             display: 'flex', alignItems: 'center', gap: '6px',
                             padding: '8px 14px', borderRadius: '8px',
-                            backgroundColor: 'rgba(40, 77, 54, 0.08)', border: '1px solid var(--border-color)',
+                            backgroundColor: 'rgba(234, 243, 238, 0.08)', border: '1px solid var(--border-color)',
                             color: 'var(--text-secondary)', fontSize: '13px', fontWeight: 500,
                             cursor: 'pointer', whiteSpace: 'nowrap'
                         }}
@@ -402,7 +402,7 @@ export default function HomePage() {
                         style={{
                             display: 'flex', alignItems: 'center', gap: '6px',
                             padding: '8px 14px', borderRadius: '8px',
-                            backgroundColor: 'rgba(40, 105, 75, 0.15)', border: '1px solid var(--accent-primary)',
+                            backgroundColor: 'rgba(181, 228, 208, 0.15)', border: '1px solid var(--accent-primary)',
                             color: 'var(--accent-primary)', fontSize: '13px', fontWeight: 500,
                             cursor: 'pointer', whiteSpace: 'nowrap'
                         }}
@@ -456,7 +456,7 @@ export default function HomePage() {
                         flexDirection: 'column',
                         alignItems: 'center',
                         gap: '14px',
-                        backgroundColor: 'rgba(40, 77, 54, 0.03)'
+                        backgroundColor: 'rgba(234, 243, 238, 0.03)'
                     }}>
                         {searchQuery.trim() ? (
                             <>
@@ -671,7 +671,7 @@ export default function HomePage() {
     function renderFollowUpCard(f: FollowUp) {
         // Dynamic status color lookup from database state
         const statusObj = statuses.find(s => s.name === f.status);
-        const statusColor = statusObj ? statusObj.color : '#28694B';
+        const statusColor = statusObj ? statusObj.color : '#B5E4D0';
         const statusColors = getStatusStyle(statusColor);
         
         const isExpanded = expandedCards[f.id] || false;

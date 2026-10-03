@@ -39,7 +39,7 @@
 
 .videoInput:focus {
     border-color: var(--accent-primary);
-    box-shadow: 0 0 0 2px rgba(40, 105, 75, 0.1);
+    box-shadow: 0 0 0 2px rgba(181, 228, 208, 0.1);
 }
 
 .videoInput::placeholder {
@@ -85,13 +85,13 @@
 
 .searchInput:focus {
     border-color: var(--accent-primary);
-    box-shadow: 0 0 0 2px rgba(40, 105, 75, 0.1);
+    box-shadow: 0 0 0 2px rgba(181, 228, 208, 0.1);
 }
 
 .statsBadge {
     padding: 8px 16px;
-    background: rgba(40, 105, 75, 0.1);
-    border: 1px solid rgba(40, 105, 75, 0.2);
+    background: rgba(181, 228, 208, 0.1);
+    border: 1px solid rgba(181, 228, 208, 0.2);
     border-radius: 20px;
     font-size: 13px;
     color: var(--text-secondary);

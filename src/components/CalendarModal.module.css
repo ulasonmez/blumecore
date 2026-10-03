@@ -142,7 +142,7 @@
 }
 
 .today {
-    background-color: var(--accent-primary);
+    background-color: var(--action-green);
     color: white;
     font-weight: 600;
 }

@@ -76,7 +76,7 @@
 }
 
 .today {
-    background-color: var(--accent-primary) !important;
+    background-color: var(--action-green) !important;
     color: white;
     font-weight: 600;
 }

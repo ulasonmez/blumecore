@@ -328,14 +328,14 @@
     color: white;
     padding: 6px 12px;
     border-radius: 6px;
-    background-color: var(--accent-primary);
+    background-color: var(--action-green);
     display: flex;
     align-items: center;
     gap: 4px;
 }
 
 .btnActionPrimary:hover {
-    background-color: var(--accent-primary-hover);
+    background-color: var(--action-green-hover);
 }
 
 /* Expanded Notes History Section */
@@ -368,12 +368,12 @@
 }
 
 .notesTimeline::-webkit-scrollbar-thumb {
-    background: rgba(40, 77, 54, 0.12);
+    background: rgba(234, 243, 238, 0.12);
     border-radius: 3px;
 }
 
 .notesTimeline::-webkit-scrollbar-thumb:hover {
-    background: rgba(40, 77, 54, 0.22);
+    background: rgba(234, 243, 238, 0.22);
 }
 
 .timelineItem {
@@ -392,11 +392,11 @@
 
 .timelineItem.system {
     background-color: var(--accent-primary-soft);
-    border-left: 2px solid rgba(40, 105, 75, 0.35);
+    border-left: 2px solid rgba(181, 228, 208, 0.35);
 }
 
 .timelineItem.system:hover {
-    background-color: rgba(40, 105, 75, 0.05);
+    background-color: rgba(181, 228, 208, 0.05);
 }
 
 .timelineText {
@@ -440,7 +440,7 @@
 }
 
 .deleteNoteBtn:hover {
-    background-color: var(--accent-red);
+    background-color: var(--action-red);
     color: white;
     transform: scale(1.05);
 }
@@ -468,7 +468,7 @@
 
 .quickNoteBtn {
     padding: 8px 12px;
-    background-color: var(--accent-primary);
+    background-color: var(--action-green);
     color: white;
     border-radius: 6px;
     display: flex;
@@ -477,7 +477,7 @@
 }
 
 .quickNoteBtn:hover {
-    background-color: var(--accent-primary-hover);
+    background-color: var(--action-green-hover);
 }
 
 /* Add Follow Up Modal Inputs */
@@ -547,7 +547,7 @@
 }
 
 .searchSelectItem:hover {
-    background-color: var(--accent-primary);
+    background-color: var(--action-green);
     color: white;
 }
 
@@ -558,13 +558,13 @@
     transition: background-color 0.15s;
     color: var(--accent-primary);
     border-bottom: 1px dashed var(--border-color);
-    background-color: rgba(40, 105, 75, 0.05);
+    background-color: rgba(181, 228, 208, 0.05);
     display: flex;
     align-items: center;
 }
 
 .searchSelectItemCreate:hover {
-    background-color: var(--accent-primary);
+    background-color: var(--action-green);
     color: white;
 }
 
@@ -573,7 +573,7 @@
     font-size: 13px;
     color: var(--text-secondary);
     text-align: center;
-    background-color: rgba(40, 77, 54, 0.02);
+    background-color: rgba(234, 243, 238, 0.02);
 }
 
 /* Status quick-change dropdown */
@@ -599,17 +599,17 @@
     gap: 4px;
     font-size: 11px;
     color: var(--accent-primary);
-    background-color: rgba(40, 105, 75, 0.1);
+    background-color: rgba(181, 228, 208, 0.1);
     padding: 3px 8px;
     border-radius: 4px;
-    border: 1px solid rgba(40, 105, 75, 0.3);
+    border: 1px solid rgba(181, 228, 208, 0.3);
     text-decoration: none;
     transition: all 0.2s;
 }
 
 .metaBadgeLink:hover {
-    background-color: rgba(40, 105, 75, 0.2);
-    border-color: rgba(40, 105, 75, 0.5);
+    background-color: rgba(181, 228, 208, 0.2);
+    border-color: rgba(181, 228, 208, 0.5);
     color: var(--accent-primary-hover);
 }
 
@@ -619,8 +619,8 @@
     justify-content: space-between;
     align-items: center;
     padding: 10px var(--spacing-md);
-    background-color: rgba(40, 105, 75, 0.1);
-    border: 1px solid rgba(40, 105, 75, 0.3);
+    background-color: rgba(181, 228, 208, 0.1);
+    border: 1px solid rgba(181, 228, 208, 0.3);
     border-radius: var(--border-radius-md);
     color: var(--text-primary);
 }
@@ -662,7 +662,7 @@
     justify-content: center;
     gap: 8px;
     padding: 10px 18px;
-    background-color: var(--accent-primary);
+    background-color: var(--action-green);
     color: white;
     border: none;
     border-radius: var(--border-radius-md);
@@ -671,13 +671,13 @@
     cursor: pointer;
     white-space: nowrap;
     transition: all 0.2s ease;
-    box-shadow: 0 4px 12px rgba(40, 105, 75, 0.2);
+    box-shadow: 0 4px 12px rgba(181, 228, 208, 0.2);
 }
 
 .addNewBtn:hover {
-    background-color: var(--accent-primary-hover);
+    background-color: var(--action-green-hover);
     transform: translateY(-1px);
-    box-shadow: 0 6px 16px rgba(40, 105, 75, 0.3);
+    box-shadow: 0 6px 16px rgba(181, 228, 208, 0.3);
 }
 
 .addNewBtn:active {

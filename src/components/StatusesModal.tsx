@@ -26,12 +26,12 @@ interface StatusesModalProps {
     followUps: FollowUp[];
 }
 
-const PRESETS = ['#28694B', '#8A6200', '#1E6091', '#B4232F', '#4C8060', '#64756B', '#865CA2', '#475F7B'];
+const PRESETS = ['#B5E4D0', '#F2C878', '#8FBFEE', '#F69DA2', '#98DDB7', '#B5C0BA', '#CBAEEB', '#78CBB9'];
 
 export default function StatusesModal({ isOpen, onClose, statuses, followUps }: StatusesModalProps) {
     const { user } = useAuth();
     const [name, setName] = useState('');
-    const [color, setColor] = useState('#28694B');
+    const [color, setColor] = useState('#B5E4D0');
     
     // Edit Mode State
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -61,7 +61,7 @@ export default function StatusesModal({ isOpen, onClose, statuses, followUps }: 
                 createdAt: Date.now()
             });
             setName('');
-            setColor('#28694B');
+            setColor('#B5E4D0');
         } catch (err) {
             console.error("Error adding status:", err);
         }
@@ -143,7 +143,7 @@ export default function StatusesModal({ isOpen, onClose, statuses, followUps }: 
                 </div>
 
                 {/* Create Status Form */}
-                <form onSubmit={handleAdd} style={{ marginBottom: '20px', display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px', borderRadius: '10px', backgroundColor: 'rgba(40, 77, 54, 0.05)', border: '1px solid var(--border-color)' }}>
+                <form onSubmit={handleAdd} style={{ marginBottom: '20px', display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px', borderRadius: '10px', backgroundColor: 'rgba(234, 243, 238, 0.05)', border: '1px solid var(--border-color)' }}>
                     <div style={{ display: 'flex', gap: '8px' }}>
                         <input
                             type="text"
@@ -160,7 +160,7 @@ export default function StatusesModal({ isOpen, onClose, statuses, followUps }: 
                         <button
                             type="submit"
                             style={{
-                                padding: '0 14px', backgroundColor: 'var(--accent-primary)', color: 'white',
+                                padding: '0 14px', backgroundColor: 'var(--action-green)', color: 'white',
                                 borderRadius: '6px', cursor: 'pointer', fontWeight: 500, fontSize: '13px',
                                 display: 'flex', alignItems: 'center', gap: '4px'
                             }}

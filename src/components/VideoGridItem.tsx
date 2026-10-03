@@ -199,7 +199,7 @@ export function VideoGridItem({
                                     fontSize: '11px',
                                     padding: '2px 6px',
                                     borderRadius: '4px',
-                                    backgroundColor: 'rgba(40, 105, 75, 0.15)',
+                                    backgroundColor: 'rgba(181, 228, 208, 0.15)',
                                     color: 'var(--accent-primary)',
                                     fontWeight: 600
                                 }}>

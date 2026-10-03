@@ -5,7 +5,7 @@
     column-gap: 8px;
     row-gap: 2px;
     padding: 8px 10px 10px 14px;
-    background-color: rgba(40, 105, 75, 0.12);
+    background-color: rgba(181, 228, 208, 0.12);
 }
 
 .groupHeaderExpanded {
@@ -84,7 +84,7 @@
 .paymentCount {
     padding: 3px 8px;
     border-radius: 10px;
-    background-color: rgba(40, 77, 54, 0.08);
+    background-color: rgba(234, 243, 238, 0.08);
     color: var(--text-secondary);
     white-space: nowrap;
 }

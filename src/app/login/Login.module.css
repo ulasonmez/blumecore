@@ -21,7 +21,7 @@
     font-size: 32px;
     font-weight: 700;
     margin-bottom: var(--spacing-lg);
-    color: var(--text-primary);
+    color: var(--accent-primary);
 }
 
 .title {

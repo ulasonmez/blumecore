@@ -55,7 +55,7 @@
 
 .searchInput:focus {
     border-color: var(--accent-primary);
-    box-shadow: 0 0 0 2px rgba(40, 105, 75, 0.15);
+    box-shadow: 0 0 0 2px rgba(181, 228, 208, 0.15);
 }
 
 .clearSearchBtn {
@@ -77,7 +77,7 @@
 
 .clearSearchBtn:hover {
     color: var(--text-primary);
-    background-color: rgba(40, 77, 54, 0.1);
+    background-color: rgba(234, 243, 238, 0.1);
 }
 
 .filterScroll {
@@ -107,7 +107,7 @@
 }
 
 .filterBadge.active {
-    background-color: var(--accent-primary);
+    background-color: var(--action-green);
     color: white;
     border-color: var(--accent-primary);
 }
