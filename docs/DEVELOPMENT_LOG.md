@@ -4,6 +4,22 @@ Yeni sohbetlerde önce [AGENTS.md](../AGENTS.md) ve [proje haritasını](PROJECT
 
 Her görev için kısa kayıt tut: ne/neden değişti, ilgili dosyalar, gerçekten yapılan doğrulama ve varsa kalan iş. Kod/konfigürasyon değiştiğinde haritayı kontrol et; etkilenen bilgiyi haritada da yerinde güncelle. Secret, kişisel veri veya tam araç çıktısı ekleme. Salt okunur soru/yanıtları kaydetme.
 
+## 2026-10-04 — Follow Ups export kategori seçimi
+
+- **Değişiklik ve neden:** Follow Ups export penceresine takip aşamalarını seçmek için kutular eklendi. Başlangıçta tüm kategoriler seçilir; tümünü seç/seçimi temizle işlemleri desteklenir. Seçilen kategoriler ve mevcut sayfa araması birlikte uygulanır; metin/kişi sayısı anlık güncellenir. Aynı YouTuber farklı seçili aşamalarda bulunsa da bir satır oluşturulur. Boş seçimde kopyalama kapalıdır. Kategori listesi mobilde kaydırılabilir.
+- **Dosyalar:** `src/components/DiscordExport.tsx`, `DiscordContacts.module.css`, `src/app/(protected)/home/page.tsx`, `src/lib/discord-contacts.ts`, `tests/discord-contacts.test.ts`, hafıza belgeleri.
+- **Harita:** Follow Ups export kategori seçimi, varsayılanlar ve ilgili yardımcı/test açıklaması güncellendi.
+- **Doğrulama:** Tip kontrolü, üç export testi, export bileşeni/yardımcısı ESLint kontrolü ve `git diff --check` geçti. Bu ek adımda üretim derlemesi tekrarlanmadı; önceki Discord ekleme adımında geçmişti. Tarayıcı/mobil etkileşim kontrolü yapılmadı.
+- **Kalan iş:** Canlı ortam dağıtımı ve gerçek tarayıcıda kategori seçimi/pano doğrulaması yapılmadı.
+
+## 2026-10-04 — YouTuber Discord bilgisi ve kopyalanabilir export
+
+- **Değişiklik ve neden:** Katalog oluşturma formuna opsiyonel Discord ID, kişi detayına sonradan ekleme/düzenleme/kaldırma alanı eklendi. Follow Ups kartlarında ülkenin yanında canlı YouTuber kaydındaki ID gösterilir. Her iki sayfaya mevcut arama/filtredeki dolu Discord bilgilerini kişi başına tek satır sunan export penceresi ve Kopyala düğmesi eklendi; pano hatasında elle kopyalama için metin seçilir. Dar ekran başlıkları, rozetler, form ve export penceresi için responsive stiller eklendi.
+- **Dosyalar:** `src/app/(protected)/catalog/page.tsx`, `Catalog.module.css`, `src/app/(protected)/home/page.tsx`, `Home.module.css`, `src/components/CalendarModal.tsx`, `DiscordContactEditor.tsx`, `DiscordExport.tsx`, `DiscordContacts.module.css`, `src/lib/discord-contacts.ts`, `tests/discord-contacts.test.ts`, hafıza belgeleri.
+- **Harita:** Discord düzenleme/export akışı, opsiyonel `youtubers.discordId` metin alanı ve ilgili test kaydı eklendi. Yeni API veya migration yok.
+- **Doğrulama:** `npx tsc --noEmit --incremental false`, `npm run build`, iki hedefli export testi ve `git diff --check` geçti. Yeni bileşen/yardımcı, katalog ve CalendarModal ESLint kontrolü geçti. Home ESLint kontrolü 10 mevcut tırnak hatası ve 15 uyarı nedeniyle başarısız; HEAD sürümü aynı sonuçla ayrıca kontrol edildi.
+- **Kalan iş:** Gerçek Firestore kaydetme, Clipboard API ve oturum gerektiren masaüstü/mobil ekranlar etkileşimli tarayıcıda doğrulanmadı. Değişiklik yerel kaynakta; dağıtım yapılmadı.
+
 > 2026-10-03: Deponun public yapılmasının ardından Vercel dağıtımını yeniden tetiklemek için dokümantasyon commit'i oluşturuldu.
 
 ## 2026-10-03 — Açık vurgulu koyu arayüz

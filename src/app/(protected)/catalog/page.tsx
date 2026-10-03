@@ -5,8 +5,9 @@ import { Trash2, Calendar as CalendarIcon, Link as LinkIcon, Search, X } from 'l
 import styles from './Catalog.module.css';
 import CalendarModal from '@/components/CalendarModal';
 import GroupModal from '@/components/GroupModal';
+import DiscordExport from '@/components/DiscordExport';
 import { db } from '@/lib/firebase';
-import { collection, query, where, addDoc, deleteDoc, doc, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, addDoc, onSnapshot } from 'firebase/firestore';
 import { useAuth } from '@/lib/auth-context';
 import { authenticatedFetch } from '@/lib/api-client';
 
@@ -21,6 +22,7 @@ interface Youtuber {
     name: string;
     groupId: string;
     channelUrl?: string;
+    discordId?: string;
 }
 
 export default function CatalogPage() {
@@ -32,6 +34,7 @@ export default function CatalogPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [newItemName, setNewItemName] = useState('');
     const [newChannelUrl, setNewChannelUrl] = useState('');
+    const [newDiscordId, setNewDiscordId] = useState('');
 
     // Modal state
     const [selectedItem, setSelectedItem] = useState<{ id: string, name: string, channelUrl?: string } | null>(null);
@@ -73,11 +76,13 @@ export default function CatalogPage() {
                 name: newItemName.trim(),
                 groupId: activeGroup,
                 channelUrl: newChannelUrl.trim() || null,
+                discordId: newDiscordId.trim() || null,
                 userId: user.uid,
                 createdAt: new Date()
             });
             setNewItemName('');
             setNewChannelUrl('');
+            setNewDiscordId('');
         } catch (e) {
             console.error("Error adding youtuber:", e);
         }
@@ -123,7 +128,10 @@ export default function CatalogPage() {
                     <h1 className="page-title">YouTubers</h1>
                     <p className="page-subtitle">Rutin öğelerinizi yönetin</p>
                 </div>
-                <button className={styles.manageGroupsBtn} onClick={() => setIsGroupModalOpen(true)}>Grupları Yönet</button>
+                <div className={styles.headerActions}>
+                    <DiscordExport contacts={filteredItems} />
+                    <button className={styles.manageGroupsBtn} onClick={() => setIsGroupModalOpen(true)}>Grupları Yönet</button>
+                </div>
             </div>
 
             <div className={styles.addInputWrapper} style={{ flexDirection: 'column', gap: '8px' }}>
@@ -156,6 +164,9 @@ export default function CatalogPage() {
                         onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
                     />
                 </div>
+                <input type="text" placeholder="Discord ID (Opsiyonel)" aria-label="Yeni YouTuber Discord ID"
+                    className={styles.addInput} value={newDiscordId} onChange={e => setNewDiscordId(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleAdd()} />
             </div>
 
             {/* Search Bar */}

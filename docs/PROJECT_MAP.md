@@ -41,6 +41,12 @@ Tablodaki yollar depo köküne göredir. Sayfa klasörlerindeki `*.module.css` d
 
 `src/app/page.tsx`, `/home` adresine yönlendirir. Korumalı URL'ler `/home`, `/videos`, `/calendar`, `/catalog`, `/team`, `/settings` şeklindedir; `(protected)` yalnızca dosya sistemindeki route grubudur.
 
+### YouTuber Discord bilgisi ve export
+
+`src/app/(protected)/catalog/page.tsx` yeni YouTuber oluştururken opsiyonel Discord ID alanını doğrudan istemci Firestore SDK’sıyla kaydeder. Kişiye tıklanınca açılan `src/components/CalendarModal.tsx` içindeki `src/components/DiscordContactEditor.tsx`, aynı YouTuber belgesini canlı dinler; ID ekleme/değiştirme ve boş kaydederek alanı kaldırma işlemini `updateDoc` ile yapar. Yükleme veya kaydetme sırasında form devre dışıdır; hata/kayıt sonucu gösterilir. Yeni bir API veya migration gerekmez; mevcut sahip Firestore kuralları geçerlidir.
+
+Follow Ups, Discord ID’yi bağlı YouTuber kaydından okuyup ülke rozetinin hemen yanında gösterir. Katalog ve Follow Ups başlıklarındaki `src/components/DiscordExport.tsx`, mevcut arama/filtre kapsamındaki Discord ID’si dolu kişileri `YouTuber ismi -> discord_id` biçiminde salt okunur metin penceresinde sunar. Follow Ups export’u, mevcut arama/filtre kapsamındaki takip aşamalarını seçim kutularıyla sunar; başlangıçta tüm kategoriler seçilidir. “Tümünü seç” ve “Seçimi temizle” düğmeleri vardır. Metin yalnızca seçili kategorilerde bağlı olan, Discord bilgisi dolu YouTuber’lardan üretilir; seçim değişince metin ve kişi sayısı güncellenir. Hiç kategori seçilmezse metin boş kalır ve Kopyala devre dışıdır. Kategori listesi kayıtlı statü sırasını kullanır; takipte bulunan eski statü adları da sona eklenir. Katalog export’u kategori seçimi içermez. `src/lib/discord-contacts.ts` içindeki `selectDiscordContacts` kategori seçimini uygular; `buildDiscordExport`, kişileri belge kimliğiyle tekilleştirir, ada göre sıralar ve satır sonlarını temizler. Kopyala düğmesi Clipboard API kullanır; erişim başarısızsa metni seçip elle kopyalama açıklaması gösterir. Bu akış Discord’a mesaj göndermez. Ortak görünüm `src/components/DiscordContacts.module.css` içindedir; dar ekranda düğmeler ve rozetler satır kırar, düzenleme düğmesi tam genişlik alır.
+
 ### Görsel tema
 
 Arayüz sabit koyu temayı kullanır (`src/app/globals.css` içinde `color-scheme: dark`). Ortak renk rolleri CSS değişkenleriyle tanımlıdır: antrasit zemin `--bg-color` (`#1E1E24`), koyu gri kart `--bg-card` (`#282D2D`), açık metin `--text-primary`, ikincil açık gri metin `--text-secondary` ve başlık/seçim vurgusu için nane yeşili `--accent-primary` (`#B5E4D0`). Beyaz yazılı birincil düğmeler `--action-green` (`#3A805F`), yıkıcı düğmeler `--action-red` kullanır; açık vurgu rengini bu düğmelerin zemininde kullanma. `--accent-primary-soft` koyu yeşil vurgu yüzeyidir. Hata, bilgi ve uyarı metinleri için ayrı açık renk rolleri vardır. Sayfa/modalların CSS Modules dosyaları ile bazı TSX satır içi stillerinde bu tokenlar kullanılır; yalnızca `globals.css` değiştirilerek bütün ekranın rengi doğrulanmış sayılmaz.
@@ -55,7 +61,7 @@ Sayfaların önemli bir kısmı `onSnapshot` ile Firestore'dan canlı veri dinle
 
 | Firestore koleksiyonları | Rolü ve model kaynağı |
 | --- | --- |
-| `youtubers`, `groups` | YouTuber ve grupları; katalog/ana sayfa içindeki tipler ve sorgular |
+| `youtubers`, `groups` | YouTuber ve grupları; katalog/ana sayfa içindeki tipler ve sorgular. `youtubers.discordId` opsiyonel metindir; uzun sayısal kimlikler sayıya çevrilmez. Eski kayıtlarda alan bulunmayabilir |
 | `followups`, `statuses` | Takip, not ve aşamalar; ana sayfa, `StatusesModal`, `src/lib/statuses.ts` |
 | `pendingPayments` | Bekleyen ödemeler; `PendingPaymentsModal` |
 | `user_settings` | Sahip UID'siyle anahtarlanan `showIncomeTotals` ayarı; mevcut alan adı korunur ve takvimdeki bu ay/genel gelir ile gider toplamları yalnızca değer `true` ise gösterilir |
@@ -158,6 +164,7 @@ Emülatör testleri `127.0.0.1:8080` açık değilse atlanır. `npm test` sonucu
 | Kuyruk / Global Blume / ilk sync | `sync-job-queue.test.ts`, `global-blume-initial-sync.test.ts` |
 | Kalıcı silme / arşiv temizleme | `mod-delete-and-cleanup.test.ts` |
 | UI olayları / yanlışlıkla backfill tetikleme | `ui-event-regression.test.ts` (simülasyon) |
+| Discord export, kategori seçimi, tekilleştirme, uzun kimlikler | `discord-contacts.test.ts` (metin üretimi; React/Firestore/clipboard etkileşimi çalıştırmaz) |
 | Beklenen ödeme grubu sırası / tekil silme | `pending-payments.test.ts` (gruplama fonksiyonu) |
 | Gerçek Firestore kuralları / transaction | `emulator-firestore-rules-and-outbox.test.ts` |
 

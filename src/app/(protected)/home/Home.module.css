@@ -13,6 +13,7 @@
 
 .headerActions {
     display: flex;
+    flex-wrap: wrap;
     gap: 8px;
     align-items: center;
 }
@@ -215,6 +216,7 @@
 
 .cardHeaderInfo {
     flex: 1;
+    min-width: 0;
 }
 
 .youtuberName {
@@ -682,4 +684,11 @@
 
 .addNewBtn:active {
     transform: translateY(0);
+}
+
+.discordBadge { max-width: 100%; overflow-wrap: anywhere; user-select: all; }
+.discordBadge svg { flex-shrink: 0; }
+@media (max-width: 600px) {
+    .cardTopRow { flex-direction: column; }
+    .cardHeaderInfo { width: 100%; }
 }

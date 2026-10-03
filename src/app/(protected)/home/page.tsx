@@ -9,6 +9,7 @@ import {
 import styles from './Home.module.css';
 import PendingPaymentsModal from '@/components/PendingPaymentsModal';
 import StatusesModal from '@/components/StatusesModal';
+import DiscordExport from '@/components/DiscordExport';
 import { db } from '@/lib/firebase';
 import { 
     collection, query, where, addDoc, deleteDoc, doc, 
@@ -45,6 +46,7 @@ interface Youtuber {
     name: string;
     groupId: string;
     channelUrl?: string;
+    discordId?: string;
 }
 
 interface Group {
@@ -384,7 +386,11 @@ export default function HomePage() {
                 <div>
                     <h1 className="page-title">Follow Ups</h1>
                 </div>
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <div className={styles.headerActions}>
+                    <DiscordExport contacts={[]} categories={
+                        [...new Set([...statuses.map(status => status.name), ...filteredFollowUps.map(f => f.status)])]
+                            .map(name => ({ name, contacts: youtubers.filter(yt => filteredFollowUps.some(f => f.status === name && f.youtuberId === yt.id)) }))
+                    } />
                     <button
                         onClick={() => setIsStatusesOpen(true)}
                         style={{
@@ -703,6 +709,11 @@ export default function HomePage() {
                             {displayCountry && displayCountry !== '-' && (
                                 <span className={styles.metaBadge}>
                                     <Globe size={11} /> {displayCountry}
+                                </span>
+                            )}
+                            {ytData?.discordId && (
+                                <span className={`${styles.metaBadge} ${styles.discordBadge}`} title="Discord ID">
+                                    <MessageSquare size={11} /> Discord: {ytData.discordId}
                                 </span>
                             )}
                             {displayChannelUrl ? (

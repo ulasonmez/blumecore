@@ -24,6 +24,7 @@
 
 .addInput {
     flex: 1;
+    min-width: 0;
 }
 
 .searchContainer {
@@ -171,4 +172,10 @@
     color: var(--text-secondary);
     display: flex;
     align-items: center;
+}
+
+.headerActions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+@media (max-width: 600px) {
+    .headerRow { flex-direction: column; align-items: stretch; gap: 12px; }
+    .headerActions { justify-content: space-between; }
 }

@@ -9,6 +9,7 @@ import { db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { useAuth } from '@/lib/auth-context';
 import MinecraftPlayersTab from './MinecraftPlayersTab';
+import DiscordContactEditor from './DiscordContactEditor';
 
 interface CalendarModalProps {
     isOpen: boolean;
@@ -143,6 +144,8 @@ export default function CalendarModal({
                         <X size={24} />
                     </button>
                 </div>
+
+                <DiscordContactEditor key={youtuberId} youtuberId={youtuberId} />
 
                 <div className={styles.statsRow} style={{ gridTemplateColumns: '1fr', marginBottom: '16px' }}>
                     <div className={styles.statCard}>
