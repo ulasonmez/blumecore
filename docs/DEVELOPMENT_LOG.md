@@ -4,6 +4,14 @@ Yeni sohbetlerde önce [AGENTS.md](../AGENTS.md) ve [proje haritasını](PROJECT
 
 Her görev için kısa kayıt tut: ne/neden değişti, ilgili dosyalar, gerçekten yapılan doğrulama ve varsa kalan iş. Kod/konfigürasyon değiştiğinde haritayı kontrol et; etkilenen bilgiyi haritada da yerinde güncelle. Secret, kişisel veri veya tam araç çıktısı ekleme. Salt okunur soru/yanıtları kaydetme.
 
+## 2026-10-04 — Discord görünümü ve mobil export kişi seçimi
+
+- **Değişiklik ve neden:** Kaydedilen Discord ID sürekli metin alanında kalmak yerine sabit metin/Ekle/Düzenle görünümünde sunulur; kayıt sonrası form kapanır ve Vazgeç desteklenir. Export kategorileri açılıp kapanır; altındaki YouTuber’lar ayrı kutularla seçilir. Kategori kutuları toplu/kısmi seçim durumunu gösterir. ID’si olmayan kişiler listelenir fakat seçilemez. Kişi seçimi farklı kategorilerde de ortaktır. Genel input padding’inden büyüyen checkbox’lar düzeltildi; mobil pencerede başlık ve Kopyala alanı kaydırılan içerikten ayrıldı.
+- **Dosyalar:** `src/components/DiscordContactEditor.tsx`, `DiscordExport.tsx`, `DiscordContacts.module.css`, `src/lib/discord-contacts.ts`, `tests/discord-contacts.test.ts`, hafıza belgeleri.
+- **Harita:** Düzenleme modu, açılır kategoriler, tekil kişi seçimi ve mobil kaydırma açıklaması güncellendi.
+- **Doğrulama:** Tip kontrolü, ilgili bileşen/yardımcı ESLint kontrolü, üç export testi ve `git diff --check` geçti. `npm run build` optimize derleme aşamasında uzun süre yeni çıktı vermediği için durduruldu; başarılı üretim derlemesi doğrulanmadı. Mobil düzen sağlanan ekran görüntülerindeki sorunlara ve stil kaynaklarına göre düzeltildi; gerçek Safari/Firestore/pano etkileşimi test edilmedi.
+- **Kalan iş:** Gerçek mobil tarayıcıda etkileşim kontrolü ve dağıtım yapılmadı.
+
 ## 2026-10-04 — Follow Ups export kategori seçimi
 
 - **Değişiklik ve neden:** Follow Ups export penceresine takip aşamalarını seçmek için kutular eklendi. Başlangıçta tüm kategoriler seçilir; tümünü seç/seçimi temizle işlemleri desteklenir. Seçilen kategoriler ve mevcut sayfa araması birlikte uygulanır; metin/kişi sayısı anlık güncellenir. Aynı YouTuber farklı seçili aşamalarda bulunsa da bir satır oluşturulur. Boş seçimde kopyalama kapalıdır. Kategori listesi mobilde kaydırılabilir.

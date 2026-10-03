@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Pencil, Plus } from 'lucide-react';
 import { doc, onSnapshot, updateDoc, deleteField } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import styles from './DiscordContacts.module.css';
@@ -9,6 +10,7 @@ export default function DiscordContactEditor({ youtuberId }: { youtuberId: strin
     const [savedValue, setSavedValue] = useState('');
     const [draft, setDraft] = useState<string | null>(null);
     const [ready, setReady] = useState(false);
+    const [editing, setEditing] = useState(false);
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState('');
     const value = draft ?? savedValue;
@@ -34,6 +36,7 @@ export default function DiscordContactEditor({ youtuberId }: { youtuberId: strin
             });
             setSavedValue(normalized);
             setDraft(null);
+            setEditing(false);
             setMessage(normalized ? 'Discord ID kaydedildi.' : 'Discord ID kaldırıldı.');
         } catch {
             setMessage('Kaydedilemedi. Lütfen tekrar deneyin.');
@@ -42,17 +45,33 @@ export default function DiscordContactEditor({ youtuberId }: { youtuberId: strin
         }
     }
 
+    if (!editing) return (
+        <div className={styles.editor}>
+            <span className={styles.label}>Discord ID</span>
+            <div className={styles.savedContact}>
+                <span className={styles.savedId}>{ready ? (savedValue || 'Henüz eklenmedi') : 'Yükleniyor…'}</span>
+                <button type="button" className={styles.editButton} disabled={!ready} onClick={() => {
+                    setDraft(savedValue); setMessage(''); setEditing(true);
+                }}>{savedValue ? <Pencil size={14} /> : <Plus size={14} />}{savedValue ? 'Düzenle' : 'Ekle'}</button>
+            </div>
+            <p className={styles.feedback} role="status">{message}</p>
+        </div>
+    );
+
     return (
         <form className={styles.editor} onSubmit={save}>
             <label htmlFor={`discord-${youtuberId}`} className={styles.label}>Discord ID</label>
             <div className={styles.inputRow}>
-                <input id={`discord-${youtuberId}`} type="text" placeholder="Discord kullanıcı ID’si" autoComplete="off"
+                <input id={`discord-${youtuberId}`} type="text" placeholder="Discord kullanıcı ID’si" autoComplete="off" autoFocus
                     value={value} disabled={!ready || saving} onChange={event => { setDraft(event.target.value); setMessage(''); }} />
                 <button type="submit" className="btn-primary" disabled={!ready || saving || value.trim() === savedValue}>
                     {saving ? 'Kaydediliyor…' : 'Kaydet'}
                 </button>
             </div>
-            <p className={styles.hint}>Sonradan değiştirebilir veya alanı boş bırakıp kaydederek kaldırabilirsiniz.</p>
+            <button type="button" className={styles.cancelEdit} disabled={saving} onClick={() => {
+                setDraft(null); setMessage(''); setEditing(false);
+            }}>Vazgeç</button>
+            <p className={styles.hint}>Discord ID’yi kaldırmak için alanı boş bırakıp kaydedin.</p>
             <p className={styles.feedback} role="status">{message}</p>
         </form>
     );

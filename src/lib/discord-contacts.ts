@@ -18,7 +18,7 @@ export interface DiscordExportCategory {
     contacts: DiscordContact[];
 }
 
-export function selectDiscordContacts(categories: DiscordExportCategory[], selectedNames: string[]): DiscordContact[] {
-    const selected = new Set(selectedNames);
-    return categories.filter(category => selected.has(category.name)).flatMap(category => category.contacts);
+export function buildSelectedDiscordExport(contacts: DiscordContact[], selectedIds: string[]): string {
+    const selected = new Set(selectedIds);
+    return buildDiscordExport(contacts.filter(contact => selected.has(contact.id)));
 }
