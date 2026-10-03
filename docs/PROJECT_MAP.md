@@ -21,7 +21,7 @@ Tablodaki yollar depo köküne göredir. Sayfa klasörlerindeki `*.module.css` d
 | --- | --- | --- |
 | Giriş, oturum, yetkisiz erişim, giriş döngüsü | `src/app/login/page.tsx`, `src/app/api/auth/session/route.ts` | `src/lib/server-auth.ts`, `src/lib/api-client.ts`, `src/lib/auth-context.tsx`, `src/app/(protected)/layout.tsx` |
 | Ana sayfa, Follow Ups, takip, notlar, aşamalar | `src/app/(protected)/home/page.tsx`, `src/components/StatusesModal.tsx` | `src/lib/statuses.ts`; `followups`, `statuses`, `youtubers`, `groups` |
-| Bekleyen ödeme, tahsilat | `src/components/PendingPaymentsModal.tsx`, `src/components/PendingPaymentsModal.module.css` | Ana sayfadan açılır; `pendingPayments`, `youtubers`; YouTuber grubunun tüm ödemeleri iki onayla topluca silinebilir; dar ekran grup başlığı iki satırlıdır |
+| Bekleyen ödeme, tahsilat | `src/components/PendingPaymentsModal.tsx`, `src/components/PendingPaymentsModal.module.css` | Ana sayfadan açılır; `pendingPayments`, `youtubers`; gruplama ve sabit YouTuber sırası `src/lib/pending-payments.ts` içindedir; toplu silme iki onay ister; dar ekran grup başlığı iki satırlıdır |
 | YouTuber listesi, katalog, ülke/grup, kanal | `src/app/(protected)/catalog/page.tsx`, `src/components/GroupModal.tsx` | `youtubers`, `groups`; silme: `src/app/api/youtubers/[youtuberId]/route.ts` |
 | YouTuber detayındaki takvim ve oyuncular | `src/components/CalendarModal.tsx`, `src/components/MinecraftPlayersTab.tsx` | `assignments`, `records`, `youtube_videos`; oyuncu API'leri |
 | Takvim, video atama, gelir/gider, kayıt düzenleme | `src/app/(protected)/calendar/page.tsx`, `src/components/RecordModal.tsx` | `records`, `assignments`, `team`, `youtube_videos`; gelir/gider toplamlarının görünürlüğü `src/lib/income-visibility.ts`; atama silme API'si |
@@ -152,6 +152,7 @@ Emülatör testleri `127.0.0.1:8080` açık değilse atlanır. `npm test` sonucu
 | Kuyruk / Global Blume / ilk sync | `sync-job-queue.test.ts`, `global-blume-initial-sync.test.ts` |
 | Kalıcı silme / arşiv temizleme | `mod-delete-and-cleanup.test.ts` |
 | UI olayları / yanlışlıkla backfill tetikleme | `ui-event-regression.test.ts` (simülasyon) |
+| Beklenen ödeme grubu sırası / tekil silme | `pending-payments.test.ts` (gruplama fonksiyonu) |
 | Gerçek Firestore kuralları / transaction | `emulator-firestore-rules-and-outbox.test.ts` |
 
 Yalnızca belge değiştiğinde kaynak yolları, bağlantılar ve `git diff --check` kontrolü yeterlidir. Kod değişikliğinde ilgili testleri, lint/tip kontrolünü; derleme, UI veya emülatör kontrolünü de değişikliğin etkisine göre seç.

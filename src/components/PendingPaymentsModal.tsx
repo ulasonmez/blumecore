@@ -7,22 +7,7 @@ import styles from '@/components/PendingPaymentsModal.module.css';
 import { db } from '@/lib/firebase';
 import { collection, query, where, addDoc, deleteDoc, doc, updateDoc, onSnapshot, writeBatch } from 'firebase/firestore';
 import { useAuth } from '@/lib/auth-context';
-
-interface PendingPayment {
-    id: string;
-    youtuberId: string;
-    youtuberName: string;
-    amount: number;
-    description: string;
-}
-
-interface GroupedPendingPayment {
-    youtuberKey: string;
-    youtuberId: string;
-    youtuberName: string;
-    totalAmount: number;
-    items: PendingPayment[];
-}
+import { groupPendingPayments, type GroupedPendingPayment, type PendingPayment } from '@/lib/pending-payments';
 
 interface PendingPaymentsModalProps {
     isOpen: boolean;
@@ -87,25 +72,7 @@ export default function PendingPaymentsModal({ isOpen, onClose }: PendingPayment
 
     const totalPending = payments.reduce((sum, p) => sum + p.amount, 0);
 
-    const groupedPayments = useMemo(() => {
-        const map = new Map<string, GroupedPendingPayment>();
-        payments.forEach(p => {
-            const key = p.youtuberId || p.youtuberName || 'unknown';
-            if (!map.has(key)) {
-                map.set(key, {
-                    youtuberKey: key,
-                    youtuberId: p.youtuberId,
-                    youtuberName: p.youtuberName || 'Bilinmeyen YouTuber',
-                    totalAmount: 0,
-                    items: []
-                });
-            }
-            const group = map.get(key)!;
-            group.totalAmount += p.amount;
-            group.items.push(p);
-        });
-        return Array.from(map.values());
-    }, [payments]);
+    const groupedPayments = useMemo(() => groupPendingPayments(payments, youtubers), [payments, youtubers]);
 
     const toggleGroup = (key: string) => {
         setCollapsedGroups(prev => ({

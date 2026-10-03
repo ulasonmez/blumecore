@@ -6,6 +6,14 @@ Her görev için kısa kayıt tut: ne/neden değişti, ilgili dosyalar, gerçekt
 
 > 2026-10-03: Deponun public yapılmasının ardından Vercel dağıtımını yeniden tetiklemek için dokümantasyon commit'i oluşturuldu.
 
+## 2026-10-03 — Beklenen ödeme gruplarının sırası sabitlendi
+
+- **Değişiklik ve neden:** Beklenen ödemelerde grup sırası Firestore kayıtlarının geliş sırasına bağlıydı; bir YouTuber'ın ilk ödemesi silinince grup başka konuma taşınabiliyordu. Gruplar güncel YouTuber adına, silinmiş YouTuber kayıtlarında sabit kimliğe ve eşit sıralama anahtarlarında grup kimliğine göre sıralandı.
+- **Dosyalar:** `src/components/PendingPaymentsModal.tsx`, `src/lib/pending-payments.ts`, `tests/pending-payments.test.ts`.
+- **Harita:** Beklenen ödeme girişine gruplama fonksiyonu ve ilgili test eklendi.
+- **Doğrulama:** `node --import tsx --test tests/pending-payments.test.ts` ile tekil silme/kayıt sırası değişimi ve silinmiş YouTuber senaryolarındaki iki test geçti. `npx tsc --noEmit --incremental false`, ilgili ESLint kontrolü ve `git diff --check` geçti.
+- **Kalan iş:** Gerçek Firestore ve mobil tarayıcı üzerinde etkileşimli doğrulama yapılmadı.
+
 ## 2026-10-03 — Gider gizleme ve beklenen ödeme mobil başlığı
 
 - **Değişiklik ve neden:** Takvimdeki bu ay/genel gider tutarları da kayıtlı görünürlük ayarına bağlandı; ayar metni gelir ve gideri birlikte belirtir. Beklenen ödeme grubu başlığında YouTuber adı ile işlem düğmeleri ilk satıra, ödeme sayısı ve toplam ikinci satıra taşındı; dar ekranda üst üste binme giderildi.
