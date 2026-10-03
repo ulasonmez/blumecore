@@ -21,9 +21,11 @@ import { db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { useAuth } from '@/lib/auth-context';
 import { authenticatedFetch } from '@/lib/api-client';
+import { useIncomeVisibility } from '@/lib/income-visibility';
 
 export default function CalendarPage() {
     const { user } = useAuth();
+    const { showIncome } = useIncomeVisibility();
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
@@ -168,7 +170,7 @@ export default function CalendarPage() {
                 
                 <div className={styles.statsGrid4}>
                     <div className="card" style={{ padding: '12px', textAlign: 'center' }}>
-                        <div style={{ fontSize: '16px', fontWeight: 700, color: '#22C55E' }}>${monthlyIncome.toFixed(2)}</div>
+                        <div style={{ fontSize: '16px', fontWeight: 700, color: '#22C55E' }}>{showIncome ? `$${monthlyIncome.toFixed(2)}` : '****'}</div>
                         <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Bu Ay Gelir</div>
                     </div>
                     <div className="card" style={{ padding: '12px', textAlign: 'center' }}>
@@ -176,7 +178,7 @@ export default function CalendarPage() {
                         <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Bu Ay Gider</div>
                     </div>
                     <div className="card" style={{ padding: '12px', textAlign: 'center' }}>
-                        <div style={{ fontSize: '16px', fontWeight: 700, color: '#22C55E' }}>${allTimeIncome.toFixed(2)}</div>
+                        <div style={{ fontSize: '16px', fontWeight: 700, color: '#22C55E' }}>{showIncome ? `$${allTimeIncome.toFixed(2)}` : '****'}</div>
                         <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Genel Gelir</div>
                     </div>
                     <div className="card" style={{ padding: '12px', textAlign: 'center' }}>

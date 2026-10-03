@@ -4,6 +4,14 @@ Yeni sohbetlerde önce [AGENTS.md](../AGENTS.md) ve [proje haritasını](PROJECT
 
 Her görev için kısa kayıt tut: ne/neden değişti, ilgili dosyalar, gerçekten yapılan doğrulama ve varsa kalan iş. Kod/konfigürasyon değiştiğinde haritayı kontrol et; etkilenen bilgiyi haritada da yerinde güncelle. Secret, kişisel veri veya tam araç çıktısı ekleme. Salt okunur soru/yanıtları kaydetme.
 
+## 2026-10-03 — Beklenen ödemelerde toplu silme ve gelir görünürlüğü
+
+- **Değişiklik ve neden:** Beklenen ödemelerde YouTuber başlığına tüm alt ödemeleri silen düğme eklendi; silme iki ayrı onaydan sonra Firestore batch'leriyle yapılır. Takvimdeki “Bu Ay Gelir” ve “Genel Gelir” varsayılan olarak `****` gösterilir; profil ayarı açıldığında rakamlar görünür. Ayar Firestore'da kalıcıdır ve yükleme/hata durumunda tutarlar gizli kalır.
+- **Dosyalar:** `src/components/PendingPaymentsModal.tsx`, `src/app/(protected)/calendar/page.tsx`, `src/app/(protected)/settings/page.tsx`, `src/app/(protected)/settings/Settings.module.css`, `src/lib/income-visibility.ts`.
+- **Harita:** Beklenen ödeme, takvim ve ayarlar girişleri ile `user_settings` koleksiyonu güncellendi.
+- **Doğrulama:** `npx tsc --noEmit --incremental false`, değişen yeni/profil/ödeme dosyalarına yönelik ESLint ve `git diff --check` geçti. `npm test`: 173 başarılı, 8 emülatör testi emülatör çalışmadığı için atlandı. Genel `npm run lint`, depoda önceden mevcut olan takvim ve diğer dosyalardaki hatalar yüzünden başarısız. `npm run build`, optimize derleme aşamasında çıktı üretmeden uzun süre kaldığı için durduruldu.
+- **Kalan iş:** Gerçek Firebase, tarayıcı arayüzü ve üretim derlemesiyle doğrulama yapılmadı.
+
 ## 2026-10-03 — Kalıcı proje rehberi oluşturuldu
 
 - **Değişiklik ve neden:** Yeni sohbetlerin proje bağlamını dosyalardan alması, kullanıcı isteğini ilgili kaynak koda eşleştirmesi ve geliştirme sonrası hafızayı güncellemesi için başlangıç kuralları oluşturuldu.

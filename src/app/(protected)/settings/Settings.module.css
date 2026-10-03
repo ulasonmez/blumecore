@@ -95,3 +95,25 @@
 .infoValue {
     color: var(--text-secondary);
 }
+
+.settingRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.settingRow input {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--accent-purple);
+    cursor: pointer;
+}
+
+.settingError {
+    color: var(--accent-red);
+    font-size: 13px;
+    margin-top: 12px;
+}

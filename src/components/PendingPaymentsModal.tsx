@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { X, Plus, Trash2, Edit2, Check, DollarSign, User, ChevronDown, ChevronUp } from 'lucide-react';
 import modalStyles from '@/components/CalendarModal.module.css';
 import { db } from '@/lib/firebase';
-import { collection, query, where, addDoc, deleteDoc, doc, updateDoc, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, addDoc, deleteDoc, doc, updateDoc, onSnapshot, writeBatch } from 'firebase/firestore';
 import { useAuth } from '@/lib/auth-context';
 
 interface PendingPayment {
@@ -47,6 +47,8 @@ export default function PendingPaymentsModal({ isOpen, onClose }: PendingPayment
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editAmount, setEditAmount] = useState('');
     const [editDescription, setEditDescription] = useState('');
+    const [deletingGroup, setDeletingGroup] = useState<string | null>(null);
+    const [deleteError, setDeleteError] = useState('');
 
     useEffect(() => {
         if (!isOpen || !user) return;
@@ -78,6 +80,7 @@ export default function PendingPaymentsModal({ isOpen, onClose }: PendingPayment
             setDescription('');
             setEditingId(null);
             setCollapsedGroups({});
+            setDeleteError('');
         }
     }, [isOpen]);
 
@@ -141,6 +144,32 @@ export default function PendingPaymentsModal({ isOpen, onClose }: PendingPayment
             await deleteDoc(doc(db, "pendingPayments", id));
         } catch (e) {
             console.error("Error deleting pending payment:", e);
+        }
+    };
+
+    const handleDeleteGroup = async (group: GroupedPendingPayment) => {
+        if (deletingGroup || !user) return;
+        const count = group.items.length;
+        if (!window.confirm(`${group.youtuberName} için ${count} beklenen ödemeyi silmek istiyor musunuz?`)) return;
+        if (!window.confirm(`Son onay: ${group.youtuberName} için tüm ${count} ödeme kalıcı olarak silinecek. Devam edilsin mi?`)) return;
+
+        setDeletingGroup(group.youtuberKey);
+        setDeleteError('');
+        try {
+            // Firestore batches allow at most 500 writes; leave room for future changes.
+            for (let start = 0; start < count; start += 450) {
+                const batch = writeBatch(db);
+                group.items.slice(start, start + 450).forEach(payment => {
+                    batch.delete(doc(db, 'pendingPayments', payment.id));
+                });
+                await batch.commit();
+            }
+            setEditingId(null);
+        } catch (error) {
+            console.error('Error deleting grouped pending payments:', error);
+            setDeleteError('Toplu silme tamamlanamadı. Kalan ödemeleri kontrol edip tekrar deneyin.');
+        } finally {
+            setDeletingGroup(null);
         }
     };
 
@@ -326,6 +355,7 @@ export default function PendingPaymentsModal({ isOpen, onClose }: PendingPayment
                 </div>
 
                 {/* Grouped Payment List */}
+                {deleteError && <div role="alert" style={{ color: 'var(--accent-red)', fontSize: '13px', marginBottom: '8px' }}>{deleteError}</div>}
                 <div style={{
                     display: 'flex',
                     flexDirection: 'column',
@@ -386,6 +416,16 @@ export default function PendingPaymentsModal({ isOpen, onClose }: PendingPayment
                                         <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--accent-purple)' }}>
                                             Toplam: ${group.totalAmount.toFixed(2)}
                                         </div>
+                                        <button
+                                            type="button"
+                                            onClick={(event) => { event.stopPropagation(); void handleDeleteGroup(group); }}
+                                            disabled={deletingGroup !== null}
+                                            title={`${group.youtuberName} için tüm beklenen ödemeleri sil`}
+                                            aria-label={`${group.youtuberName} için tüm beklenen ödemeleri sil`}
+                                            style={{ background: 'none', border: 'none', color: 'var(--accent-red)', cursor: deletingGroup ? 'wait' : 'pointer', padding: '4px', display: 'flex' }}
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
                                         <div style={{ color: 'var(--text-secondary)', display: 'flex', alignItems: 'center' }}>
                                             {isCollapsed ? <ChevronDown size={15} /> : <ChevronUp size={15} />}
                                         </div>

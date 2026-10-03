@@ -4,10 +4,31 @@ import { useAuth } from '@/lib/auth-context';
 import { auth } from '@/lib/firebase';
 import { signOut } from 'firebase/auth';
 import { LogOut } from 'lucide-react';
+import { doc, setDoc } from 'firebase/firestore';
+import { useState } from 'react';
+import { db } from '@/lib/firebase';
+import { useIncomeVisibility } from '@/lib/income-visibility';
 import styles from './Settings.module.css';
 
 export default function SettingsPage() {
     const { user } = useAuth();
+    const { showIncome, loading: incomeSettingLoading, error: incomeSettingError } = useIncomeVisibility();
+    const [savingIncomeSetting, setSavingIncomeSetting] = useState(false);
+    const [saveError, setSaveError] = useState(false);
+
+    const handleIncomeVisibilityChange = async () => {
+        if (!user || incomeSettingLoading || incomeSettingError || savingIncomeSetting) return;
+        setSavingIncomeSetting(true);
+        setSaveError(false);
+        try {
+            await setDoc(doc(db, 'user_settings', user.uid), { showIncomeTotals: !showIncome }, { merge: true });
+        } catch (error) {
+            console.error('Error saving income visibility:', error);
+            setSaveError(true);
+        } finally {
+            setSavingIncomeSetting(false);
+        }
+    };
 
     const handleLogout = async () => {
         try {
@@ -49,6 +70,21 @@ export default function SettingsPage() {
                     <LogOut size={16} style={{ marginRight: '8px', display: 'inline-block', verticalAlign: 'middle' }} />
                     <span>Çıkış Yap</span>
                 </button>
+            </div>
+
+            <div className="card" style={{ marginBottom: '24px' }}>
+                <p className={styles.sectionTitle}>GÖRÜNÜRLÜK</p>
+                <label className={styles.settingRow}>
+                    <span>Takvimde gelir toplamlarını göster</span>
+                    <input
+                        type="checkbox"
+                        checked={showIncome}
+                        disabled={incomeSettingLoading || incomeSettingError || savingIncomeSetting}
+                        onChange={handleIncomeVisibilityChange}
+                        aria-label="Takvimde gelir toplamlarını göster"
+                    />
+                </label>
+                {(incomeSettingError || saveError) && <p role="alert" className={styles.settingError}>Gelir görünürlüğü ayarı kaydedilemedi veya yüklenemedi.</p>}
             </div>
 
             <div className="card">
