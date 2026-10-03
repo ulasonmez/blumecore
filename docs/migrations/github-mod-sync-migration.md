@@ -1,5 +1,7 @@
 # Migration Rehberi: GitHub Tabanlı Minecraft Mod Erişim ve Senkronizasyon Sistemi
 
+> Tarihsel belge notu (2026-10-03): Bu metin ilk şema eklemesini anlatır. Güncel uygulama tek sahip modeli kullanır; aşağıdaki çok kiracılı güvenlik ifadesi mevcut `firestore.rules` davranışını tanımlamaz. Yaşam döngüsü, erişim kaynakları ve iş durumları sonradan genişlemiştir. Güncel model için `src/lib/mods/types.ts` ve [proje haritasını](../PROJECT_MAP.md) esas alın.
+
 Bu doküman, BlumeCore projesine eklenen GitHub tabanlı Minecraft mod projesi yönetimi, video bağlantıları, YouTuber mod erişimi ve legacy README senkronizasyonunun veritabanı şemasını ve mimarisini açıklar.
 
 ## 1. Veri Modeli ve Koleksiyon Yapısı

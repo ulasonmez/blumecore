@@ -1,3 +1,13 @@
+# BlumeCore
+
+## Yapay zekâ ile geliştirme
+
+Bu projede yeni bir sohbetin başlangıç noktası [AGENTS.md](AGENTS.md) dosyasıdır. Ajan önce [proje haritasını](docs/PROJECT_MAP.md) ve [son geliştirme kayıtlarını](docs/DEVELOPMENT_LOG.md) okur; isteği ilgili ekran, API, servis ve testlerle eşleştirip kaynak kodu inceler. Değişiklikten sonra ilgili harita bölümlerini ve geliştirme kaydını aynı çalışma içinde günceller.
+
+Codex, proje talimatlarını `AGENTS.md` üzerinden başlangıçta yükler ([resmî açıklama](https://learn.chatgpt.com/docs/agent-configuration/agents-md)). Bu dosyayı otomatik okumayan başka bir araçta ilk mesaja “Önce AGENTS.md dosyasını oku ve uygula” ekleyin. Güncelleme, bu talimatları izleyen ajanın geliştirme işinin bir parçasıdır; dosyaları arka planda izleyen ayrı bir servis yoktur.
+
+Başka bir clone, branch veya worktree üzerinden çalışırken bu rehber dosyalarının o çalışma kopyasında da bulunduğundan emin olun.
+
 ## BlumeCore Production Deployment Checklist
 
 BlumeCore is a single-owner, private admin application. Before deploying to production or preview on Vercel, verify the following checklist:
@@ -56,4 +66,3 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 ### Testing
 - `npm test`: Runs all unit and propagation test suites.
 - `npm run test:emulator`: Runs security rules and concurrent transaction outbox tests against real Cloud Firestore Emulator.
-

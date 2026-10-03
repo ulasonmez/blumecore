@@ -1,5 +1,7 @@
 # Migration Rehberi: Minecraft Oyuncu Yönetim Sistemi
 
+> Tarihsel belge notu (2026-10-03): Bu metin ilk oyuncu şemasını anlatır. Güncel uygulama tek sahip modeli kullanır; aşağıdaki tenant izolasyonu ifadesi mevcut güvenlik kurallarını tanımlamaz. Global oyuncular ve modlara değişiklik yayılımı için [proje haritasını](../PROJECT_MAP.md), güncel oyuncu tipi/API'lerini ve `firestore.indexes.json` dosyasını inceleyin.
+
 Bu döküman, BlumeCore projesine eklenen Minecraft oyuncu yönetim sisteminin veritabanı şema ve kurallarını açıklar.
 
 ## 1. Veri Modeli ve Koleksiyon Yapısı

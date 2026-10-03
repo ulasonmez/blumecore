@@ -1,5 +1,7 @@
 # BlumeCore: GitHub Minecraft Mod Sync Kurulum ve Yapılandırma Rehberi
 
+> Güncellik notu (2026-10-03): Aşağıdaki rehber ilk kurulum akışını anlatır. Güncel mod oluşturma kodu owner/repo/branch/path alanlarını sunucuda belirler; repo oluşturma istemcisindeki izin açıklaması `Administration` iznini de içerir. Güncel giriş noktaları, kuyruk/retry sınırlamaları ve kod referansları için [proje haritasını](PROJECT_MAP.md) okuyun.
+
 Bu rehber, BlumeCore projesinde GitHub tabanlı Minecraft mod erişimi ve legacy README senkronizasyonunun canlı ortama bağlanması için gerekli adımları açıklar.
 
 ---
