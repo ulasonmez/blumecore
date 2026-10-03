@@ -76,14 +76,14 @@
 }
 
 .today {
-    background-color: var(--accent-purple) !important;
+    background-color: var(--accent-primary) !important;
     color: white;
     font-weight: 600;
 }
 
 .selected {
-    background-color: white !important;
-    color: black;
+    background-color: var(--accent-primary-soft) !important;
+    color: var(--accent-primary);
     font-weight: 600;
 }
 

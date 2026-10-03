@@ -38,7 +38,7 @@
 .editInput {
     background-color: transparent;
     border: none;
-    border-bottom: 1px solid var(--accent-purple);
+    border-bottom: 1px solid var(--accent-primary);
     color: var(--text-primary);
     font-size: 16px;
     font-weight: 500;
@@ -65,7 +65,7 @@
 }
 
 .actionBtn:hover {
-    color: white;
+    color: var(--text-primary);
 }
 
 .emptyState {

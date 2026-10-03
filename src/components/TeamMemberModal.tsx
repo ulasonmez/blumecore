@@ -74,7 +74,7 @@ export default function TeamMemberModal({
                 <div className={styles.header}>
                     <div>
                         <h2 className={styles.title} style={{ marginBottom: '4px' }}>{memberName}</h2>
-                        <span style={{ fontSize: '12px', color: 'var(--accent-purple)' }}>Ekip Üyesi Bilgileri</span>
+                        <span style={{ fontSize: '12px', color: 'var(--accent-primary)' }}>Ekip Üyesi Bilgileri</span>
                     </div>
                     <button className={styles.closeBtn} onClick={onClose} style={{ alignSelf: 'flex-start' }}>
                         <X size={24} />
@@ -98,7 +98,7 @@ export default function TeamMemberModal({
                                     <span style={{ color: 'var(--text-primary)', fontWeight: 500, fontSize: '14px' }}>
                                         {format(record.date, 'd MMMM yyyy', { locale: tr })}
                                     </span>
-                                    <span style={{ color: 'var(--accent-purple)', fontWeight: 700 }}>${record.amount}</span>
+                                    <span style={{ color: 'var(--accent-primary)', fontWeight: 700 }}>${record.amount}</span>
                                 </div>
                                 {record.description && (
                                     <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>

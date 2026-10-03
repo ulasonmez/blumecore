@@ -1,5 +1,5 @@
 .videoCard {
-    background: linear-gradient(145deg, rgba(26, 29, 40, 0.7), rgba(26, 29, 40, 0.4));
+    background: var(--bg-card);
     border: 1px solid var(--border-color);
     border-radius: 12px;
     padding: 16px;
@@ -14,8 +14,8 @@
 
 .videoCard:hover {
     transform: translateY(-2px);
-    border-color: rgba(92, 62, 240, 0.4);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 0 16px rgba(92, 62, 240, 0.1);
+    border-color: rgba(40, 105, 75, 0.4);
+    box-shadow: 0 8px 24px var(--shadow-color);
 }
 
 .actionBar {
@@ -33,7 +33,7 @@
 }
 
 .actionBtn {
-    background: rgba(0, 0, 0, 0.5);
+    background: var(--bg-subtle);
     border: none;
     border-radius: 6px;
     padding: 6px;
@@ -46,8 +46,8 @@
 }
 
 .actionBtn:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
+    background: rgba(40, 77, 54, 0.1);
+    color: var(--text-primary);
 }
 
 .deleteBtn:hover {
@@ -63,7 +63,7 @@
 }
 
 .icon {
-    color: var(--accent-purple);
+    color: var(--accent-primary);
     flex-shrink: 0;
     margin-top: 2px;
 }
@@ -88,8 +88,8 @@
 /* Edit Mode Form */
 .editingCard {
     cursor: default;
-    border-color: rgba(92, 62, 240, 0.5);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 0 16px rgba(92, 62, 240, 0.15);
+    border-color: rgba(40, 105, 75, 0.5);
+    box-shadow: 0 8px 24px var(--shadow-color), 0 0 0 2px var(--accent-primary-soft);
 }
 
 .editingCard:hover {
@@ -132,11 +132,11 @@
 
 .editInput {
     width: 100%;
-    background: rgba(0, 0, 0, 0.3);
+    background: var(--bg-subtle);
     border: 1px solid var(--border-color);
     border-radius: 6px;
     padding: 8px 12px;
-    color: white;
+    color: var(--text-primary);
     font-size: 13px;
     outline: none;
     transition: all 0.2s ease;
@@ -147,8 +147,8 @@
 }
 
 .editInput:focus {
-    border-color: var(--accent-purple);
-    box-shadow: 0 0 0 2px rgba(92, 62, 240, 0.2);
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 2px rgba(40, 105, 75, 0.2);
 }
 
 .editError {
@@ -179,22 +179,22 @@
 }
 
 .cancelBtn {
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(40, 77, 54, 0.05);
     color: var(--text-secondary);
 }
 
 .cancelBtn:hover:not(:disabled) {
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
+    background: rgba(40, 77, 54, 0.1);
+    color: var(--text-primary);
 }
 
 .saveBtn {
-    background: var(--accent-purple);
+    background: var(--accent-primary);
     color: white;
 }
 
 .saveBtn:hover:not(:disabled) {
-    background: var(--accent-purple-hover);
+    background: var(--accent-primary-hover);
 }
 
 .cancelBtn:disabled, .saveBtn:disabled {
@@ -208,14 +208,14 @@
     align-items: center;
     margin-top: auto;
     padding-top: 12px;
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    border-top: 1px solid var(--border-color);
 }
 
 .assignmentCount {
     font-size: 12px;
     font-weight: 500;
-    color: var(--accent-purple);
-    background: rgba(92, 62, 240, 0.1);
+    color: var(--accent-primary);
+    background: rgba(40, 105, 75, 0.1);
     padding: 4px 10px;
     border-radius: 20px;
 }
@@ -228,6 +228,6 @@
 }
 
 .link:hover {
-    color: white;
+    color: var(--text-primary);
     text-decoration: underline;
 }

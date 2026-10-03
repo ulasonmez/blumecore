@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { X, Plus, Trash2, Edit2, Check, ArrowUp, ArrowDown } from 'lucide-react';
 import modalStyles from '@/components/CalendarModal.module.css';
-import styles from '@/app/home/Home.module.css';
+import styles from '@/app/(protected)/home/Home.module.css';
 import { db } from '@/lib/firebase';
 import { collection, addDoc, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { useAuth } from '@/lib/auth-context';
@@ -26,12 +26,12 @@ interface StatusesModalProps {
     followUps: FollowUp[];
 }
 
-const PRESETS = ['#9880FF', '#FFB300', '#6397F2', '#F45F5B', '#4ADE80', '#A6AEBF', '#E040FB', '#5C3EF0'];
+const PRESETS = ['#28694B', '#8A6200', '#1E6091', '#B4232F', '#4C8060', '#64756B', '#865CA2', '#475F7B'];
 
 export default function StatusesModal({ isOpen, onClose, statuses, followUps }: StatusesModalProps) {
     const { user } = useAuth();
     const [name, setName] = useState('');
-    const [color, setColor] = useState('#5C3EF0');
+    const [color, setColor] = useState('#28694B');
     
     // Edit Mode State
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -61,7 +61,7 @@ export default function StatusesModal({ isOpen, onClose, statuses, followUps }: 
                 createdAt: Date.now()
             });
             setName('');
-            setColor('#5C3EF0');
+            setColor('#28694B');
         } catch (err) {
             console.error("Error adding status:", err);
         }
@@ -143,7 +143,7 @@ export default function StatusesModal({ isOpen, onClose, statuses, followUps }: 
                 </div>
 
                 {/* Create Status Form */}
-                <form onSubmit={handleAdd} style={{ marginBottom: '20px', display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px', borderRadius: '10px', backgroundColor: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-color)' }}>
+                <form onSubmit={handleAdd} style={{ marginBottom: '20px', display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px', borderRadius: '10px', backgroundColor: 'rgba(40, 77, 54, 0.05)', border: '1px solid var(--border-color)' }}>
                     <div style={{ display: 'flex', gap: '8px' }}>
                         <input
                             type="text"
@@ -153,14 +153,14 @@ export default function StatusesModal({ isOpen, onClose, statuses, followUps }: 
                             style={{
                                 flex: 1, padding: '8px 12px', borderRadius: '6px',
                                 backgroundColor: 'var(--bg-color)', border: '1px solid var(--border-color)',
-                                color: 'white', fontSize: '14px', outline: 'none'
+                                color: 'var(--text-primary)', fontSize: '14px', outline: 'none'
                             }}
                             required
                         />
                         <button
                             type="submit"
                             style={{
-                                padding: '0 14px', backgroundColor: 'var(--accent-purple)', color: 'white',
+                                padding: '0 14px', backgroundColor: 'var(--accent-primary)', color: 'white',
                                 borderRadius: '6px', cursor: 'pointer', fontWeight: 500, fontSize: '13px',
                                 display: 'flex', alignItems: 'center', gap: '4px'
                             }}
@@ -179,7 +179,7 @@ export default function StatusesModal({ isOpen, onClose, statuses, followUps }: 
                                 onClick={() => setColor(preset)}
                                 style={{
                                     width: '20px', height: '20px', borderRadius: '50%', backgroundColor: preset,
-                                    border: color === preset ? '2px solid white' : '1px solid rgba(255,255,255,0.1)',
+                                    border: color === preset ? '2px solid var(--text-primary)' : '1px solid var(--border-color)',
                                     cursor: 'pointer', transform: color === preset ? 'scale(1.1)' : 'none',
                                     transition: 'all 0.15s'
                                 }}
@@ -207,7 +207,7 @@ export default function StatusesModal({ isOpen, onClose, statuses, followUps }: 
                     ) : (
                         statuses.map((status, index) => (
                             <div key={status.id} style={{
-                                backgroundColor: '#1A1D28', border: '1px solid var(--border-color)', borderRadius: '8px',
+                                backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '8px',
                                 padding: '8px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                                 gap: '8px'
                             }}>
@@ -262,13 +262,13 @@ export default function StatusesModal({ isOpen, onClose, statuses, followUps }: 
                                             onChange={(e) => setEditName(e.target.value)}
                                             style={{
                                                 flex: 1, padding: '4px 8px', borderRadius: '4px',
-                                                backgroundColor: 'var(--bg-color)', border: '1px solid var(--accent-purple)',
-                                                color: 'white', fontSize: '13px', outline: 'none'
+                                                backgroundColor: 'var(--bg-color)', border: '1px solid var(--accent-primary)',
+                                                color: 'var(--text-primary)', fontSize: '13px', outline: 'none'
                                             }}
                                             autoFocus
                                         />
                                     ) : (
-                                        <span style={{ fontSize: '13.5px', fontWeight: 500, color: 'white' }}>
+                                        <span style={{ fontSize: '13.5px', fontWeight: 500, color: 'var(--text-primary)' }}>
                                             {status.name}
                                         </span>
                                     )}
@@ -280,7 +280,7 @@ export default function StatusesModal({ isOpen, onClose, statuses, followUps }: 
                                         <>
                                             <button
                                                 onClick={() => handleSaveEdit(status.id, status.name)}
-                                                style={{ padding: '6px', color: 'var(--accent-purple)', cursor: 'pointer' }}
+                                                style={{ padding: '6px', color: 'var(--accent-primary)', cursor: 'pointer' }}
                                             >
                                                 <Check size={14} />
                                             </button>

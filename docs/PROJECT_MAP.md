@@ -37,9 +37,15 @@ Tablodaki yollar depo köküne göredir. Sayfa klasörlerindeki `*.module.css` d
 | Mod arşivleme, geri getirme, kalıcı silme, eski kayıt temizleme | `src/lib/mods/mod-service.ts` | `archiveModProject`, `restoreModProject`, `deleteModProject`, `previewArchivedModsCleanup`, `executeArchivedModsCleanup` |
 | Bekleyen/başarısız senkronizasyon, retry, cron | `src/lib/mods/mod-service.ts`, `src/app/api/jobs` | `createOrCoalesceSyncJob`, `processSyncJob`, `processPendingJobs`; `src/app/api/cron/github-sync/route.ts` |
 | Ayarlar, çıkış | `src/app/(protected)/settings/page.tsx` | Takvim gelir/gider toplamlarının kalıcı görünürlük ayarı (`user_settings`), Firebase sign-out + `DELETE /api/auth/session` |
-| Alt menü, ortak görünüm, tema | `src/components/BottomNav.tsx`, `src/components/ClientLayout.tsx`, `src/app/layout.tsx`, `src/app/globals.css` | `src/components/BottomNav.module.css`; sayfa ve bileşen CSS Modules dosyaları |
+| Alt menü, ortak görünüm, tema | `src/components/BottomNav.tsx`, `src/components/ClientLayout.tsx`, `src/app/layout.tsx`, `src/app/globals.css` | `src/components/BottomNav.module.css`; sayfa/bileşen CSS Modules dosyaları, modallardaki satır içi stiller ve aşama renkleri için `src/lib/statuses.ts` |
 
 `src/app/page.tsx`, `/home` adresine yönlendirir. Korumalı URL'ler `/home`, `/videos`, `/calendar`, `/catalog`, `/team`, `/settings` şeklindedir; `(protected)` yalnızca dosya sistemindeki route grubudur.
+
+### Görsel tema
+
+Arayüz açık temayı kullanır (`src/app/globals.css` içinde `color-scheme: light`). Ortak renk rolleri CSS değişkenleriyle tanımlıdır: açık gri zemin `--bg-color` (`#F4F7F5`), beyaz kart `--bg-card`, koyu metin `--text-primary`, ikincil metin `--text-secondary`, yeşil ana eylem `--accent-primary` (`#28694B`) ve açık yeşil vurgu yüzeyi `--accent-primary-soft`. Hata, bilgi ve uyarı renkleri ayrı rollerdir. Sayfa/modalların CSS Modules dosyaları ile bazı TSX satır içi stillerinde bu tokenlar kullanılır; yalnızca `globals.css` değiştirilerek bütün ekranın rengi doğrulanmış sayılmaz.
+
+Takip aşamalarının kayıtlı özel renkleri arka plan/kenarlık tonunu belirler; `getStatusStyle` açık yüzeyde okunabilirlik için aşama metnini ortak koyu metin rengine bağlar. Yeni aşama renkleri `StatusesModal` içindeki paletten seçilir. `src/app/page.module.css` yönlendirme sayfasınca kullanılmayan eski şablon stilidir; aktif tema kaynağı değildir.
 
 ## 3. Veri ve sunucu sınırları
 
@@ -175,11 +181,10 @@ Değerleri buraya kopyalama. Kaynak kodun kullandığı değişkenler:
 
 ## 8. Bilinen sınırlamalar ve yeniden incelenecek noktalar
 
-2026-10-03 kaynak incelemesinde görülenler; bu belgelendirme çalışmasında uygulama kodu değiştirilmedi ve runtime testleri çalıştırılmadı:
+İlk kaynak incelemesinde görülen ve henüz çözümlenmemiş noktalar:
 
 - Migration belgelerindeki çok kiracılı güvenlik anlatımı mevcut tek sahip kurallarıyla uyuşmaz. Eski mod şeması yeni `lifecycleStatus`, `grantSources` ve iptal edilen işler gibi alanları tam kapsamaz.
 - GitHub kurulum rehberindeki elle owner/repo/branch girme anlatımı güncel mod oluşturma route'uyla aynı değildir. Repo oluşturma istemcisindeki izin açıklaması `Administration` iznini de içerir; salt README güncellemesiyle repo oluşturma gereksinimlerini karıştırma.
-- `src/components/StatusesModal.tsx`, `src/components/VideoModal.tsx` ve `src/components/SortableModCard.tsx`, `@/app/home/Home.module.css` import eder; stil dosyasının mevcut yeri `src/app/(protected)/home/Home.module.css` şeklindedir. İlgili UI/derleme işinde bu eski yolları araştır.
 - `processPendingJobs`, tekrar zamanı gelen `FAILED` işleri `processSyncJob` fonksiyonuna iletir; `processSyncJob` iş alma aşaması yalnızca `PENDING` veya süresi geçmiş `RUNNING` kabul eder. Otomatik başarısız iş retry akışını çalışıyor varsayma; ilgili görevde doğrula.
 - Tiplerde yaşam döngüsü için `resolveModLifecycleStatus` vardır, ancak bazı sync yolları hâlâ `isActive` / `isArchived` alanlarını doğrudan okur. Yaşam döngüsü değişikliğinde eski/yeni alanları kullanan çağıranları birlikte kontrol et.
 

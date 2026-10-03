@@ -185,7 +185,7 @@ export default function CatalogPage() {
                     className={`${styles.filterBadge} ${activeGroup === null ? styles.active : ''}`}
                     onClick={() => setActiveGroup(null)}
                 >
-                    <span className={styles.dot} style={{ backgroundColor: '#5C3EF0' }}></span>
+                    <span className={styles.dot} style={{ backgroundColor: 'var(--accent-primary)' }}></span>
                     Tümü
                 </button>
                 {groups.map((group) => (

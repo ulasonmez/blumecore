@@ -159,30 +159,30 @@ export default function CalendarPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' }}>
                 <div className={styles.statsGrid2}>
                     <div className="card" style={{ padding: '12px', textAlign: 'center' }}>
-                        <div style={{ fontSize: '16px', fontWeight: 700, color: '#F59E0B' }}>{monthlyAssignedVideos}</div>
+                        <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--accent-yellow)' }}>{monthlyAssignedVideos}</div>
                         <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Bu Ay Satılan Video</div>
                     </div>
                     <div className="card" style={{ padding: '12px', textAlign: 'center' }}>
-                        <div style={{ fontSize: '16px', fontWeight: 700, color: '#F59E0B' }}>{allTimeAssignedVideos}</div>
+                        <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--accent-yellow)' }}>{allTimeAssignedVideos}</div>
                         <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Genel Satılan Video</div>
                     </div>
                 </div>
                 
                 <div className={styles.statsGrid4}>
                     <div className="card" style={{ padding: '12px', textAlign: 'center' }}>
-                        <div style={{ fontSize: '16px', fontWeight: 700, color: '#22C55E' }}>{showIncome ? `$${monthlyIncome.toFixed(2)}` : '****'}</div>
+                        <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--accent-green)' }}>{showIncome ? `$${monthlyIncome.toFixed(2)}` : '****'}</div>
                         <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Bu Ay Gelir</div>
                     </div>
                     <div className="card" style={{ padding: '12px', textAlign: 'center' }}>
-                        <div style={{ fontSize: '16px', fontWeight: 700, color: '#EF4444' }}>{showIncome ? `$${monthlyExpense.toFixed(2)}` : '****'}</div>
+                        <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--accent-red)' }}>{showIncome ? `$${monthlyExpense.toFixed(2)}` : '****'}</div>
                         <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Bu Ay Gider</div>
                     </div>
                     <div className="card" style={{ padding: '12px', textAlign: 'center' }}>
-                        <div style={{ fontSize: '16px', fontWeight: 700, color: '#22C55E' }}>{showIncome ? `$${allTimeIncome.toFixed(2)}` : '****'}</div>
+                        <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--accent-green)' }}>{showIncome ? `$${allTimeIncome.toFixed(2)}` : '****'}</div>
                         <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Genel Gelir</div>
                     </div>
                     <div className="card" style={{ padding: '12px', textAlign: 'center' }}>
-                        <div style={{ fontSize: '16px', fontWeight: 700, color: '#EF4444' }}>{showIncome ? `$${allTimeExpense.toFixed(2)}` : '****'}</div>
+                        <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--accent-red)' }}>{showIncome ? `$${allTimeExpense.toFixed(2)}` : '****'}</div>
                         <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Genel Gider</div>
                     </div>
                 </div>
@@ -232,10 +232,10 @@ export default function CalendarPage() {
                                 </span>
                                 <div style={{ display: 'flex', gap: '2px', marginTop: '4px', justifyContent: 'center' }}>
                                     {hasRecord && (
-                                        <div style={{ width: '4px', height: '4px', borderRadius: '50%', backgroundColor: 'var(--accent-purple)' }}></div>
+                                        <div style={{ width: '4px', height: '4px', borderRadius: '50%', backgroundColor: 'var(--accent-primary)' }}></div>
                                     )}
                                     {hasAssignment && (
-                                        <div style={{ width: '4px', height: '4px', borderRadius: '50%', backgroundColor: '#3B82F6' }}></div>
+                                        <div style={{ width: '4px', height: '4px', borderRadius: '50%', backgroundColor: 'var(--accent-blue)' }}></div>
                                     )}
                                 </div>
                             </div>
@@ -273,7 +273,7 @@ export default function CalendarPage() {
                             <div key={record.id} className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
                                     <span style={{ fontWeight: 500 }}>{personName}</span>
-                                    <span style={{ fontSize: '11px', color: record.type === 'expense' ? '#EF4444' : '#22C55E' }}>
+                                    <span style={{ fontSize: '11px', color: record.type === 'expense' ? 'var(--accent-red)' : 'var(--accent-green)' }}>
                                         {record.type === 'expense' ? 'Gider' : 'Gelir'}
                                     </span>
                                     {record.description ? (
@@ -283,7 +283,7 @@ export default function CalendarPage() {
                                     ) : null}
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                    <span style={{ fontWeight: 700, color: record.type === 'expense' ? '#EF4444' : '#22C55E' }}>
+                                    <span style={{ fontWeight: 700, color: record.type === 'expense' ? 'var(--accent-red)' : 'var(--accent-green)' }}>
                                         {record.type === 'expense' ? '-' : '+'}${record.amount}
                                     </span>
                                     <button onClick={() => { setEditRecordData(record); setEditRecordType('record'); }} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '4px' }}><Edit2 size={14} /></button>
@@ -302,7 +302,7 @@ export default function CalendarPage() {
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                                         <span style={{ fontWeight: 500 }}>{youtuberName}</span>
-                                        <span style={{ fontSize: '11px', color: '#3B82F6' }}>Video Ataması</span>
+                                        <span style={{ fontSize: '11px', color: 'var(--accent-blue)' }}>Video Ataması</span>
                                     </div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                         <button onClick={() => { setEditRecordData(assignment); setEditRecordType('assignment'); }} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '4px' }}><Edit2 size={14} /></button>

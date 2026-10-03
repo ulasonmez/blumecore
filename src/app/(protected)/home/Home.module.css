@@ -61,7 +61,7 @@
 
 .summaryCard:hover {
     transform: translateY(-1px);
-    border-color: var(--accent-purple);
+    border-color: var(--accent-primary);
     background-color: var(--bg-card-hover);
 }
 
@@ -118,7 +118,7 @@
 }
 
 .searchInput:focus {
-    border-color: var(--accent-purple);
+    border-color: var(--accent-primary);
 }
 
 .searchIcon {
@@ -163,7 +163,7 @@
 }
 
 .filterSelect:focus {
-    border-color: var(--accent-purple);
+    border-color: var(--accent-primary);
 }
 
 @media (max-width: 768px) {
@@ -202,7 +202,7 @@
 }
 
 .followUpCard:hover {
-    border-color: #33384D;
+    border-color: var(--accent-primary-border);
 }
 
 .cardTopRow {
@@ -242,7 +242,7 @@
     background-color: var(--bg-card-hover);
     padding: 3px 8px;
     border-radius: 4px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-color);
 }
 
 .statusPill {
@@ -265,8 +265,8 @@
 }
 
 .lastNotePreview {
-    background-color: rgba(255, 255, 255, 0.02);
-    border-left: 2px solid var(--accent-purple);
+    background-color: var(--bg-subtle);
+    border-left: 2px solid var(--accent-primary);
     padding: 8px 12px;
     border-radius: 0 6px 6px 0;
     font-size: 12.5px;
@@ -279,7 +279,7 @@
 .cardPaymentBadge {
     background-color: rgba(34, 197, 94, 0.15);
     border: 1px solid rgba(34, 197, 94, 0.3);
-    color: #4ADE80;
+    color: var(--accent-green);
     font-weight: 600;
     font-size: 12px;
     padding: 4px 8px;
@@ -328,14 +328,14 @@
     color: white;
     padding: 6px 12px;
     border-radius: 6px;
-    background-color: var(--accent-purple);
+    background-color: var(--accent-primary);
     display: flex;
     align-items: center;
     gap: 4px;
 }
 
 .btnActionPrimary:hover {
-    background-color: var(--accent-purple-hover);
+    background-color: var(--accent-primary-hover);
 }
 
 /* Expanded Notes History Section */
@@ -353,8 +353,8 @@
     overflow-y: auto;
     padding: 12px;
     margin-bottom: var(--spacing-md);
-    background-color: rgba(0, 0, 0, 0.22);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    background-color: var(--bg-subtle);
+    border: 1px solid var(--border-color);
     border-radius: 8px;
 }
 
@@ -368,35 +368,35 @@
 }
 
 .notesTimeline::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.12);
+    background: rgba(40, 77, 54, 0.12);
     border-radius: 3px;
 }
 
 .notesTimeline::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.22);
+    background: rgba(40, 77, 54, 0.22);
 }
 
 .timelineItem {
     position: relative;
     padding: var(--spacing-sm) var(--spacing-md);
     border-radius: var(--border-radius-sm);
-    background-color: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.02);
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
     transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
 .timelineItem:hover {
-    background-color: rgba(255, 255, 255, 0.04);
-    border-color: rgba(255, 255, 255, 0.04);
+    background-color: var(--bg-card-hover);
+    border-color: var(--accent-primary-border);
 }
 
 .timelineItem.system {
-    background-color: rgba(92, 62, 240, 0.03);
-    border-left: 2px solid rgba(92, 62, 240, 0.35);
+    background-color: var(--accent-primary-soft);
+    border-left: 2px solid rgba(40, 105, 75, 0.35);
 }
 
 .timelineItem.system:hover {
-    background-color: rgba(92, 62, 240, 0.05);
+    background-color: rgba(40, 105, 75, 0.05);
 }
 
 .timelineText {
@@ -424,7 +424,7 @@
     border-radius: 4px;
     background-color: rgba(239, 68, 68, 0.08);
     border: 1px solid rgba(239, 68, 68, 0.15);
-    color: #EF4444;
+    color: var(--accent-red);
     cursor: pointer;
     opacity: 0;
     pointer-events: none;
@@ -440,7 +440,7 @@
 }
 
 .deleteNoteBtn:hover {
-    background-color: #EF4444;
+    background-color: var(--accent-red);
     color: white;
     transform: scale(1.05);
 }
@@ -463,12 +463,12 @@
 }
 
 .quickNoteInput:focus {
-    border-color: var(--accent-purple) !important;
+    border-color: var(--accent-primary) !important;
 }
 
 .quickNoteBtn {
     padding: 8px 12px;
-    background-color: var(--accent-purple);
+    background-color: var(--accent-primary);
     color: white;
     border-radius: 6px;
     display: flex;
@@ -477,7 +477,7 @@
 }
 
 .quickNoteBtn:hover {
-    background-color: var(--accent-purple-hover);
+    background-color: var(--accent-primary-hover);
 }
 
 /* Add Follow Up Modal Inputs */
@@ -509,7 +509,7 @@
 }
 
 .formInput:focus, .formSelect:focus, .formTextarea:focus {
-    border-color: var(--accent-purple);
+    border-color: var(--accent-primary);
 }
 
 .formRow {
@@ -535,7 +535,7 @@
     border-radius: 8px;
     z-index: 150;
     margin-top: 4px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 4px 12px var(--shadow-color);
 }
 
 .searchSelectItem {
@@ -547,7 +547,7 @@
 }
 
 .searchSelectItem:hover {
-    background-color: var(--accent-purple);
+    background-color: var(--accent-primary);
     color: white;
 }
 
@@ -556,15 +556,15 @@
     font-size: 14px;
     cursor: pointer;
     transition: background-color 0.15s;
-    color: var(--accent-purple);
+    color: var(--accent-primary);
     border-bottom: 1px dashed var(--border-color);
-    background-color: rgba(92, 62, 240, 0.05);
+    background-color: rgba(40, 105, 75, 0.05);
     display: flex;
     align-items: center;
 }
 
 .searchSelectItemCreate:hover {
-    background-color: var(--accent-purple);
+    background-color: var(--accent-primary);
     color: white;
 }
 
@@ -573,7 +573,7 @@
     font-size: 13px;
     color: var(--text-secondary);
     text-align: center;
-    background-color: rgba(255, 255, 255, 0.02);
+    background-color: rgba(40, 77, 54, 0.02);
 }
 
 /* Status quick-change dropdown */
@@ -589,7 +589,7 @@
 }
 
 .statusInlineSelect:focus {
-    border-color: var(--accent-purple);
+    border-color: var(--accent-primary);
 }
 
 /* Meta Badge Link (Channel URL Badge) */
@@ -598,19 +598,19 @@
     align-items: center;
     gap: 4px;
     font-size: 11px;
-    color: var(--accent-purple);
-    background-color: rgba(92, 62, 240, 0.1);
+    color: var(--accent-primary);
+    background-color: rgba(40, 105, 75, 0.1);
     padding: 3px 8px;
     border-radius: 4px;
-    border: 1px solid rgba(92, 62, 240, 0.3);
+    border: 1px solid rgba(40, 105, 75, 0.3);
     text-decoration: none;
     transition: all 0.2s;
 }
 
 .metaBadgeLink:hover {
-    background-color: rgba(92, 62, 240, 0.2);
-    border-color: rgba(92, 62, 240, 0.5);
-    color: white;
+    background-color: rgba(40, 105, 75, 0.2);
+    border-color: rgba(40, 105, 75, 0.5);
+    color: var(--accent-primary-hover);
 }
 
 /* Selected Youtuber Badge layout in Modal */
@@ -619,8 +619,8 @@
     justify-content: space-between;
     align-items: center;
     padding: 10px var(--spacing-md);
-    background-color: rgba(92, 62, 240, 0.1);
-    border: 1px solid rgba(92, 62, 240, 0.3);
+    background-color: rgba(40, 105, 75, 0.1);
+    border: 1px solid rgba(40, 105, 75, 0.3);
     border-radius: var(--border-radius-md);
     color: var(--text-primary);
 }
@@ -634,7 +634,7 @@
 }
 
 .selectedYtIcon {
-    color: var(--accent-purple);
+    color: var(--accent-primary);
 }
 
 .selectedYtName {
@@ -662,7 +662,7 @@
     justify-content: center;
     gap: 8px;
     padding: 10px 18px;
-    background-color: var(--accent-purple);
+    background-color: var(--accent-primary);
     color: white;
     border: none;
     border-radius: var(--border-radius-md);
@@ -671,13 +671,13 @@
     cursor: pointer;
     white-space: nowrap;
     transition: all 0.2s ease;
-    box-shadow: 0 4px 12px rgba(92, 62, 240, 0.2);
+    box-shadow: 0 4px 12px rgba(40, 105, 75, 0.2);
 }
 
 .addNewBtn:hover {
-    background-color: var(--accent-purple-hover);
+    background-color: var(--accent-primary-hover);
     transform: translateY(-1px);
-    box-shadow: 0 6px 16px rgba(92, 62, 240, 0.3);
+    box-shadow: 0 6px 16px rgba(40, 105, 75, 0.3);
 }
 
 .addNewBtn:active {

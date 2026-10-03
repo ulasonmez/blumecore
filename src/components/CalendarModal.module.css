@@ -4,7 +4,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(0, 0, 0, 0.6);
+    background-color: var(--overlay-bg);
     backdrop-filter: blur(2px);
     z-index: 100;
     display: flex;
@@ -69,7 +69,7 @@
 .statValue {
     font-size: 24px;
     font-weight: 700;
-    color: var(--accent-purple);
+    color: var(--accent-primary);
     margin-bottom: 4px;
 }
 
@@ -142,7 +142,7 @@
 }
 
 .today {
-    background-color: var(--accent-purple);
+    background-color: var(--accent-primary);
     color: white;
     font-weight: 600;
 }
@@ -160,6 +160,6 @@
 .dot {
     width: 6px;
     height: 6px;
-    background-color: #3E82F7;
+    background-color: var(--accent-blue);
     border-radius: 50%;
 }

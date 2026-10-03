@@ -22,7 +22,7 @@
     width: 48px;
     height: 48px;
     border-radius: 50%;
-    background-color: var(--accent-purple);
+    background-color: var(--accent-primary);
     color: white;
     display: flex;
     align-items: center;
@@ -54,7 +54,7 @@
 }
 
 .friendsIcon {
-    color: #3E82F7;
+    color: var(--accent-blue);
     /* bluish icon color from screenshot */
 }
 
@@ -108,7 +108,7 @@
 .settingRow input {
     width: 18px;
     height: 18px;
-    accent-color: var(--accent-purple);
+    accent-color: var(--accent-primary);
     cursor: pointer;
 }
 

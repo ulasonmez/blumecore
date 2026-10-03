@@ -173,7 +173,7 @@ export default function TeamPage() {
                 {editingId === member.id ? (
                     <>
                         <button className={styles.actionBtn} onClick={(e) => { e.stopPropagation(); handleSaveEdit(); }}>
-                            <Check size={18} color="var(--accent-purple)" />
+                            <Check size={18} color="var(--accent-primary)" />
                         </button>
                         <button className={styles.actionBtn} onClick={(e) => { e.stopPropagation(); handleCancelEdit(); }}>
                             <X size={18} />
@@ -224,9 +224,9 @@ export default function TeamPage() {
                         className={styles.filterBadge}
                         style={{
                             flex: 1,
-                            backgroundColor: newRole === 'member' ? 'rgba(92, 62, 240, 0.15)' : 'var(--bg-color)',
-                            borderColor: newRole === 'member' ? 'var(--accent-purple)' : 'var(--border-color)',
-                            color: newRole === 'member' ? 'var(--accent-purple)' : 'var(--text-secondary)'
+                            backgroundColor: newRole === 'member' ? 'rgba(40, 105, 75, 0.15)' : 'var(--bg-color)',
+                            borderColor: newRole === 'member' ? 'var(--accent-primary)' : 'var(--border-color)',
+                            color: newRole === 'member' ? 'var(--accent-primary)' : 'var(--text-secondary)'
                         }}
                         onClick={() => setNewRole('member')}
                     >
@@ -237,8 +237,8 @@ export default function TeamPage() {
                         style={{
                             flex: 1,
                             backgroundColor: newRole === 'broker' ? 'rgba(59, 130, 246, 0.15)' : 'var(--bg-color)',
-                            borderColor: newRole === 'broker' ? '#3B82F6' : 'var(--border-color)',
-                            color: newRole === 'broker' ? '#3B82F6' : 'var(--text-secondary)'
+                            borderColor: newRole === 'broker' ? 'var(--accent-blue)' : 'var(--border-color)',
+                            color: newRole === 'broker' ? 'var(--accent-blue)' : 'var(--text-secondary)'
                         }}
                         onClick={() => setNewRole('broker')}
                     >
@@ -260,7 +260,7 @@ export default function TeamPage() {
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <h2 style={{ fontSize: '15px', fontWeight: 600, color: '#3B82F6', marginBottom: '8px', paddingBottom: '8px', borderBottom: '1px solid var(--border-color)' }}>
+                    <h2 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--accent-blue)', marginBottom: '8px', paddingBottom: '8px', borderBottom: '1px solid var(--border-color)' }}>
                         Aracılar
                     </h2>
                     {brokers.length === 0 ? (
@@ -287,7 +287,7 @@ export default function TeamPage() {
                         <div className={modalStyles.header}>
                             <div>
                                 <h2 className={modalStyles.title} style={{ marginBottom: '4px' }}>{selectedMember.name}</h2>
-                                <span style={{ fontSize: '12px', color: 'var(--accent-purple)' }}>Ekip Üyesi Bilgileri</span>
+                                <span style={{ fontSize: '12px', color: 'var(--accent-primary)' }}>Ekip Üyesi Bilgileri</span>
                             </div>
                             <button className={modalStyles.closeBtn} onClick={() => setSelectedMember(null)} style={{ alignSelf: 'flex-start' }}>
                                 <X size={24} />
@@ -311,7 +311,7 @@ export default function TeamPage() {
                                             <span style={{ color: 'var(--text-primary)', fontWeight: 500, fontSize: '14px' }}>
                                                 {format(record.date, 'd MMMM yyyy', { locale: tr })}
                                             </span>
-                                            <span style={{ color: 'var(--accent-purple)', fontWeight: 700 }}>${record.amount}</span>
+                                            <span style={{ color: 'var(--accent-primary)', fontWeight: 700 }}>${record.amount}</span>
                                         </div>
                                         {record.description && (
                                             <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>

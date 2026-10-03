@@ -199,8 +199,8 @@ export function VideoGridItem({
                                     fontSize: '11px',
                                     padding: '2px 6px',
                                     borderRadius: '4px',
-                                    backgroundColor: 'rgba(92, 62, 240, 0.15)',
-                                    color: 'var(--accent-purple)',
+                                    backgroundColor: 'rgba(40, 105, 75, 0.15)',
+                                    color: 'var(--accent-primary)',
                                     fontWeight: 600
                                 }}>
                                     {connectedModCount} Mod Bağlı

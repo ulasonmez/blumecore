@@ -251,11 +251,11 @@ export default function VideoDetailModal({
                     <div style={{ marginBottom: '24px', paddingBottom: '20px', borderBottom: '1px solid var(--border-color)' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <Box size={16} style={{ color: 'var(--accent-purple)' }} />
+                                <Box size={16} style={{ color: 'var(--accent-primary)' }} />
                                 <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
                                     Bağlı Modlar
                                 </span>
-                                <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '12px', backgroundColor: 'rgba(92, 62, 240, 0.15)', color: 'var(--accent-purple)', fontWeight: 600 }}>
+                                <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '12px', backgroundColor: 'rgba(40, 105, 75, 0.15)', color: 'var(--accent-primary)', fontWeight: 600 }}>
                                     {linkedMods.length} Mod
                                 </span>
                             </div>
@@ -271,7 +271,7 @@ export default function VideoDetailModal({
                                         padding: '6px 12px',
                                         borderRadius: '6px',
                                         border: '1px solid var(--border-color)',
-                                        backgroundColor: 'rgba(255,255,255,0.05)',
+                                        backgroundColor: 'rgba(40, 77, 54, 0.08)',
                                         color: 'var(--text-primary)',
                                         fontSize: '12px',
                                         fontWeight: 500
@@ -298,7 +298,7 @@ export default function VideoDetailModal({
                                             border: '1px solid var(--border-color)',
                                             borderRadius: '8px',
                                             padding: '8px',
-                                            boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
+                                            boxShadow: '0 10px 25px var(--shadow-color)',
                                             zIndex: 20
                                         }}>
                                             <input
@@ -334,14 +334,14 @@ export default function VideoDetailModal({
                                                             justifyContent: 'space-between',
                                                             alignItems: 'center'
                                                         }}
-                                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'}
+                                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(40, 77, 54, 0.08)'}
                                                         onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                                                     >
                                                         <div>
                                                             <div style={{ fontWeight: 600 }}>{m.displayName}</div>
                                                             <div style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>{m.modKey}</div>
                                                         </div>
-                                                        <Plus size={12} style={{ color: 'var(--accent-purple)' }} />
+                                                        <Plus size={12} style={{ color: 'var(--accent-primary)' }} />
                                                     </div>
                                                 ))}
 
@@ -358,7 +358,7 @@ export default function VideoDetailModal({
                                                                     }}
                                                                     style={{
                                                                         marginTop: '6px',
-                                                                        color: 'var(--accent-purple)',
+                                                                        color: 'var(--accent-primary)',
                                                                         fontWeight: 600,
                                                                         fontSize: '11px',
                                                                         textDecoration: 'underline'
@@ -383,7 +383,7 @@ export default function VideoDetailModal({
                             <div style={{
                                 padding: '12px',
                                 borderRadius: '8px',
-                                backgroundColor: 'rgba(255,255,255,0.02)',
+                                backgroundColor: 'rgba(40, 77, 54, 0.05)',
                                 border: '1px dashed var(--border-color)',
                                 fontSize: '12px',
                                 color: 'var(--text-secondary)',
@@ -397,7 +397,7 @@ export default function VideoDetailModal({
                                     <div
                                         key={m.id}
                                         style={{
-                                            backgroundColor: 'rgba(255,255,255,0.02)',
+                                            backgroundColor: 'rgba(40, 77, 54, 0.05)',
                                             border: '1px solid var(--border-color)',
                                             borderRadius: '8px',
                                             padding: '10px 14px',
@@ -410,7 +410,7 @@ export default function VideoDetailModal({
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                 <strong style={{ fontSize: '13px', color: 'var(--text-primary)' }}>{m.displayName}</strong>
                                                 <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>({m.modKey})</span>
-                                                <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '4px', backgroundColor: 'rgba(255,255,255,0.06)', color: 'var(--text-secondary)' }}>
+                                                <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '4px', backgroundColor: 'rgba(40, 77, 54, 0.09)', color: 'var(--text-secondary)' }}>
                                                     {m.syncMode}
                                                 </span>
                                             </div>
@@ -508,11 +508,11 @@ export default function VideoDetailModal({
                                             <div style={{
                                                 marginTop: '12px',
                                                 paddingTop: '10px',
-                                                borderTop: '1px solid rgba(255,255,255,0.05)',
+                                                borderTop: '1px solid rgba(40, 77, 54, 0.08)',
                                                 fontSize: '12px'
                                             }}>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-secondary)', marginBottom: '8px', fontSize: '11px', fontWeight: 600 }}>
-                                                    <Shield size={12} style={{ color: 'var(--accent-purple)' }} />
+                                                    <Shield size={12} style={{ color: 'var(--accent-primary)' }} />
                                                     Minecraft Mod Erişimi
                                                 </div>
 
@@ -530,7 +530,7 @@ export default function VideoDetailModal({
                                                                     display: 'flex',
                                                                     justifyContent: 'space-between',
                                                                     alignItems: 'center',
-                                                                    backgroundColor: 'rgba(0,0,0,0.2)',
+                                                                    backgroundColor: 'var(--bg-subtle)',
                                                                     padding: '6px 10px',
                                                                     borderRadius: '6px'
                                                                 }}
@@ -545,8 +545,8 @@ export default function VideoDetailModal({
                                                                             ? 'rgba(34, 197, 94, 0.15)'
                                                                             : isRevoked
                                                                                 ? 'rgba(239, 68, 68, 0.15)'
-                                                                                : 'rgba(255, 255, 255, 0.05)',
-                                                                        color: isActive ? '#4ade80' : isRevoked ? 'var(--accent-red)' : 'var(--text-secondary)',
+                                                                                : 'rgba(40, 77, 54, 0.08)',
+                                                                        color: isActive ? 'var(--accent-green)' : isRevoked ? 'var(--accent-red)' : 'var(--text-secondary)',
                                                                         fontWeight: 600
                                                                     }}>
                                                                         {isActive ? 'Aktif' : isRevoked ? 'Manuel Kaldırıldı' : 'Erişim Yok'}
@@ -568,7 +568,7 @@ export default function VideoDetailModal({
                                                                         padding: '3px 8px',
                                                                         borderRadius: '4px',
                                                                         border: '1px solid var(--border-color)',
-                                                                        backgroundColor: 'rgba(255,255,255,0.05)',
+                                                                        backgroundColor: 'rgba(40, 77, 54, 0.08)',
                                                                         color: 'var(--text-primary)',
                                                                         fontSize: '11px',
                                                                         fontWeight: 500

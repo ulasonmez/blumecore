@@ -1,18 +1,26 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
-  --bg-color: #080A11;
-  --bg-card: #141721;
-  --bg-card-hover: #1e2230;
-  --text-primary: #FFFFFF;
-  --text-secondary: #8E95A4;
-  --border-color: #232736;
-  --accent-purple: #5C3EF0;
-  --accent-purple-hover: #735bf2;
-  --accent-red: #E53935;
-  --accent-blue: #3E82F7;
-  --accent-yellow: #FFB300;
-  --nav-bg: #0C0F1A;
+  color-scheme: light;
+  --bg-color: #F4F7F5;
+  --bg-card: #FFFFFF;
+  --bg-card-hover: #EDF4EF;
+  --bg-subtle: #F7FAF8;
+  --text-primary: #1E3027;
+  --text-secondary: #56695E;
+  --border-color: #D7E3DB;
+  --input-border: #84988B;
+  --accent-primary: #28694B;
+  --accent-primary-hover: #20583E;
+  --accent-primary-soft: #E6F3E9;
+  --accent-primary-border: #ACD0B7;
+  --accent-green: #216B46;
+  --accent-red: #B4232F;
+  --accent-blue: #1E6091;
+  --accent-yellow: #8A6200;
+  --nav-bg: #FCFDFC;
+  --overlay-bg: rgba(24, 45, 33, 0.42);
+  --shadow-color: rgba(27, 51, 39, 0.12);
 
   --border-radius-lg: 16px;
   --border-radius-md: 12px;
@@ -23,6 +31,7 @@
   --spacing-md: 16px;
   --spacing-lg: 24px;
   --spacing-xl: 32px;
+  --spacing-xxl: 48px;
 }
 
 * {
@@ -59,7 +68,7 @@ button {
 input, textarea {
   font-family: inherit;
   background: var(--bg-card);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--input-border);
   color: var(--text-primary);
   border-radius: var(--border-radius-md);
   padding: var(--spacing-md);
@@ -68,7 +77,7 @@ input, textarea {
 }
 
 input:focus, textarea:focus {
-  border-color: var(--accent-purple);
+  border-color: var(--accent-primary);
 }
 
 /* Base utility classes */
@@ -101,7 +110,7 @@ input:focus, textarea:focus {
 
 /* Buttons */
 .btn-primary {
-  background-color: var(--accent-purple);
+  background-color: var(--accent-primary);
   color: white;
   padding: 12px 24px;
   border-radius: var(--border-radius-md);
@@ -114,12 +123,12 @@ input:focus, textarea:focus {
 }
 
 .btn-primary:hover {
-  background-color: var(--accent-purple-hover);
+  background-color: var(--accent-primary-hover);
 }
 
 .btn-secondary {
   background-color: var(--bg-card-hover);
-  color: white;
+  color: var(--text-primary);
   padding: 12px 24px;
   border-radius: var(--border-radius-md);
   font-weight: 600;
@@ -128,7 +137,7 @@ input:focus, textarea:focus {
 }
 
 .btn-secondary:hover {
-  background-color: #272c3d;
+  background-color: #DDECE1;
 }
 
 .btn-danger {

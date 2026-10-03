@@ -157,7 +157,7 @@ export default function CalendarModal({
                         onClick={() => setActiveTab('money')}
                         style={{
                             padding: '8px 12px',
-                            background: activeTab === 'money' ? 'var(--accent-purple)' : 'transparent',
+                            background: activeTab === 'money' ? 'var(--accent-primary)' : 'transparent',
                             color: activeTab === 'money' ? '#fff' : 'var(--text-secondary)',
                             border: 'none',
                             borderRadius: '8px',
@@ -177,7 +177,7 @@ export default function CalendarModal({
                         onClick={() => setActiveTab('videos')}
                         style={{
                             padding: '8px 12px',
-                            background: activeTab === 'videos' ? 'var(--accent-purple)' : 'transparent',
+                            background: activeTab === 'videos' ? 'var(--accent-primary)' : 'transparent',
                             color: activeTab === 'videos' ? '#fff' : 'var(--text-secondary)',
                             border: 'none',
                             borderRadius: '8px',
@@ -197,7 +197,7 @@ export default function CalendarModal({
                         onClick={() => setActiveTab('players')}
                         style={{
                             padding: '8px 12px',
-                            background: activeTab === 'players' ? 'var(--accent-purple)' : 'transparent',
+                            background: activeTab === 'players' ? 'var(--accent-primary)' : 'transparent',
                             color: activeTab === 'players' ? '#fff' : 'var(--text-secondary)',
                             border: 'none',
                             borderRadius: '8px',
@@ -230,7 +230,7 @@ export default function CalendarModal({
                                             <span style={{ color: 'var(--text-primary)', fontWeight: 500, fontSize: '14px' }}>
                                                 {format(record.date, 'd MMMM yyyy', { locale: tr })}
                                             </span>
-                                            <span style={{ color: 'var(--accent-purple)', fontWeight: 700 }}>${record.amount}</span>
+                                            <span style={{ color: 'var(--accent-primary)', fontWeight: 700 }}>${record.amount}</span>
                                         </div>
                                         {record.description && (
                                             <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>

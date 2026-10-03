@@ -336,7 +336,7 @@ export default function ModDetailModal({
             style={{
                 position: 'fixed',
                 inset: 0,
-                backgroundColor: 'rgba(0, 0, 0, 0.75)',
+                backgroundColor: 'var(--overlay-bg)',
                 backdropFilter: 'blur(6px)',
                 display: 'flex',
                 alignItems: 'center',
@@ -356,7 +356,7 @@ export default function ModDetailModal({
                     maxHeight: '90vh',
                     display: 'flex',
                     flexDirection: 'column',
-                    boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
+                    boxShadow: '0 20px 40px var(--shadow-color)',
                     color: 'var(--text-primary)',
                     overflow: 'hidden'
                 }}
@@ -391,7 +391,7 @@ export default function ModDetailModal({
                     display: 'flex',
                     borderBottom: '1px solid var(--border-color)',
                     padding: '0 24px',
-                    backgroundColor: 'rgba(255,255,255,0.01)'
+                    backgroundColor: 'rgba(40, 77, 54, 0.03)'
                 }}>
                     <button
                         onClick={() => setActiveTab('general')}
@@ -400,7 +400,7 @@ export default function ModDetailModal({
                             fontSize: '13px',
                             fontWeight: 500,
                             color: activeTab === 'general' ? 'var(--text-primary)' : 'var(--text-secondary)',
-                            borderBottom: activeTab === 'general' ? '2px solid var(--accent-purple)' : '2px solid transparent'
+                            borderBottom: activeTab === 'general' ? '2px solid var(--accent-primary)' : '2px solid transparent'
                         }}
                     >
                         Genel & Senkronizasyon
@@ -412,7 +412,7 @@ export default function ModDetailModal({
                             fontSize: '13px',
                             fontWeight: 500,
                             color: activeTab === 'youtubers' ? 'var(--text-primary)' : 'var(--text-secondary)',
-                            borderBottom: activeTab === 'youtubers' ? '2px solid var(--accent-purple)' : '2px solid transparent'
+                            borderBottom: activeTab === 'youtubers' ? '2px solid var(--accent-primary)' : '2px solid transparent'
                         }}
                     >
                         Yetkili YouTuber&apos;lar ({accessList.filter(a => a.access.status === 'ACTIVE').length})
@@ -424,7 +424,7 @@ export default function ModDetailModal({
                             fontSize: '13px',
                             fontWeight: 500,
                             color: activeTab === 'legacy' ? 'var(--text-primary)' : 'var(--text-secondary)',
-                            borderBottom: activeTab === 'legacy' ? '2px solid var(--accent-purple)' : '2px solid transparent'
+                            borderBottom: activeTab === 'legacy' ? '2px solid var(--accent-primary)' : '2px solid transparent'
                         }}
                     >
                         Legacy UUID&apos;ler ({legacyUuids.length})
@@ -435,15 +435,15 @@ export default function ModDetailModal({
                 {toastMessage && (
                     <div style={{
                         padding: '8px 24px',
-                        backgroundColor: 'rgba(92, 62, 240, 0.2)',
-                        borderBottom: '1px solid rgba(92, 62, 240, 0.3)',
+                        backgroundColor: 'var(--accent-primary-soft)',
+                        borderBottom: '1px solid var(--accent-primary-border)',
                         color: 'var(--text-primary)',
                         fontSize: '12px',
                         display: 'flex',
                         alignItems: 'center',
                         gap: '8px'
                     }}>
-                        <CheckCircle2 size={14} style={{ color: '#4ade80' }} />
+                        <CheckCircle2 size={14} style={{ color: 'var(--accent-green)' }} />
                         {toastMessage}
                     </div>
                 )}
@@ -454,7 +454,7 @@ export default function ModDetailModal({
                         <div>
                             {/* Sync status card */}
                             <div style={{
-                                backgroundColor: 'rgba(255,255,255,0.02)',
+                                backgroundColor: 'rgba(40, 77, 54, 0.05)',
                                 border: '1px solid var(--border-color)',
                                 borderRadius: '12px',
                                 padding: '16px',
@@ -530,7 +530,7 @@ export default function ModDetailModal({
                                         <span style={{ display: 'block', color: 'var(--text-secondary)' }}>Senkronizasyon Durumu:</span>
                                         <span style={{
                                             fontWeight: 600,
-                                            color: mod.syncStatus === 'PENDING' ? '#facc15' : mod.syncStatus === 'SUCCESS' ? '#4ade80' : mod.syncStatus === 'FAILED' ? '#ef4444' : 'var(--text-primary)'
+                                            color: mod.syncStatus === 'PENDING' ? 'var(--accent-yellow)' : mod.syncStatus === 'SUCCESS' ? 'var(--accent-green)' : mod.syncStatus === 'FAILED' ? 'var(--accent-red)' : 'var(--text-primary)'
                                         }}>
                                             {mod.syncStatus === 'PENDING'
                                                 ? 'Senkronizasyon kuyruğa alındı'
@@ -556,7 +556,7 @@ export default function ModDetailModal({
                                         fontSize: '12px'
                                     }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600, color: driftResult.isDrifted ? '#facc15' : '#4ade80' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600, color: driftResult.isDrifted ? 'var(--accent-yellow)' : 'var(--accent-green)' }}>
                                                 {driftResult.isDrifted ? <AlertTriangle size={15} /> : <CheckCircle2 size={15} />}
                                                 {driftResult.isDrifted ? 'Farklılık (Drift) Tespit Edildi' : 'GitHub Dosyası BlumeCore ile Tam Uyumlu'}
                                             </div>
@@ -613,7 +613,7 @@ export default function ModDetailModal({
                                                 borderRadius: '6px',
                                                 padding: '4px 8px',
                                                 fontSize: '11px',
-                                                color: showRevoked ? 'var(--accent-purple)' : 'var(--text-secondary)',
+                                                color: showRevoked ? 'var(--accent-primary)' : 'var(--text-secondary)',
                                                 cursor: 'pointer',
                                                 display: 'flex',
                                                 alignItems: 'center',
@@ -647,7 +647,7 @@ export default function ModDetailModal({
                             {/* Manual Add Form */}
                             {isAddYoutuberOpen && (
                                 <div style={{
-                                    backgroundColor: 'rgba(255,255,255,0.03)',
+                                    backgroundColor: 'rgba(40, 77, 54, 0.06)',
                                     border: '1px solid var(--border-color)',
                                     borderRadius: '8px',
                                     padding: '16px',
@@ -729,7 +729,7 @@ export default function ModDetailModal({
                                                         maxHeight: '180px',
                                                         overflowY: 'auto',
                                                         zIndex: 20,
-                                                        boxShadow: '0 8px 24px rgba(0,0,0,0.4)'
+                                                        boxShadow: '0 8px 24px var(--shadow-color)'
                                                     }}>
                                                         {allYoutubers.filter(y => y.name.toLowerCase().includes(youtuberSearchTerm.toLowerCase())).length === 0 ? (
                                                             <div style={{ padding: '10px', color: 'var(--text-secondary)', fontSize: '12px', textAlign: 'center' }}>
@@ -752,23 +752,23 @@ export default function ModDetailModal({
                                                                                 padding: '8px 12px',
                                                                                 cursor: 'pointer',
                                                                                 fontSize: '12px',
-                                                                                color: isSelected ? 'var(--accent-purple)' : 'var(--text-primary)',
-                                                                                backgroundColor: isSelected ? 'rgba(92, 62, 240, 0.15)' : 'transparent',
-                                                                                borderBottom: '1px solid rgba(255,255,255,0.05)',
+                                                                                color: isSelected ? 'var(--accent-primary)' : 'var(--text-primary)',
+                                                                                backgroundColor: isSelected ? 'rgba(40, 105, 75, 0.15)' : 'transparent',
+                                                                                borderBottom: '1px solid rgba(40, 77, 54, 0.08)',
                                                                                 display: 'flex',
                                                                                 alignItems: 'center',
                                                                                 justifyContent: 'space-between',
                                                                                 transition: 'background-color 0.15s'
                                                                             }}
                                                                             onMouseEnter={(e) => {
-                                                                                if (!isSelected) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)';
+                                                                                if (!isSelected) e.currentTarget.style.backgroundColor = 'rgba(40, 77, 54, 0.08)';
                                                                             }}
                                                                             onMouseLeave={(e) => {
                                                                                 if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent';
                                                                             }}
                                                                         >
                                                                             <span>{y.name}</span>
-                                                                            {isSelected && <CheckCircle2 size={13} style={{ color: 'var(--accent-purple)' }} />}
+                                                                            {isSelected && <CheckCircle2 size={13} style={{ color: 'var(--accent-primary)' }} />}
                                                                         </div>
                                                                     );
                                                                 })
@@ -819,7 +819,7 @@ export default function ModDetailModal({
                                             <div
                                                 key={item.access.id}
                                                 style={{
-                                                    backgroundColor: 'rgba(255,255,255,0.02)',
+                                                    backgroundColor: 'rgba(40, 77, 54, 0.05)',
                                                     border: '1px solid var(--border-color)',
                                                     borderRadius: '8px',
                                                     padding: '12px 16px',
@@ -836,7 +836,7 @@ export default function ModDetailModal({
                                                             padding: '2px 6px',
                                                             borderRadius: '4px',
                                                             backgroundColor: isRevoked ? 'rgba(239,68,68,0.15)' : 'rgba(34,197,94,0.15)',
-                                                            color: isRevoked ? 'var(--accent-red)' : '#4ade80'
+                                                            color: isRevoked ? 'var(--accent-red)' : 'var(--accent-green)'
                                                         }}>
                                                             {isRevoked ? 'Manuel Kaldırıldı' : 'Aktif'}
                                                         </span>
@@ -895,7 +895,7 @@ export default function ModDetailModal({
                                 <div style={{
                                     position: 'fixed',
                                     inset: 0,
-                                    backgroundColor: 'rgba(0,0,0,0.8)',
+                                    backgroundColor: 'var(--overlay-bg)',
                                     zIndex: 1100,
                                     display: 'flex',
                                     alignItems: 'center',
@@ -908,7 +908,7 @@ export default function ModDetailModal({
                                         borderRadius: '12px',
                                         padding: '20px',
                                         maxWidth: '440px',
-                                        boxShadow: '0 10px 30px rgba(0,0,0,0.5)'
+                                        boxShadow: '0 10px 30px var(--shadow-color)'
                                     }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-red)', marginBottom: '12px' }}>
                                             <AlertTriangle size={20} />
@@ -960,7 +960,7 @@ export default function ModDetailModal({
                                 padding: '12px',
                                 marginBottom: '16px',
                                 fontSize: '12px',
-                                color: '#facc15'
+                                color: 'var(--accent-yellow)'
                             }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600, marginBottom: '4px' }}>
                                     <ShieldAlert size={16} /> Legacy UUID Güvenlik & Erişim Uyarısı
@@ -1025,7 +1025,7 @@ export default function ModDetailModal({
                                         <div
                                             key={`${item.uuid}-${idx}`}
                                             style={{
-                                                backgroundColor: 'rgba(255,255,255,0.02)',
+                                                backgroundColor: 'rgba(40, 77, 54, 0.05)',
                                                 border: '1px solid var(--border-color)',
                                                 borderRadius: '8px',
                                                 padding: '12px 16px',
@@ -1055,7 +1055,7 @@ export default function ModDetailModal({
                                                     borderRadius: '4px',
                                                     backgroundColor: 'rgba(234, 179, 8, 0.15)',
                                                     border: '1px solid rgba(234, 179, 8, 0.3)',
-                                                    color: '#facc15',
+                                                    color: 'var(--accent-yellow)',
                                                     fontWeight: 500
                                                 }}>
                                                     Erişim Devam Edebilir (Eski Bölüm)
@@ -1087,7 +1087,7 @@ export default function ModDetailModal({
                         style={{
                             position: 'fixed',
                             inset: 0,
-                            backgroundColor: 'rgba(0, 0, 0, 0.85)',
+                            backgroundColor: 'var(--overlay-bg)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -1098,7 +1098,7 @@ export default function ModDetailModal({
                     >
                         <div
                             style={{
-                                backgroundColor: 'var(--card-bg, #18181b)',
+                                backgroundColor: 'var(--bg-card)',
                                 border: '1px solid var(--border-color)',
                                 borderRadius: '16px',
                                 width: '100%',
@@ -1107,13 +1107,13 @@ export default function ModDetailModal({
                                 display: 'flex',
                                 flexDirection: 'column',
                                 overflow: 'hidden',
-                                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+                                boxShadow: '0 25px 50px -12px var(--shadow-color)'
                             }}
                             onClick={(e) => e.stopPropagation()}
                         >
                             <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                    <RefreshCw size={18} style={{ color: 'var(--accent-purple)' }} />
+                                    <RefreshCw size={18} style={{ color: 'var(--accent-primary)' }} />
                                     <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)' }}>
                                         GitHub Senkronizasyon Önizlemesi
                                     </h3>
@@ -1128,8 +1128,8 @@ export default function ModDetailModal({
 
                             <div style={{ padding: '24px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
                                 <div style={{
-                                    backgroundColor: 'rgba(92, 62, 240, 0.08)',
-                                    border: '1px solid rgba(92, 62, 240, 0.25)',
+                                    backgroundColor: 'rgba(40, 105, 75, 0.08)',
+                                    border: '1px solid rgba(40, 105, 75, 0.25)',
                                     borderRadius: '10px',
                                     padding: '14px 16px',
                                     fontSize: '13px'
@@ -1148,7 +1148,7 @@ export default function ModDetailModal({
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
                                     <div style={{ backgroundColor: 'var(--bg-color)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)', textAlign: 'center' }}>
                                         <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Aktif YouTuber</div>
-                                        <div style={{ fontSize: '20px', fontWeight: 700, color: 'var(--accent-purple)' }}>
+                                        <div style={{ fontSize: '20px', fontWeight: 700, color: 'var(--accent-primary)' }}>
                                             {accessList.filter((a) => a.access.status === 'ACTIVE').length}
                                         </div>
                                     </div>
@@ -1173,8 +1173,8 @@ export default function ModDetailModal({
                                         Yazılacak Managed README Bloğu (Önizleme):
                                     </div>
                                     <pre style={{
-                                        backgroundColor: '#0d1117',
-                                        color: '#c9d1d9',
+                                        backgroundColor: 'var(--bg-subtle)',
+                                        color: 'var(--text-primary)',
                                         padding: '12px',
                                         borderRadius: '8px',
                                         fontSize: '11px',
@@ -1182,7 +1182,7 @@ export default function ModDetailModal({
                                         maxHeight: '160px',
                                         overflowY: 'auto',
                                         whiteSpace: 'pre-wrap',
-                                        border: '1px solid #30363d'
+                                        border: '1px solid var(--border-color)'
                                     }}>
 {`<!-- BLUMECORE-MANAGED-START -->
 <!-- Bu bölüm BlumeCore tarafından otomatik üretilmiştir. Lütfen elle değiştirmeyiniz. -->
@@ -1291,7 +1291,7 @@ export default function ModDetailModal({
                     <div style={{
                         position: 'fixed',
                         inset: 0,
-                        backgroundColor: 'rgba(0,0,0,0.85)',
+                        backgroundColor: 'var(--overlay-bg)',
                         zIndex: 1200,
                         display: 'flex',
                         alignItems: 'center',
@@ -1305,7 +1305,7 @@ export default function ModDetailModal({
                             padding: '24px',
                             maxWidth: '480px',
                             width: '100%',
-                            boxShadow: '0 10px 30px rgba(0,0,0,0.5)'
+                            boxShadow: '0 10px 30px var(--shadow-color)'
                         }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--accent-red)', marginBottom: '14px' }}>
                                 <AlertTriangle size={22} />
@@ -1359,7 +1359,7 @@ export default function ModDetailModal({
                         style={{
                             position: 'fixed',
                             inset: 0,
-                            backgroundColor: 'rgba(0, 0, 0, 0.85)',
+                            backgroundColor: 'var(--overlay-bg)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -1370,7 +1370,7 @@ export default function ModDetailModal({
                     >
                         <div
                             style={{
-                                backgroundColor: 'var(--card-bg, #18181b)',
+                                backgroundColor: 'var(--bg-card)',
                                 border: '1px solid var(--border-color)',
                                 borderRadius: '16px',
                                 width: '100%',
@@ -1379,13 +1379,13 @@ export default function ModDetailModal({
                                 display: 'flex',
                                 flexDirection: 'column',
                                 overflow: 'hidden',
-                                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+                                boxShadow: '0 25px 50px -12px var(--shadow-color)'
                             }}
                             onClick={(e) => e.stopPropagation()}
                         >
                             <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                    <ArrowRightLeft size={18} style={{ color: 'var(--accent-purple)' }} />
+                                    <ArrowRightLeft size={18} style={{ color: 'var(--accent-primary)' }} />
                                     <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)' }}>
                                         Legacy UUID&apos;leri Managed Alana Taşıma Önizlemesi
                                     </h3>
@@ -1405,7 +1405,7 @@ export default function ModDetailModal({
                                     borderRadius: '8px',
                                     padding: '12px 16px',
                                     fontSize: '13px',
-                                    color: '#93c5fd',
+                                    color: 'var(--accent-blue)',
                                     lineHeight: 1.5
                                 }}>
                                     Bu işlem, README&apos;nin yönetilmeyen (unmanaged) bölümündeki {migrationPreview.legacyUuidCount} UUID satırını kaldıracak ve BlumeCore tarafından dinamik yönetilen bölüme (Eski Oyuncular grubu altına) taşıyacaktır.
@@ -1424,7 +1424,7 @@ export default function ModDetailModal({
                                         overflowY: 'auto',
                                         fontFamily: 'monospace',
                                         fontSize: '12px',
-                                        color: '#f87171'
+                                        color: 'var(--accent-red)'
                                     }}>
                                         {migrationPreview.removedLines.map((line, i) => (
                                             <div key={i}>- {line}</div>
@@ -1437,7 +1437,7 @@ export default function ModDetailModal({
                                         Yeni README Dosyası Önizlemesi:
                                     </label>
                                     <pre style={{
-                                        backgroundColor: 'var(--bg-primary)',
+                                        backgroundColor: 'var(--bg-subtle)',
                                         border: '1px solid var(--border-color)',
                                         borderRadius: '8px',
                                         padding: '12px',
@@ -1456,7 +1456,7 @@ export default function ModDetailModal({
                                     alignItems: 'center',
                                     gap: '10px',
                                     padding: '12px',
-                                    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                                    backgroundColor: 'rgba(40, 77, 54, 0.06)',
                                     borderRadius: '8px',
                                     border: '1px solid var(--border-color)'
                                 }}>
@@ -1473,7 +1473,7 @@ export default function ModDetailModal({
                                 </div>
                             </div>
 
-                            <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'flex-end', gap: '12px', backgroundColor: 'var(--bg-secondary)' }}>
+                            <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'flex-end', gap: '12px', backgroundColor: 'var(--bg-subtle)' }}>
                                 <button
                                     onClick={() => setMigrationPreview(null)}
                                     className="btn-secondary"

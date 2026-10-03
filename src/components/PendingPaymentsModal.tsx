@@ -171,7 +171,7 @@ export default function PendingPaymentsModal({ isOpen, onClose }: PendingPayment
                 <div className={modalStyles.header} style={{ flexShrink: 0, marginBottom: '16px' }}>
                     <div>
                         <h2 className={modalStyles.title}>Beklenen Ödemeler</h2>
-                        <span style={{ fontSize: '13px', color: 'var(--accent-purple)', fontWeight: 600 }}>
+                        <span style={{ fontSize: '13px', color: 'var(--accent-primary)', fontWeight: 600 }}>
                             Toplam: ${totalPending.toFixed(2)}
                         </span>
                     </div>
@@ -238,7 +238,7 @@ export default function PendingPaymentsModal({ isOpen, onClose }: PendingPayment
                                         maxHeight: '200px',
                                         overflowY: 'auto',
                                         zIndex: 10,
-                                        boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+                                        boxShadow: '0 4px 12px var(--shadow-color)'
                                     }}>
                                         {filteredYoutubers.length === 0 ? (
                                             <div style={{ padding: '12px', color: 'var(--text-secondary)', fontSize: '13px', textAlign: 'center' }}>
@@ -257,15 +257,15 @@ export default function PendingPaymentsModal({ isOpen, onClose }: PendingPayment
                                                         padding: '10px 12px',
                                                         cursor: 'pointer',
                                                         fontSize: '13px',
-                                                        color: selectedYt === opt.id ? 'var(--accent-purple)' : 'var(--text-primary)',
-                                                        backgroundColor: selectedYt === opt.id ? 'rgba(92, 62, 240, 0.1)' : 'transparent',
+                                                        color: selectedYt === opt.id ? 'var(--accent-primary)' : 'var(--text-primary)',
+                                                        backgroundColor: selectedYt === opt.id ? 'rgba(40, 105, 75, 0.1)' : 'transparent',
                                                         borderBottom: '1px solid var(--border-color)',
                                                         whiteSpace: 'nowrap',
                                                         overflow: 'hidden',
                                                         textOverflow: 'ellipsis'
                                                     }}
                                                     onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-color)'}
-                                                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = selectedYt === opt.id ? 'rgba(92, 62, 240, 0.1)' : 'transparent'}
+                                                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = selectedYt === opt.id ? 'rgba(40, 105, 75, 0.1)' : 'transparent'}
                                                 >
                                                     {opt.name}
                                                 </div>
@@ -298,7 +298,7 @@ export default function PendingPaymentsModal({ isOpen, onClose }: PendingPayment
                             onClick={handleAdd}
                             disabled={!selectedYt || !amount}
                             style={{
-                                padding: '0 16px', backgroundColor: 'var(--accent-purple)', color: 'white',
+                                padding: '0 16px', backgroundColor: 'var(--accent-primary)', color: 'white',
                                 borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: 500,
                                 opacity: (!selectedYt || !amount) ? 0.5 : 1,
                                 display: 'flex', alignItems: 'center', gap: '4px'
@@ -344,8 +344,8 @@ export default function PendingPaymentsModal({ isOpen, onClose }: PendingPayment
                             <div
                                 key={group.youtuberKey}
                                 style={{
-                                    backgroundColor: '#232736',
-                                    border: '1px solid #33384D',
+                                    backgroundColor: 'var(--bg-card)',
+                                    border: '1px solid var(--border-color)',
                                     borderRadius: '10px',
                                     overflow: 'hidden',
                                     flexShrink: 0
@@ -401,8 +401,8 @@ export default function PendingPaymentsModal({ isOpen, onClose }: PendingPayment
                                                     display: 'flex',
                                                     justifyContent: 'space-between',
                                                     alignItems: 'center',
-                                                    borderTop: index > 0 ? '1px solid #2D3244' : 'none',
-                                                    backgroundColor: index % 2 === 1 ? 'rgba(0, 0, 0, 0.12)' : 'transparent'
+                                                    borderTop: index > 0 ? '1px solid var(--border-color)' : 'none',
+                                                    backgroundColor: index % 2 === 1 ? 'var(--bg-subtle)' : 'transparent'
                                                 }}
                                             >
                                                 {editingId === p.id ? (
@@ -417,9 +417,9 @@ export default function PendingPaymentsModal({ isOpen, onClose }: PendingPayment
                                                             style={{
                                                                 padding: '6px 8px',
                                                                 borderRadius: '6px',
-                                                                border: '1px solid var(--accent-purple)',
-                                                                backgroundColor: '#1A1D28',
-                                                                color: 'white',
+                                                                border: '1px solid var(--accent-primary)',
+                                                                backgroundColor: 'var(--bg-card)',
+                                                                color: 'var(--text-primary)',
                                                                 fontSize: '14px',
                                                                 outline: 'none'
                                                             }}
@@ -434,8 +434,8 @@ export default function PendingPaymentsModal({ isOpen, onClose }: PendingPayment
                                                                 padding: '6px 8px',
                                                                 borderRadius: '6px',
                                                                 border: '1px solid var(--border-color)',
-                                                                backgroundColor: '#1A1D28',
-                                                                color: 'white',
+                                                                backgroundColor: 'var(--bg-card)',
+                                                                color: 'var(--text-primary)',
                                                                 fontSize: '13px',
                                                                 outline: 'none'
                                                             }}
@@ -452,7 +452,7 @@ export default function PendingPaymentsModal({ isOpen, onClose }: PendingPayment
                                                                 Ödeme
                                                             </div>
                                                         )}
-                                                        <div style={{ fontSize: '14px', fontWeight: 700, color: '#22C55E', marginTop: '2px' }}>
+                                                        <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--accent-green)', marginTop: '2px' }}>
                                                             ${p.amount.toFixed(2)}
                                                         </div>
                                                     </div>
@@ -467,7 +467,7 @@ export default function PendingPaymentsModal({ isOpen, onClose }: PendingPayment
                                                             <button
                                                                 onClick={handleSaveEdit}
                                                                 title="Kaydet"
-                                                                style={{ background: 'none', border: 'none', color: 'var(--accent-purple)', cursor: 'pointer', padding: '4px' }}
+                                                                style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', cursor: 'pointer', padding: '4px' }}
                                                             >
                                                                 <Check size={16} />
                                                             </button>

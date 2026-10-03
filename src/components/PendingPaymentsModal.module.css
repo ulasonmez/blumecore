@@ -5,11 +5,11 @@
     column-gap: 8px;
     row-gap: 2px;
     padding: 8px 10px 10px 14px;
-    background-color: rgba(92, 62, 240, 0.12);
+    background-color: rgba(40, 105, 75, 0.12);
 }
 
 .groupHeaderExpanded {
-    border-bottom: 1px solid #33384d;
+    border-bottom: 1px solid var(--border-color);
 }
 
 .groupNameButton {
@@ -28,7 +28,7 @@
 
 .groupUserIcon {
     flex: none;
-    color: var(--accent-purple);
+    color: var(--accent-primary);
 }
 
 .groupName {
@@ -84,13 +84,13 @@
 .paymentCount {
     padding: 3px 8px;
     border-radius: 10px;
-    background-color: rgba(255, 255, 255, 0.08);
+    background-color: rgba(40, 77, 54, 0.08);
     color: var(--text-secondary);
     white-space: nowrap;
 }
 
 .groupTotal {
-    color: var(--accent-purple);
+    color: var(--accent-primary);
     font-weight: 700;
     overflow-wrap: anywhere;
 }

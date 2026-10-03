@@ -6,6 +6,14 @@ Her görev için kısa kayıt tut: ne/neden değişti, ilgili dosyalar, gerçekt
 
 > 2026-10-03: Deponun public yapılmasının ardından Vercel dağıtımını yeniden tetiklemek için dokümantasyon commit'i oluşturuldu.
 
+## 2026-10-03 — Açık yeşil ve gri arayüz paleti
+
+- **Değişiklik ve neden:** Koyu mor tema yerine açık gri zemin, beyaz kart, yumuşak yeşil vurgu ve koyu okunaklı metin kullanıldı. Giriş, alt menü, korumalı sayfalar, ödeme/video/oyuncu kartları ve modalların sabit koyu renkleri yeni palete uyarlandı. Aşama rozetlerinin metni açık zeminde koyu gösterildi; eski Home CSS import yolları düzeltildi.
+- **Dosyalar:** `src/app/globals.css`, `src/app/(protected)` altındaki ekran CSS/TSX dosyaları, `src/components` altındaki ilgili kart ve modal CSS/TSX dosyaları, `src/lib/statuses.ts`, `docs/PROJECT_MAP.md`.
+- **Harita:** Tema renk rolleri ve aşama görünümü eklendi; çözülmüş Home CSS import sınırlaması kaldırıldı.
+- **Doğrulama:** `npx tsc --noEmit --incremental false`, `npm run build`, `git diff --check` ve `npm test` geçti (175 başarılı, çalışmayan Firestore emülatörü nedeniyle 8 atlandı). Yerel tarayıcıda giriş ekranı görsel olarak kontrol edildi; yeşil ana düğmenin beyaz metinle hesaplanan kontrastı 6,54:1. `npm run lint` depoda önceden bulunan 31 hata nedeniyle başarısız; renk değişikliklerinden kaynaklanan yeni bir hata saptanmadı.
+- **Kalan iş:** Oturum gerektiren ekranlar ve gerçek mobil tarayıcı görsel olarak doğrulanmadı; mevcut lint hataları ayrı çalışmada ele alınmalı.
+
 ## 2026-10-03 — Beklenen ödeme gruplarının sırası sabitlendi
 
 - **Değişiklik ve neden:** Beklenen ödemelerde grup sırası Firestore kayıtlarının geliş sırasına bağlıydı; bir YouTuber'ın ilk ödemesi silinince grup başka konuma taşınabiliyordu. Gruplar güncel YouTuber adına, silinmiş YouTuber kayıtlarında sabit kimliğe ve eşit sıralama anahtarlarında grup kimliğine göre sıralandı.

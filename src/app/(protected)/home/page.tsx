@@ -224,7 +224,7 @@ export default function HomePage() {
                         // Create General group if none exists
                         const newGrp = await addDoc(collection(db, "groups"), {
                             name: "Takip",
-                            color: "#5C3EF0",
+                            color: "var(--accent-primary)",
                             userId: user.uid,
                             createdAt: Date.now()
                         });
@@ -390,7 +390,7 @@ export default function HomePage() {
                         style={{
                             display: 'flex', alignItems: 'center', gap: '6px',
                             padding: '8px 14px', borderRadius: '8px',
-                            backgroundColor: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--border-color)',
+                            backgroundColor: 'rgba(40, 77, 54, 0.08)', border: '1px solid var(--border-color)',
                             color: 'var(--text-secondary)', fontSize: '13px', fontWeight: 500,
                             cursor: 'pointer', whiteSpace: 'nowrap'
                         }}
@@ -402,8 +402,8 @@ export default function HomePage() {
                         style={{
                             display: 'flex', alignItems: 'center', gap: '6px',
                             padding: '8px 14px', borderRadius: '8px',
-                            backgroundColor: 'rgba(92, 62, 240, 0.15)', border: '1px solid var(--accent-purple)',
-                            color: 'var(--accent-purple)', fontSize: '13px', fontWeight: 500,
+                            backgroundColor: 'rgba(40, 105, 75, 0.15)', border: '1px solid var(--accent-primary)',
+                            color: 'var(--accent-primary)', fontSize: '13px', fontWeight: 500,
                             cursor: 'pointer', whiteSpace: 'nowrap'
                         }}
                     >
@@ -456,7 +456,7 @@ export default function HomePage() {
                         flexDirection: 'column',
                         alignItems: 'center',
                         gap: '14px',
-                        backgroundColor: 'rgba(255, 255, 255, 0.01)'
+                        backgroundColor: 'rgba(40, 77, 54, 0.03)'
                     }}>
                         {searchQuery.trim() ? (
                             <>
@@ -504,7 +504,7 @@ export default function HomePage() {
 
             {/* Add Follow Up Modal */}
             {isAddOpen && (
-                <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0,0,0,0.75)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'var(--overlay-bg)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <div className="card" style={{ width: '480px', maxWidth: '90%', maxHeight: '90vh', overflowY: 'auto', border: '1px solid var(--border-color)' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
                             <h2 style={{ fontSize: '18px', fontWeight: 600 }}>Yeni Takip Ekle</h2>
@@ -671,7 +671,7 @@ export default function HomePage() {
     function renderFollowUpCard(f: FollowUp) {
         // Dynamic status color lookup from database state
         const statusObj = statuses.find(s => s.name === f.status);
-        const statusColor = statusObj ? statusObj.color : '#5C3EF0';
+        const statusColor = statusObj ? statusObj.color : '#28694B';
         const statusColors = getStatusStyle(statusColor);
         
         const isExpanded = expandedCards[f.id] || false;

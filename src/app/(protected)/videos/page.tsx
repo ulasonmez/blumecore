@@ -450,7 +450,7 @@ export default function VideosPage() {
                     style={{
                         padding: '8px 20px',
                         borderRadius: '8px',
-                        backgroundColor: activeMainTab === 'videos' ? 'var(--accent-purple)' : 'transparent',
+                        backgroundColor: activeMainTab === 'videos' ? 'var(--accent-primary)' : 'transparent',
                         color: activeMainTab === 'videos' ? '#fff' : 'var(--text-secondary)',
                         fontWeight: 600,
                         fontSize: '13px'
@@ -464,7 +464,7 @@ export default function VideosPage() {
                     style={{
                         padding: '8px 20px',
                         borderRadius: '8px',
-                        backgroundColor: activeMainTab === 'mods' ? 'var(--accent-purple)' : 'transparent',
+                        backgroundColor: activeMainTab === 'mods' ? 'var(--accent-primary)' : 'transparent',
                         color: activeMainTab === 'mods' ? '#fff' : 'var(--text-secondary)',
                         fontWeight: 600,
                         fontSize: '13px'
@@ -479,15 +479,15 @@ export default function VideosPage() {
                     padding: '10px 16px',
                     marginBottom: '16px',
                     borderRadius: '8px',
-                    backgroundColor: 'rgba(92, 62, 240, 0.2)',
-                    border: '1px solid rgba(92, 62, 240, 0.4)',
+                    backgroundColor: 'var(--accent-primary-soft)',
+                    border: '1px solid var(--accent-primary-border)',
                     color: 'var(--text-primary)',
                     fontSize: '13px',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '8px'
                 }}>
-                    <CheckCircle2 size={16} style={{ color: '#4ade80' }} />
+                    <CheckCircle2 size={16} style={{ color: 'var(--accent-green)' }} />
                     {modToast}
                 </div>
             )}
@@ -531,7 +531,7 @@ export default function VideosPage() {
                         )}
 
                         {successMessage && (
-                            <div style={{ color: '#4ade80', fontSize: '13px', marginTop: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <div style={{ color: 'var(--accent-green)', fontSize: '13px', marginTop: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                                 <Plus size={14} /> {successMessage}
                             </div>
                         )}
@@ -718,8 +718,8 @@ export default function VideosPage() {
                                             fontSize: '12px',
                                             color: 'var(--text-secondary)',
                                             padding: '8px 0',
-                                            borderTop: '1px solid rgba(255,255,255,0.05)',
-                                            borderBottom: '1px solid rgba(255,255,255,0.05)',
+                                            borderTop: '1px solid var(--border-color)',
+                                            borderBottom: '1px solid var(--border-color)',
                                             marginBottom: '14px'
                                         }}>
                                             <span><strong>{stats.videoCount}</strong> Video Bağlı</span>
@@ -827,7 +827,7 @@ export default function VideosPage() {
                     style={{
                         position: 'fixed',
                         inset: 0,
-                        backgroundColor: 'rgba(0, 0, 0, 0.75)',
+                        backgroundColor: 'var(--overlay-bg)',
                         backdropFilter: 'blur(4px)',
                         zIndex: 1000,
                         display: 'flex',
@@ -839,13 +839,13 @@ export default function VideosPage() {
                 >
                     <div
                         style={{
-                            backgroundColor: 'var(--bg-card, #1e2230)',
-                            border: '1px solid var(--border-color, #2e354b)',
+                            backgroundColor: 'var(--bg-card)',
+                            border: '1px solid var(--border-color)',
                             borderRadius: '16px',
                             maxWidth: '480px',
                             width: '100%',
                             padding: '24px',
-                            boxShadow: '0 20px 40px rgba(0, 0, 0, 0.5)',
+                            boxShadow: '0 20px 40px var(--shadow-color)',
                             display: 'flex',
                             flexDirection: 'column',
                             gap: '16px'
@@ -857,11 +857,11 @@ export default function VideosPage() {
                                 width: '40px',
                                 height: '40px',
                                 borderRadius: '10px',
-                                backgroundColor: 'rgba(92, 62, 240, 0.15)',
+                                backgroundColor: 'rgba(40, 105, 75, 0.15)',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                color: 'var(--accent-purple, #7c3aed)'
+                                color: 'var(--accent-primary)'
                             }}>
                                 <Globe size={22} />
                             </div>
@@ -922,7 +922,7 @@ export default function VideosPage() {
                     style={{
                         position: 'fixed',
                         inset: 0,
-                        backgroundColor: 'rgba(0, 0, 0, 0.75)',
+                        backgroundColor: 'var(--overlay-bg)',
                         backdropFilter: 'blur(4px)',
                         zIndex: 1000,
                         display: 'flex',
@@ -934,13 +934,13 @@ export default function VideosPage() {
                 >
                     <div
                         style={{
-                            backgroundColor: 'var(--bg-card, #1e2230)',
-                            border: '1px solid var(--border-color, #2e354b)',
+                            backgroundColor: 'var(--bg-card)',
+                            border: '1px solid var(--border-color)',
                             borderRadius: '16px',
                             maxWidth: '540px',
                             width: '100%',
                             padding: '24px',
-                            boxShadow: '0 20px 40px rgba(0, 0, 0, 0.5)',
+                            boxShadow: '0 20px 40px var(--shadow-color)',
                             display: 'flex',
                             flexDirection: 'column',
                             gap: '16px'
@@ -986,10 +986,10 @@ export default function VideosPage() {
                                     border: '1px solid var(--border-color)',
                                     borderRadius: '8px',
                                     padding: '8px 12px',
-                                    backgroundColor: 'rgba(0,0,0,0.2)'
+                                    backgroundColor: 'var(--bg-subtle)'
                                 }}>
                                     {cleanupPreview.archivedMods.map((item) => (
-                                        <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid rgba(255,255,255,0.05)', fontSize: '12px' }}>
+                                        <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--border-color)', fontSize: '12px' }}>
                                             <span style={{ fontWeight: 600 }}>{item.displayName} ({item.modKey})</span>
                                             <span style={{ color: 'var(--text-secondary)' }}>
                                                 {item.videoCount} video, {item.accessCount} erişim, {item.jobCount} sync işi
@@ -1001,10 +1001,10 @@ export default function VideosPage() {
                                 <div style={{
                                     padding: '12px',
                                     borderRadius: '8px',
-                                    backgroundColor: 'rgba(34, 197, 94, 0.1)',
-                                    border: '1px solid rgba(34, 197, 94, 0.2)',
+                                    backgroundColor: 'var(--accent-primary-soft)',
+                                    border: '1px solid var(--accent-primary-border)',
                                     fontSize: '12px',
-                                    color: '#4ade80'
+                                    color: 'var(--accent-green)'
                                 }}>
                                     ✓ <strong>GitHub repository ve README.md dosyalarına KESİNLİKLE DOKUNULMAZ.</strong>
                                 </div>

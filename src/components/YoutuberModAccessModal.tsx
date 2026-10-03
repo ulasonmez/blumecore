@@ -136,7 +136,7 @@ export default function YoutuberModAccessModal({
             style={{
                 position: 'fixed',
                 inset: 0,
-                backgroundColor: 'rgba(0, 0, 0, 0.75)',
+                backgroundColor: 'var(--overlay-bg)',
                 backdropFilter: 'blur(6px)',
                 display: 'flex',
                 alignItems: 'center',
@@ -154,7 +154,7 @@ export default function YoutuberModAccessModal({
                     width: '100%',
                     maxWidth: '480px',
                     padding: '24px',
-                    boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
+                    boxShadow: '0 20px 40px var(--shadow-color)',
                     color: 'var(--text-primary)'
                 }}
                 onClick={(e) => e.stopPropagation()}
@@ -176,8 +176,8 @@ export default function YoutuberModAccessModal({
                     <div style={{
                         padding: '8px 12px',
                         marginBottom: '16px',
-                        backgroundColor: 'rgba(92, 62, 240, 0.2)',
-                        border: '1px solid rgba(92, 62, 240, 0.3)',
+                        backgroundColor: 'rgba(40, 105, 75, 0.2)',
+                        border: '1px solid rgba(40, 105, 75, 0.3)',
                         borderRadius: '6px',
                         fontSize: '12px',
                         color: 'var(--text-primary)',
@@ -185,14 +185,14 @@ export default function YoutuberModAccessModal({
                         alignItems: 'center',
                         gap: '6px'
                     }}>
-                        <CheckCircle2 size={14} style={{ color: '#4ade80' }} />
+                        <CheckCircle2 size={14} style={{ color: 'var(--accent-green)' }} />
                         {toastMessage}
                     </div>
                 )}
 
                 {/* Details list */}
                 <div style={{
-                    backgroundColor: 'rgba(255,255,255,0.02)',
+                    backgroundColor: 'rgba(40, 77, 54, 0.05)',
                     border: '1px solid var(--border-color)',
                     borderRadius: '10px',
                     padding: '16px',
@@ -217,8 +217,8 @@ export default function YoutuberModAccessModal({
                                 ? 'rgba(34, 197, 94, 0.15)'
                                 : isRevoked
                                     ? 'rgba(239, 68, 68, 0.15)'
-                                    : 'rgba(255, 255, 255, 0.05)',
-                            color: isActive ? '#4ade80' : isRevoked ? 'var(--accent-red)' : 'var(--text-secondary)',
+                                    : 'rgba(40, 77, 54, 0.08)',
+                            color: isActive ? 'var(--accent-green)' : isRevoked ? 'var(--accent-red)' : 'var(--text-secondary)',
                             fontWeight: 600
                         }}>
                             {isActive ? 'Aktif' : isRevoked ? 'Manuel Kaldırıldı' : 'Tanımsız'}
@@ -328,14 +328,14 @@ export default function YoutuberModAccessModal({
                                 width: '100%',
                                 padding: '9px 12px',
                                 borderRadius: '8px',
-                                border: '1px solid var(--accent-purple)',
+                                border: '1px solid var(--accent-primary)',
                                 color: 'var(--text-primary)',
                                 fontSize: '12px',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 gap: '6px',
-                                backgroundColor: 'rgba(92, 62, 240, 0.15)'
+                                backgroundColor: 'rgba(40, 105, 75, 0.15)'
                             }}
                         >
                             {isGranting ? <Loader2 size={13} className="spin" /> : <RotateCcw size={13} />}
@@ -365,7 +365,7 @@ export default function YoutuberModAccessModal({
                     <div style={{
                         position: 'fixed',
                         inset: 0,
-                        backgroundColor: 'rgba(0,0,0,0.85)',
+                        backgroundColor: 'var(--overlay-bg)',
                         zIndex: 1300,
                         display: 'flex',
                         alignItems: 'center',
@@ -378,7 +378,7 @@ export default function YoutuberModAccessModal({
                             borderRadius: '12px',
                             padding: '20px',
                             maxWidth: '440px',
-                            boxShadow: '0 10px 30px rgba(0,0,0,0.5)'
+                            boxShadow: '0 10px 30px var(--shadow-color)'
                         }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-red)', marginBottom: '12px' }}>
                                 <AlertTriangle size={20} />

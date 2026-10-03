@@ -291,9 +291,9 @@ export default function RecordModal({ isOpen, onClose, initialDate = new Date(),
                                 flex: 1,
                                 padding: '10px 4px',
                                 borderRadius: '8px',
-                                border: `1px solid ${recordType === 'income' ? 'var(--accent-purple)' : 'var(--border-color)'}`,
-                                backgroundColor: recordType === 'income' ? 'rgba(92, 62, 240, 0.15)' : 'var(--bg-color)',
-                                color: recordType === 'income' ? 'var(--accent-purple)' : 'var(--text-secondary)',
+                                border: `1px solid ${recordType === 'income' ? 'var(--accent-primary)' : 'var(--border-color)'}`,
+                                backgroundColor: recordType === 'income' ? 'rgba(40, 105, 75, 0.15)' : 'var(--bg-color)',
+                                color: recordType === 'income' ? 'var(--accent-primary)' : 'var(--text-secondary)',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
@@ -313,9 +313,9 @@ export default function RecordModal({ isOpen, onClose, initialDate = new Date(),
                                 flex: 1,
                                 padding: '10px 4px',
                                 borderRadius: '8px',
-                                border: `1px solid ${recordType === 'expense' ? '#EF4444' : 'var(--border-color)'}`,
+                                border: `1px solid ${recordType === 'expense' ? 'var(--accent-red)' : 'var(--border-color)'}`,
                                 backgroundColor: recordType === 'expense' ? 'rgba(239, 68, 68, 0.15)' : 'var(--bg-color)',
-                                color: recordType === 'expense' ? '#EF4444' : 'var(--text-secondary)',
+                                color: recordType === 'expense' ? 'var(--accent-red)' : 'var(--text-secondary)',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
@@ -335,9 +335,9 @@ export default function RecordModal({ isOpen, onClose, initialDate = new Date(),
                                 flex: 1,
                                 padding: '10px 4px',
                                 borderRadius: '8px',
-                                border: `1px solid ${recordType === 'video' ? '#3B82F6' : 'var(--border-color)'}`,
+                                border: `1px solid ${recordType === 'video' ? 'var(--accent-blue)' : 'var(--border-color)'}`,
                                 backgroundColor: recordType === 'video' ? 'rgba(59, 130, 246, 0.15)' : 'var(--bg-color)',
-                                color: recordType === 'video' ? '#3B82F6' : 'var(--text-secondary)',
+                                color: recordType === 'video' ? 'var(--accent-blue)' : 'var(--text-secondary)',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
@@ -411,7 +411,7 @@ export default function RecordModal({ isOpen, onClose, initialDate = new Date(),
                                             maxHeight: '200px',
                                             overflowY: 'auto',
                                             zIndex: 10,
-                                            boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
+                                            boxShadow: '0 4px 12px var(--shadow-color)'
                                         }}>
                                             {currentOptions.filter(opt => opt.name.toLowerCase().includes(personSearchTerm.toLowerCase())).length === 0 ? (
                                                 <div style={{ padding: '12px', color: 'var(--text-secondary)', fontSize: '13px', textAlign: 'center' }}>
@@ -430,15 +430,15 @@ export default function RecordModal({ isOpen, onClose, initialDate = new Date(),
                                                             padding: '10px 12px',
                                                             cursor: 'pointer',
                                                             fontSize: '13px',
-                                                            color: selectedId === opt.id ? 'var(--accent-purple)' : 'var(--text-primary)',
-                                                            backgroundColor: selectedId === opt.id ? 'rgba(92, 62, 240, 0.1)' : 'transparent',
+                                                            color: selectedId === opt.id ? 'var(--accent-primary)' : 'var(--text-primary)',
+                                                            backgroundColor: selectedId === opt.id ? 'rgba(40, 105, 75, 0.1)' : 'transparent',
                                                             borderBottom: '1px solid var(--border-color)',
                                                             whiteSpace: 'nowrap',
                                                             overflow: 'hidden',
                                                             textOverflow: 'ellipsis'
                                                         }}
                                                         onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-color)'}
-                                                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = selectedId === opt.id ? 'rgba(92, 62, 240, 0.1)' : 'transparent'}
+                                                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = selectedId === opt.id ? 'rgba(40, 105, 75, 0.1)' : 'transparent'}
                                                     >
                                                         {opt.name}
                                                     </div>
@@ -523,7 +523,7 @@ export default function RecordModal({ isOpen, onClose, initialDate = new Date(),
                                                 maxHeight: '200px',
                                                 overflowY: 'auto',
                                                 zIndex: 10,
-                                                boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
+                                                boxShadow: '0 4px 12px var(--shadow-color)'
                                             }}>
                                                 {videos.filter(v => v.title.toLowerCase().includes(videoSearchTerm.toLowerCase())).length === 0 ? (
                                                     <div style={{ padding: '12px', color: 'var(--text-secondary)', fontSize: '13px', textAlign: 'center' }}>
@@ -542,15 +542,15 @@ export default function RecordModal({ isOpen, onClose, initialDate = new Date(),
                                                                 padding: '10px 12px',
                                                                 cursor: 'pointer',
                                                                 fontSize: '13px',
-                                                                color: selectedVideoId === v.id ? 'var(--accent-purple)' : 'var(--text-primary)',
-                                                                backgroundColor: selectedVideoId === v.id ? 'rgba(92, 62, 240, 0.1)' : 'transparent',
+                                                                color: selectedVideoId === v.id ? 'var(--accent-primary)' : 'var(--text-primary)',
+                                                                backgroundColor: selectedVideoId === v.id ? 'rgba(40, 105, 75, 0.1)' : 'transparent',
                                                                 borderBottom: '1px solid var(--border-color)',
                                                                 whiteSpace: 'nowrap',
                                                                 overflow: 'hidden',
                                                                 textOverflow: 'ellipsis'
                                                             }}
                                                             onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-color)'}
-                                                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = selectedVideoId === v.id ? 'rgba(92, 62, 240, 0.1)' : 'transparent'}
+                                                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = selectedVideoId === v.id ? 'rgba(40, 105, 75, 0.1)' : 'transparent'}
                                                         >
                                                             {v.title}
                                                         </div>
@@ -564,8 +564,8 @@ export default function RecordModal({ isOpen, onClose, initialDate = new Date(),
 
                             {connectedMods.length > 0 && (
                                 <div style={{
-                                    backgroundColor: 'rgba(92, 62, 240, 0.08)',
-                                    border: '1px solid rgba(92, 62, 240, 0.25)',
+                                    backgroundColor: 'rgba(40, 105, 75, 0.08)',
+                                    border: '1px solid rgba(40, 105, 75, 0.25)',
                                     borderRadius: '8px',
                                     padding: '12px',
                                     marginTop: '12px'

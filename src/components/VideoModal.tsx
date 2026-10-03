@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { X, Check, Trash2, Link as LinkIcon, Plus } from 'lucide-react';
 import modalStyles from '@/components/CalendarModal.module.css'; // Reuse base modal styles
-import styles from '@/app/home/Home.module.css';
+import styles from '@/app/(protected)/home/Home.module.css';
 import { db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { useAuth } from '@/lib/auth-context';

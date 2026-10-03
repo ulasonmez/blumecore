@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Trash2, GripVertical, Edit2, Check, X } from 'lucide-react';
-import styles from '@/app/home/Home.module.css';
+import styles from '@/app/(protected)/home/Home.module.css';
 
 interface SortableModCardProps {
     video: {
@@ -103,7 +103,7 @@ export function SortableModCard({ video, assignmentCount, onClick, onDelete, onU
                             onChange={(e) => setEditTempTitle(e.target.value)}
                             style={{
                                 width: '100%', padding: '4px 8px', borderRadius: '4px',
-                                border: '1px solid var(--accent-purple)', backgroundColor: '#1A1D28', color: 'white'
+                                border: '1px solid var(--accent-primary)', backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)'
                             }}
                             autoFocus
                         />
@@ -111,7 +111,7 @@ export function SortableModCard({ video, assignmentCount, onClick, onDelete, onU
                             <button onClick={handleCancelEdit} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '4px' }}>
                                 <X size={14} />
                             </button>
-                            <button onClick={handleSaveEdit} style={{ background: 'none', border: 'none', color: 'var(--accent-purple)', cursor: 'pointer', padding: '4px' }}>
+                            <button onClick={handleSaveEdit} style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', cursor: 'pointer', padding: '4px' }}>
                                 <Check size={14} />
                             </button>
                         </div>
@@ -120,7 +120,7 @@ export function SortableModCard({ video, assignmentCount, onClick, onDelete, onU
                     <h3 className={styles.videoTitle}>{video.title}</h3>
                 )}
 
-                <div style={{ marginTop: '8px', fontSize: '12px', color: 'var(--accent-purple)', fontWeight: 500 }}>
+                <div style={{ marginTop: '8px', fontSize: '12px', color: 'var(--accent-primary)', fontWeight: 500 }}>
                     {assignmentCount} Youtuber Atandı
                 </div>
             </div>

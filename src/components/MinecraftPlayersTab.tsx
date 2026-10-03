@@ -668,7 +668,7 @@ export default function MinecraftPlayersTab({
                         <p className={styles.confirmMessage}>
                             <span className={styles.confirmHighlight}>“{playerToDelete.player.username}”</span> adlı Minecraft oyuncusunun {youtuberTitle} ile bağlantısı kaldırılacak.
                             {activeModsCount > 0 ? (
-                                <span style={{ display: 'block', marginTop: '6px', color: '#facc15' }}>
+                                <span style={{ display: 'block', marginTop: '6px', color: 'var(--accent-yellow)' }}>
                                     Bu oyuncu {activeModsCount} aktif modun allowlist&apos;inden kaldırılacak.
                                 </span>
                             ) : null}

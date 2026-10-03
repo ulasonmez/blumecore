@@ -34,7 +34,7 @@
 }
 
 .navItem.active {
-    color: var(--accent-purple);
+    color: var(--accent-primary);
 }
 
 .icon {
