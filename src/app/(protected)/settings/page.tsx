@@ -75,13 +75,13 @@ export default function SettingsPage() {
             <div className="card" style={{ marginBottom: '24px' }}>
                 <p className={styles.sectionTitle}>GÖRÜNÜRLÜK</p>
                 <label className={styles.settingRow}>
-                    <span>Takvimde gelir toplamlarını göster</span>
+                    <span>Takvimde gelir ve gider toplamlarını göster</span>
                     <input
                         type="checkbox"
                         checked={showIncome}
                         disabled={incomeSettingLoading || incomeSettingError || savingIncomeSetting}
                         onChange={handleIncomeVisibilityChange}
-                        aria-label="Takvimde gelir toplamlarını göster"
+                        aria-label="Takvimde gelir ve gider toplamlarını göster"
                     />
                 </label>
                 {(incomeSettingError || saveError) && <p role="alert" className={styles.settingError}>Gelir görünürlüğü ayarı kaydedilemedi veya yüklenemedi.</p>}

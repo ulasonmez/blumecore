@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { X, Plus, Trash2, Edit2, Check, DollarSign, User, ChevronDown, ChevronUp } from 'lucide-react';
 import modalStyles from '@/components/CalendarModal.module.css';
+import styles from '@/components/PendingPaymentsModal.module.css';
 import { db } from '@/lib/firebase';
 import { collection, query, where, addDoc, deleteDoc, doc, updateDoc, onSnapshot, writeBatch } from 'firebase/firestore';
 import { useAuth } from '@/lib/auth-context';
@@ -384,51 +385,41 @@ export default function PendingPaymentsModal({ isOpen, onClose }: PendingPayment
                                 }}
                             >
                                 {/* YouTuber Group Header */}
-                                <div
-                                    onClick={() => toggleGroup(group.youtuberKey)}
-                                    style={{
-                                        padding: '11px 14px',
-                                        backgroundColor: 'rgba(92, 62, 240, 0.12)',
-                                        borderBottom: isCollapsed ? 'none' : '1px solid #33384D',
-                                        display: 'flex',
-                                        justifyContent: 'space-between',
-                                        alignItems: 'center',
-                                        cursor: 'pointer',
-                                        userSelect: 'none'
-                                    }}
-                                >
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                        <User size={15} style={{ color: 'var(--accent-purple)' }} />
-                                        <span style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text-primary)' }}>
-                                            {group.youtuberName}
-                                        </span>
-                                        <span style={{
-                                            fontSize: '11px',
-                                            backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                                            padding: '2px 7px',
-                                            borderRadius: '10px',
-                                            color: 'var(--text-secondary)'
-                                        }}>
-                                            {group.items.length} ödeme
-                                        </span>
-                                    </div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                        <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--accent-purple)' }}>
-                                            Toplam: ${group.totalAmount.toFixed(2)}
-                                        </div>
+                                <div className={`${styles.groupHeader} ${isCollapsed ? '' : styles.groupHeaderExpanded}`}>
+                                    <button
+                                        type="button"
+                                        className={styles.groupNameButton}
+                                        onClick={() => toggleGroup(group.youtuberKey)}
+                                        aria-expanded={!isCollapsed}
+                                        aria-label={`${group.youtuberName} ödemelerini ${isCollapsed ? 'göster' : 'gizle'}`}
+                                    >
+                                        <User size={15} className={styles.groupUserIcon} />
+                                        <span className={styles.groupName}>{group.youtuberName}</span>
+                                    </button>
+                                    <div className={styles.groupActions}>
                                         <button
                                             type="button"
-                                            onClick={(event) => { event.stopPropagation(); void handleDeleteGroup(group); }}
+                                            className={styles.deleteGroupButton}
+                                            onClick={() => { void handleDeleteGroup(group); }}
                                             disabled={deletingGroup !== null}
                                             title={`${group.youtuberName} için tüm beklenen ödemeleri sil`}
                                             aria-label={`${group.youtuberName} için tüm beklenen ödemeleri sil`}
-                                            style={{ background: 'none', border: 'none', color: 'var(--accent-red)', cursor: deletingGroup ? 'wait' : 'pointer', padding: '4px', display: 'flex' }}
                                         >
                                             <Trash2 size={16} />
                                         </button>
-                                        <div style={{ color: 'var(--text-secondary)', display: 'flex', alignItems: 'center' }}>
-                                            {isCollapsed ? <ChevronDown size={15} /> : <ChevronUp size={15} />}
-                                        </div>
+                                        <button
+                                            type="button"
+                                            className={styles.expandButton}
+                                            onClick={() => toggleGroup(group.youtuberKey)}
+                                            aria-expanded={!isCollapsed}
+                                            aria-label={`${group.youtuberName} ödemelerini ${isCollapsed ? 'göster' : 'gizle'}`}
+                                        >
+                                            {isCollapsed ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
+                                        </button>
+                                    </div>
+                                    <div className={styles.groupSummary}>
+                                        <span className={styles.paymentCount}>{group.items.length} ödeme</span>
+                                        <span className={styles.groupTotal}>Toplam: ${group.totalAmount.toFixed(2)}</span>
                                     </div>
                                 </div>
 

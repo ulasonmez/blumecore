@@ -1,0 +1,96 @@
+.groupHeader {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: 8px;
+    row-gap: 2px;
+    padding: 8px 10px 10px 14px;
+    background-color: rgba(92, 62, 240, 0.12);
+}
+
+.groupHeaderExpanded {
+    border-bottom: 1px solid #33384d;
+}
+
+.groupNameButton {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--text-primary);
+    text-align: left;
+    cursor: pointer;
+}
+
+.groupUserIcon {
+    flex: none;
+    color: var(--accent-purple);
+}
+
+.groupName {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.groupActions {
+    display: flex;
+    align-items: center;
+    flex: none;
+}
+
+.deleteGroupButton,
+.expandButton {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border: 0;
+    background: none;
+    cursor: pointer;
+}
+
+.deleteGroupButton {
+    color: var(--accent-red);
+}
+
+.deleteGroupButton:disabled {
+    opacity: 0.5;
+    cursor: wait;
+}
+
+.expandButton {
+    color: var(--text-secondary);
+}
+
+.groupSummary {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px 10px;
+    min-width: 0;
+    font-size: 12px;
+}
+
+.paymentCount {
+    padding: 3px 8px;
+    border-radius: 10px;
+    background-color: rgba(255, 255, 255, 0.08);
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.groupTotal {
+    color: var(--accent-purple);
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}

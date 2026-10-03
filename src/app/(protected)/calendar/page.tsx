@@ -174,7 +174,7 @@ export default function CalendarPage() {
                         <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Bu Ay Gelir</div>
                     </div>
                     <div className="card" style={{ padding: '12px', textAlign: 'center' }}>
-                        <div style={{ fontSize: '16px', fontWeight: 700, color: '#EF4444' }}>${monthlyExpense.toFixed(2)}</div>
+                        <div style={{ fontSize: '16px', fontWeight: 700, color: '#EF4444' }}>{showIncome ? `$${monthlyExpense.toFixed(2)}` : '****'}</div>
                         <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Bu Ay Gider</div>
                     </div>
                     <div className="card" style={{ padding: '12px', textAlign: 'center' }}>
@@ -182,7 +182,7 @@ export default function CalendarPage() {
                         <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Genel Gelir</div>
                     </div>
                     <div className="card" style={{ padding: '12px', textAlign: 'center' }}>
-                        <div style={{ fontSize: '16px', fontWeight: 700, color: '#EF4444' }}>${allTimeExpense.toFixed(2)}</div>
+                        <div style={{ fontSize: '16px', fontWeight: 700, color: '#EF4444' }}>{showIncome ? `$${allTimeExpense.toFixed(2)}` : '****'}</div>
                         <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Genel Gider</div>
                     </div>
                 </div>

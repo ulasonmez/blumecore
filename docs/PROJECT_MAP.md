@@ -21,10 +21,10 @@ Tablodaki yollar depo köküne göredir. Sayfa klasörlerindeki `*.module.css` d
 | --- | --- | --- |
 | Giriş, oturum, yetkisiz erişim, giriş döngüsü | `src/app/login/page.tsx`, `src/app/api/auth/session/route.ts` | `src/lib/server-auth.ts`, `src/lib/api-client.ts`, `src/lib/auth-context.tsx`, `src/app/(protected)/layout.tsx` |
 | Ana sayfa, Follow Ups, takip, notlar, aşamalar | `src/app/(protected)/home/page.tsx`, `src/components/StatusesModal.tsx` | `src/lib/statuses.ts`; `followups`, `statuses`, `youtubers`, `groups` |
-| Bekleyen ödeme, tahsilat | `src/components/PendingPaymentsModal.tsx` | Ana sayfadan açılır; `pendingPayments`, `youtubers`; YouTuber grubunun tüm ödemeleri iki onayla topluca silinebilir |
+| Bekleyen ödeme, tahsilat | `src/components/PendingPaymentsModal.tsx`, `src/components/PendingPaymentsModal.module.css` | Ana sayfadan açılır; `pendingPayments`, `youtubers`; YouTuber grubunun tüm ödemeleri iki onayla topluca silinebilir; dar ekran grup başlığı iki satırlıdır |
 | YouTuber listesi, katalog, ülke/grup, kanal | `src/app/(protected)/catalog/page.tsx`, `src/components/GroupModal.tsx` | `youtubers`, `groups`; silme: `src/app/api/youtubers/[youtuberId]/route.ts` |
 | YouTuber detayındaki takvim ve oyuncular | `src/components/CalendarModal.tsx`, `src/components/MinecraftPlayersTab.tsx` | `assignments`, `records`, `youtube_videos`; oyuncu API'leri |
-| Takvim, video atama, gelir/gider, kayıt düzenleme | `src/app/(protected)/calendar/page.tsx`, `src/components/RecordModal.tsx` | `records`, `assignments`, `team`, `youtube_videos`; gelir toplamlarının görünürlüğü `src/lib/income-visibility.ts`; atama silme API'si |
+| Takvim, video atama, gelir/gider, kayıt düzenleme | `src/app/(protected)/calendar/page.tsx`, `src/components/RecordModal.tsx` | `records`, `assignments`, `team`, `youtube_videos`; gelir/gider toplamlarının görünürlüğü `src/lib/income-visibility.ts`; atama silme API'si |
 | Ekip, aracı, broker, komisyon | `src/app/(protected)/team/page.tsx`, `src/components/BrokerModal.tsx` | `team` içindeki `member` / `broker` rolleri; `records`, `assignments` |
 | Video listesi, video kartı, sıralama | `src/app/(protected)/videos/page.tsx`, `src/components/VideoGridItem.tsx` | `youtube_videos`, `assignments`; video silme API'si |
 | Video detayı, videoya mod bağlama, YouTuber erişimi | `src/components/VideoDetailModal.tsx`, `src/components/YoutuberModAccessModal.tsx` | `src/app/api/videos/[videoId]/mods/route.ts`, `src/app/api/mods/[modId]/access/route.ts` |
@@ -36,7 +36,7 @@ Tablodaki yollar depo köküne göredir. Sayfa klasörlerindeki `*.module.css` d
 | Erişim verme/kaldırma, atama sonrası mod izni | `src/app/api/mods/[modId]/access/route.ts`, `src/app/api/videos/[videoId]/assign-access/route.ts` | `handleVideoAssignmentModAccess`, `recalculateCascadeAccess`, `grantSources`, `manualDecision` |
 | Mod arşivleme, geri getirme, kalıcı silme, eski kayıt temizleme | `src/lib/mods/mod-service.ts` | `archiveModProject`, `restoreModProject`, `deleteModProject`, `previewArchivedModsCleanup`, `executeArchivedModsCleanup` |
 | Bekleyen/başarısız senkronizasyon, retry, cron | `src/lib/mods/mod-service.ts`, `src/app/api/jobs` | `createOrCoalesceSyncJob`, `processSyncJob`, `processPendingJobs`; `src/app/api/cron/github-sync/route.ts` |
-| Ayarlar, çıkış | `src/app/(protected)/settings/page.tsx` | Takvim gelir toplamlarının kalıcı görünürlük ayarı (`user_settings`), Firebase sign-out + `DELETE /api/auth/session` |
+| Ayarlar, çıkış | `src/app/(protected)/settings/page.tsx` | Takvim gelir/gider toplamlarının kalıcı görünürlük ayarı (`user_settings`), Firebase sign-out + `DELETE /api/auth/session` |
 | Alt menü, ortak görünüm, tema | `src/components/BottomNav.tsx`, `src/components/ClientLayout.tsx`, `src/app/layout.tsx`, `src/app/globals.css` | `src/components/BottomNav.module.css`; sayfa ve bileşen CSS Modules dosyaları |
 
 `src/app/page.tsx`, `/home` adresine yönlendirir. Korumalı URL'ler `/home`, `/videos`, `/calendar`, `/catalog`, `/team`, `/settings` şeklindedir; `(protected)` yalnızca dosya sistemindeki route grubudur.
@@ -52,7 +52,7 @@ Sayfaların önemli bir kısmı `onSnapshot` ile Firestore'dan canlı veri dinle
 | `youtubers`, `groups` | YouTuber ve grupları; katalog/ana sayfa içindeki tipler ve sorgular |
 | `followups`, `statuses` | Takip, not ve aşamalar; ana sayfa, `StatusesModal`, `src/lib/statuses.ts` |
 | `pendingPayments` | Bekleyen ödemeler; `PendingPaymentsModal` |
-| `user_settings` | Sahip UID'siyle anahtarlanan `showIncomeTotals` ayarı; takvimdeki bu ay/genel gelir toplamları yalnızca değer `true` ise gösterilir |
+| `user_settings` | Sahip UID'siyle anahtarlanan `showIncomeTotals` ayarı; mevcut alan adı korunur ve takvimdeki bu ay/genel gelir ile gider toplamları yalnızca değer `true` ise gösterilir |
 | `team`, `records` | Ekip/aracı bilgileri ve gelir/gider kayıtları; ekip/takvim sayfaları, `RecordModal` |
 | `youtube_videos`, `assignments` | Videolar ve YouTuber video atamaları; video/takvim sayfaları |
 | `minecraft_players`, `youtuber_minecraft_players` | Ortak oyuncu kimliği ve YouTuber ile ilişkisi; `src/lib/minecraft-players.ts` ve oyuncu API'leri |

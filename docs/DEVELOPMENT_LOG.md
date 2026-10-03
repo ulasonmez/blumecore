@@ -6,6 +6,14 @@ Her görev için kısa kayıt tut: ne/neden değişti, ilgili dosyalar, gerçekt
 
 > 2026-10-03: Deponun public yapılmasının ardından Vercel dağıtımını yeniden tetiklemek için dokümantasyon commit'i oluşturuldu.
 
+## 2026-10-03 — Gider gizleme ve beklenen ödeme mobil başlığı
+
+- **Değişiklik ve neden:** Takvimdeki bu ay/genel gider tutarları da kayıtlı görünürlük ayarına bağlandı; ayar metni gelir ve gideri birlikte belirtir. Beklenen ödeme grubu başlığında YouTuber adı ile işlem düğmeleri ilk satıra, ödeme sayısı ve toplam ikinci satıra taşındı; dar ekranda üst üste binme giderildi.
+- **Dosyalar:** `src/app/(protected)/calendar/page.tsx`, `src/app/(protected)/settings/page.tsx`, `src/components/PendingPaymentsModal.tsx`, `src/components/PendingPaymentsModal.module.css`.
+- **Harita:** Takvim, ayarlar, beklenen ödeme ve `user_settings` açıklamaları güncellendi.
+- **Doğrulama:** `npx tsc --noEmit --incremental false`, ödeme/profil bileşenlerine yönelik ESLint ve `git diff --check` geçti. Takvim sayfası, önceden var olan `any` lint hataları geçici olarak devre dışı bırakılarak ayrıca kontrol edildi; yalnızca önceden var olan kullanılmayan değişken uyarıları kaldı. Dar ekran yerleşimi kod ve sağlanan mobil ekran görüntüsü üzerinden değerlendirildi.
+- **Kalan iş:** Gerçek mobil tarayıcıda oturum açılarak ekran doğrulanmadı.
+
 ## 2026-10-03 — Beklenen ödemelerde toplu silme ve gelir görünürlüğü
 
 - **Değişiklik ve neden:** Beklenen ödemelerde YouTuber başlığına tüm alt ödemeleri silen düğme eklendi; silme iki ayrı onaydan sonra Firestore batch'leriyle yapılır. Takvimdeki “Bu Ay Gelir” ve “Genel Gelir” varsayılan olarak `****` gösterilir; profil ayarı açıldığında rakamlar görünür. Ayar Firestore'da kalıcıdır ve yükleme/hata durumunda tutarlar gizli kalır.
