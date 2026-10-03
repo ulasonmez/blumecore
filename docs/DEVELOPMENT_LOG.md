@@ -4,6 +4,8 @@ Yeni sohbetlerde önce [AGENTS.md](../AGENTS.md) ve [proje haritasını](PROJECT
 
 Her görev için kısa kayıt tut: ne/neden değişti, ilgili dosyalar, gerçekten yapılan doğrulama ve varsa kalan iş. Kod/konfigürasyon değiştiğinde haritayı kontrol et; etkilenen bilgiyi haritada da yerinde güncelle. Secret, kişisel veri veya tam araç çıktısı ekleme. Salt okunur soru/yanıtları kaydetme.
 
+> 2026-10-03: Deponun public yapılmasının ardından Vercel dağıtımını yeniden tetiklemek için dokümantasyon commit'i oluşturuldu.
+
 ## 2026-10-03 — Beklenen ödemelerde toplu silme ve gelir görünürlüğü
 
 - **Değişiklik ve neden:** Beklenen ödemelerde YouTuber başlığına tüm alt ödemeleri silen düğme eklendi; silme iki ayrı onaydan sonra Firestore batch'leriyle yapılır. Takvimdeki “Bu Ay Gelir” ve “Genel Gelir” varsayılan olarak `****` gösterilir; profil ayarı açıldığında rakamlar görünür. Ayar Firestore'da kalıcıdır ve yükleme/hata durumunda tutarlar gizli kalır.
