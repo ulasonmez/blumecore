@@ -40,8 +40,10 @@
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius-lg);
     width: 100%;
-    max-width: 500px;
+    max-width: 640px;
+    min-width: 0;
     max-height: 88vh;
+    max-height: min(88dvh, calc(100dvh - 32px));
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -50,6 +52,7 @@
 }
 
 .header {
+    flex-shrink: 0;
     padding: 20px 24px 16px 24px;
     border-bottom: 1px solid var(--border-color);
     background: linear-gradient(180deg, rgba(234, 243, 238, 0.03) 0%, transparent 100%);
@@ -135,7 +138,10 @@
 .contentBody {
     padding: 20px 24px;
     overflow-y: auto;
-    max-height: calc(88vh - 170px);
+    min-height: 0;
+    min-width: 0;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
     display: flex;
     flex-direction: column;
     gap: 14px;
@@ -164,6 +170,8 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 2px;
+    gap: 8px;
+    flex-wrap: wrap;
 }
 
 .sectionTitle {
@@ -206,12 +214,15 @@
 }
 
 .cardHeader {
+    flex-wrap: wrap;
+    gap: 8px;
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
 
 .youtuberProfile {
+    min-width: 0;
     display: flex;
     align-items: center;
     gap: 10px;
@@ -234,6 +245,8 @@
 }
 
 .youtuberName {
+    min-width: 0;
+    overflow-wrap: anywhere;
     font-size: 14.5px;
     font-weight: 600;
     color: var(--text-primary);
@@ -256,6 +269,8 @@
 }
 
 .brokerTag {
+    min-width: 0;
+    overflow-wrap: anywhere;
     display: inline-flex;
     align-items: center;
     gap: 5px;
@@ -307,4 +322,120 @@
 .emptyIcon {
     color: var(--text-secondary);
     opacity: 0.6;
+}
+
+/* Flex children must shrink before long names can wrap within the scroll area. */
+.contentBody > *,
+.assignmentCard {
+    min-width: 0;
+    flex-shrink: 0;
+}
+
+.linkSectionHeader,
+.linkSectionTitle,
+.modLabels,
+.accessDetails {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-width: 0;
+}
+
+.linkSectionHeader {
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.linkControl {
+    position: relative;
+    flex-shrink: 0;
+}
+
+.linkDropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 6px;
+    width: min(280px, calc(100vw - 64px));
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 8px;
+    box-shadow: 0 10px 25px var(--shadow-color);
+    z-index: 20;
+}
+
+.linkedModCard,
+.accessRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    min-width: 0;
+}
+
+.linkedModCard {
+    background-color: rgba(234, 243, 238, 0.05);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 10px 14px;
+}
+
+.modInfo,
+.accessDetails {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.repositoryLink {
+    overflow-wrap: anywhere;
+}
+
+.repositoryLink svg {
+    vertical-align: middle;
+}
+
+.accessRow {
+    background-color: var(--bg-subtle);
+    padding: 6px 10px;
+    border-radius: 6px;
+}
+
+.rowAction,
+.closeBtn {
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+@media (max-width: 480px) {
+    .header {
+        padding: 16px;
+    }
+
+    .contentBody {
+        padding: 16px;
+    }
+
+    .linkControl {
+        width: 100%;
+    }
+
+    .linkDropdown {
+        left: 0;
+        right: auto;
+        width: 100%;
+    }
+
+    .linkedModCard,
+    .accessRow {
+        align-items: flex-start;
+    }
+
+    .modInfo,
+    .accessDetails {
+        flex-basis: 100%;
+    }
 }

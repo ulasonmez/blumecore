@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
     X,
     ExternalLink,
@@ -74,6 +75,15 @@ export default function VideoDetailModal({
         youtuberId: string;
         youtuberName: string;
     } | null>(null);
+
+    useEffect(() => {
+        if (!isOpen) return;
+        const previousOverflow = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+        return () => {
+            document.body.style.overflow = previousOverflow;
+        };
+    }, [isOpen]);
 
     // Fetch Brokers
     useEffect(() => {
@@ -203,7 +213,7 @@ export default function VideoDetailModal({
         }
     };
 
-    if (!isOpen) return null;
+    if (!isOpen || typeof document === 'undefined') return null;
 
     const availableModsToLink = allMods.filter(
         (m) => !linkedMods.some((lm) => lm.id === m.id) &&
@@ -211,9 +221,9 @@ export default function VideoDetailModal({
                 m.modKey.toLowerCase().includes(modSearchTerm.toLowerCase()))
     );
 
-    return (
+    return createPortal(
         <div className={styles.overlay} onClick={onClose}>
-            <div className={styles.modal} onClick={(e) => e.stopPropagation()} style={{ maxWidth: '640px' }}>
+            <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
                 {/* Header */}
                 <div className={styles.header}>
                     <div className={styles.topRow}>
@@ -249,8 +259,8 @@ export default function VideoDetailModal({
                 <div className={styles.contentBody}>
                     {/* SECTION 1: BAĞLI MODLAR */}
                     <div style={{ marginBottom: '24px', paddingBottom: '20px', borderBottom: '1px solid var(--border-color)' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div className={styles.linkSectionHeader}>
+                            <div className={styles.linkSectionTitle}>
                                 <Box size={16} style={{ color: 'var(--accent-primary)' }} />
                                 <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
                                     Bağlı Modlar
@@ -260,7 +270,7 @@ export default function VideoDetailModal({
                                 </span>
                             </div>
 
-                            <div style={{ position: 'relative' }}>
+                            <div className={styles.linkControl}>
                                 <button
                                     type="button"
                                     onClick={() => setIsLinkDropdownOpen(!isLinkDropdownOpen)}
@@ -288,19 +298,7 @@ export default function VideoDetailModal({
                                             style={{ position: 'fixed', inset: 0, zIndex: 10 }}
                                             onClick={() => setIsLinkDropdownOpen(false)}
                                         />
-                                        <div style={{
-                                            position: 'absolute',
-                                            top: '100%',
-                                            right: 0,
-                                            marginTop: '6px',
-                                            width: '280px',
-                                            backgroundColor: 'var(--bg-card)',
-                                            border: '1px solid var(--border-color)',
-                                            borderRadius: '8px',
-                                            padding: '8px',
-                                            boxShadow: '0 10px 25px var(--shadow-color)',
-                                            zIndex: 20
-                                        }}>
+                                        <div className={styles.linkDropdown}>
                                             <input
                                                 type="text"
                                                 placeholder="Mod ara..."
@@ -310,7 +308,7 @@ export default function VideoDetailModal({
                                                 style={{
                                                     width: '100%',
                                                     padding: '8px 10px',
-                                                    fontSize: '12px',
+                                                    fontSize: '16px',
                                                     marginBottom: '6px',
                                                     backgroundColor: 'var(--bg-color)',
                                                     border: '1px solid var(--border-color)',
@@ -337,7 +335,7 @@ export default function VideoDetailModal({
                                                         onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(234, 243, 238, 0.08)'}
                                                         onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                                                     >
-                                                        <div>
+                                                        <div className={styles.modInfo}>
                                                             <div style={{ fontWeight: 600 }}>{m.displayName}</div>
                                                             <div style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>{m.modKey}</div>
                                                         </div>
@@ -396,18 +394,10 @@ export default function VideoDetailModal({
                                 {linkedMods.map((m) => (
                                     <div
                                         key={m.id}
-                                        style={{
-                                            backgroundColor: 'rgba(234, 243, 238, 0.05)',
-                                            border: '1px solid var(--border-color)',
-                                            borderRadius: '8px',
-                                            padding: '10px 14px',
-                                            display: 'flex',
-                                            justifyContent: 'space-between',
-                                            alignItems: 'center'
-                                        }}
+                                        className={styles.linkedModCard}
                                     >
-                                        <div>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <div className={styles.modInfo}>
+                                            <div className={styles.modLabels}>
                                                 <strong style={{ fontSize: '13px', color: 'var(--text-primary)' }}>{m.displayName}</strong>
                                                 <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>({m.modKey})</span>
                                                 <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '4px', backgroundColor: 'rgba(234, 243, 238, 0.09)', color: 'var(--text-secondary)' }}>
@@ -419,7 +409,7 @@ export default function VideoDetailModal({
                                                     href={`https://github.com/${m.githubOwner}/${m.githubRepository}`}
                                                     target="_blank"
                                                     rel="noreferrer"
-                                                    style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}
+                                                    className={styles.repositoryLink}
                                                 >
                                                     {m.githubOwner}/{m.githubRepository} <ExternalLink size={10} />
                                                 </a>
@@ -427,6 +417,7 @@ export default function VideoDetailModal({
                                         </div>
 
                                         <button
+                                            className={styles.rowAction}
                                             type="button"
                                             onClick={() => handleUnlinkMod(m.id)}
                                             style={{
@@ -526,16 +517,9 @@ export default function VideoDetailModal({
                                                         return (
                                                             <div
                                                                 key={m.id}
-                                                                style={{
-                                                                    display: 'flex',
-                                                                    justifyContent: 'space-between',
-                                                                    alignItems: 'center',
-                                                                    backgroundColor: 'var(--bg-subtle)',
-                                                                    padding: '6px 10px',
-                                                                    borderRadius: '6px'
-                                                                }}
+                                                                className={styles.accessRow}
                                                             >
-                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                                <div className={styles.accessDetails}>
                                                                     <span style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{m.modKey}</span>
                                                                     <span style={{
                                                                         fontSize: '10px',
@@ -558,6 +542,7 @@ export default function VideoDetailModal({
                                                                 </div>
 
                                                                 <button
+                                                                    className={styles.rowAction}
                                                                     type="button"
                                                                     onClick={() => setManagingTarget({
                                                                         mod: m,
@@ -616,6 +601,7 @@ export default function VideoDetailModal({
                     }}
                 />
             )}
-        </div>
+        </div>,
+        document.body
     );
 }

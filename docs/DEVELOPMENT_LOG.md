@@ -4,6 +4,14 @@ Yeni sohbetlerde önce [AGENTS.md](../AGENTS.md) ve [proje haritasını](PROJECT
 
 Her görev için kısa kayıt tut: ne/neden değişti, ilgili dosyalar, gerçekten yapılan doğrulama ve varsa kalan iş. Kod/konfigürasyon değiştiğinde haritayı kontrol et; etkilenen bilgiyi haritada da yerinde güncelle. Secret, kişisel veri veya tam araç çıktısı ekleme. Salt okunur soru/yanıtları kaydetme.
 
+## 2026-10-06 — Video detayında mobil taşma düzeltmesi
+
+- **Değişiklik ve neden:** Bağlı mod satırları ve erişim özetindeki tek satırlı flex düzenleri dar ekranda yatay taşmaya neden oluyordu. Mod/depo/kişi adları ve rozetler satır kırar; mobil işlem düğmeleri alt satıra geçer. Modal body portalına taşındı, arka sayfa kaydırması açıkken kilitlenir ve kapanınca geri yüklenir. Başlık kaydırma alanından ayrıldı; içerik dinamik ekran yüksekliğine uyar ve yalnızca dikey kaydırılır. Mod bağlama menüsü mobil genişliğe uyar; arama yazısı 16px oldu.
+- **Dosyalar:** `src/components/VideoDetailModal.tsx`, `src/components/VideoDetailModal.module.css`, hafıza belgeleri.
+- **Harita:** Video detayı mobil yerleşimi, portal/kaydırma ve değişmeyen veri yolları açıklandı.
+- **Doğrulama:** TypeScript, ilgili bileşen ESLint kontrolü ve `git diff --check` geçti. Geçici kontrol sayfasında gerçek bileşenin ürettiği HTML ve mevcut CSS, örnek veriler ve etkisizleştirilen hook/portal bağımlılıklarıyla Chrome/Playwright üzerinden kontrol edildi. 320/375/430/768/1280px genişliklerde normal/uzun adlar ve açık/kapalı mod menüsü toplam 20 senaryoda belge ve içerik yatay taşması olmadı; modal ekran içinde, başlık görünür ve içerik dikey kaydırılabilir kaldı. 375px ekran görüntüsü ayrıca görsel incelendi. Bu kontrol canlı React etkileşimi, API/Firestore doğrulaması veya gerçek Safari testi değildir; üretim derlemesi çalıştırılmadı.
+- **Kalan iş:** Gerçek iPhone Safari ve canlı oturum etkileşimi doğrulanmadı; dağıtım yapılmadı.
+
 ## 2026-10-04 — Discord görünümü ve mobil export kişi seçimi
 
 - **Değişiklik ve neden:** Kaydedilen Discord ID sürekli metin alanında kalmak yerine sabit metin/Ekle/Düzenle görünümünde sunulur; kayıt sonrası form kapanır ve Vazgeç desteklenir. Export kategorileri açılıp kapanır; altındaki YouTuber’lar ayrı kutularla seçilir. Kategori kutuları toplu/kısmi seçim durumunu gösterir. ID’si olmayan kişiler listelenir fakat seçilemez. Kişi seçimi farklı kategorilerde de ortaktır. Genel input padding’inden büyüyen checkbox’lar düzeltildi; mobil pencerede başlık ve Kopyala alanı kaydırılan içerikten ayrıldı.
