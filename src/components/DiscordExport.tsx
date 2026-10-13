@@ -8,19 +8,20 @@ import styles from './DiscordContacts.module.css';
 interface DiscordExportProps {
     contacts: DiscordContact[];
     categories?: DiscordExportCategory[];
+    categoryLabel?: string;
 }
 
-export default function DiscordExport({ contacts, categories }: DiscordExportProps) {
+export default function DiscordExport({ contacts, categories, categoryLabel }: DiscordExportProps) {
     const [open, setOpen] = useState(false);
     return <>
         <button type="button" className={styles.exportButton} onClick={() => setOpen(true)}>
             <Download size={14} /> Export
         </button>
-        {open && <ExportDialog contacts={contacts} categories={categories} onClose={() => setOpen(false)} />}
+        {open && <ExportDialog contacts={contacts} categories={categories} categoryLabel={categoryLabel} onClose={() => setOpen(false)} />}
     </>;
 }
 
-function ExportDialog({ contacts, categories, onClose }: DiscordExportProps & { onClose: () => void }) {
+function ExportDialog({ contacts, categories, categoryLabel = 'Kategorileri seç', onClose }: DiscordExportProps & { onClose: () => void }) {
     const dialog = useRef<HTMLDialogElement>(null);
     const textarea = useRef<HTMLTextAreaElement>(null);
     const [message, setMessage] = useState('');
@@ -57,7 +58,7 @@ function ExportDialog({ contacts, categories, onClose }: DiscordExportProps & { 
                 <div className={styles.dialogBody}>
                 {categories && (
                     <fieldset className={styles.categoryFieldset}>
-                        <legend>Kategorileri seç</legend>
+                        <legend>{categoryLabel}</legend>
                         <div className={styles.selectionActions}>
                             <button type="button" onClick={() => updateSelection(allContacts.filter(contact => contact.discordId?.trim()).map(contact => contact.id))}>Tümünü seç</button>
                             <button type="button" onClick={() => updateSelection([])}>Seçimi temizle</button>
@@ -71,7 +72,7 @@ function ExportDialog({ contacts, categories, onClose }: DiscordExportProps & { 
                                 return (
                                     <div key={category.name} className={styles.categoryGroup}>
                                         <div className={styles.categoryHeader}>
-                                            <SelectionCheckbox label={`${category.name} kategorisinin tümünü seç`} checked={eligible.length > 0 && selectedCount === eligible.length}
+                                            <SelectionCheckbox label={`${category.name}: tüm kişileri seç`} checked={eligible.length > 0 && selectedCount === eligible.length}
                                                 mixed={selectedCount > 0 && selectedCount < eligible.length} disabled={eligible.length === 0}
                                                 onChange={checked => updateSelection(checked
                                                     ? [...selectedIds, ...eligible.map(contact => contact.id)]

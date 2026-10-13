@@ -10,6 +10,7 @@ import styles from './Home.module.css';
 import PendingPaymentsModal from '@/components/PendingPaymentsModal';
 import StatusesModal from '@/components/StatusesModal';
 import DiscordExport from '@/components/DiscordExport';
+import { buildFollowUpDiscordCategories } from '@/lib/discord-contacts';
 import { db } from '@/lib/firebase';
 import { 
     collection, query, where, addDoc, deleteDoc, doc, 
@@ -177,6 +178,11 @@ export default function HomePage() {
             return nameMatch && statusMatch;
         });
     }, [followUps, searchQuery, activeFilter]);
+
+    const discordExportCategories = useMemo(
+        () => buildFollowUpDiscordCategories(filteredFollowUps, youtubers, groups),
+        [filteredFollowUps, youtubers, groups],
+    );
 
     // Grouped Follow Ups when in "Tümü" filter
     const groupedFollowUps = useMemo(() => {
@@ -387,10 +393,7 @@ export default function HomePage() {
                     <h1 className="page-title">Follow Ups</h1>
                 </div>
                 <div className={styles.headerActions}>
-                    <DiscordExport contacts={[]} categories={
-                        [...new Set([...statuses.map(status => status.name), ...filteredFollowUps.map(f => f.status)])]
-                            .map(name => ({ name, contacts: youtubers.filter(yt => filteredFollowUps.some(f => f.status === name && f.youtuberId === yt.id)) }))
-                    } />
+                    <DiscordExport contacts={[]} categories={discordExportCategories} categoryLabel="Ülkeleri seç" />
                     <button
                         onClick={() => setIsStatusesOpen(true)}
                         style={{

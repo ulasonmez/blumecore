@@ -4,6 +4,14 @@ Yeni sohbetlerde önce [AGENTS.md](../AGENTS.md) ve [proje haritasını](PROJECT
 
 Her görev için kısa kayıt tut: ne/neden değişti, ilgili dosyalar, gerçekten yapılan doğrulama ve varsa kalan iş. Kod/konfigürasyon değiştiğinde haritayı kontrol et; etkilenen bilgiyi haritada da yerinde güncelle. Secret, kişisel veri veya tam araç çıktısı ekleme. Salt okunur soru/yanıtları kaydetme.
 
+## 2026-10-13 — Ana sayfa Discord export’unda ülke seçimi
+
+- **Değişiklik ve neden:** Export penceresi takip aşamaları yerine ülkelerle gruplandı; istenmeyen bir ülkenin tüm kişileri tek kutuyla dışarıda bırakılabilir. Ülkeler ve altlarındaki kişiler Türkçe alfabetik sıralanır. Güncel katalog grubu esas alınır; grup bulunamazsa filtredeki en yeni takip ülkesine dönülür, eksik ülke en sondaki “Ülke belirtilmedi” grubuna alınır. Aynı kişi farklı takiplerde bulunsa da bir kez görünür. Mevcut arama/statü kapsamı, tekil seçim ve kopyalanabilir metin biçimi korunur.
+- **Dosyalar:** `src/app/(protected)/home/page.tsx`, `src/components/DiscordExport.tsx`, `src/lib/discord-contacts.ts`, `tests/discord-contacts.test.ts`, hafıza belgeleri.
+- **Harita:** Discord export açıklaması ve ilgili test eşleşmesi ülke gruplaması, veri kaynağı, sıralama ve eksik ülke davranışına göre güncellendi. Yeni API, veri yazma veya migration yok.
+- **Doğrulama:** `node --import tsx --test tests/discord-contacts.test.ts` ile 5 test, `npx tsc --noEmit --incremental false`, yardımcı/bileşen ESLint kontrolü ve `git diff --check` geçti. Home ESLint kontrolünde HEAD sürümüyle aynı 10 mevcut tırnak hatası/15 uyarı bulundu; ilgili tırnak kuralı yalnızca kontrol komutunda kapatılınca hata kalmadı. Varsayılan Turbopack derlemesi ilerleme çıktısı vermediği için durduruldu; `npm run build -- --webpack` üretim derlemesi geçti. Geçici kontrol sayfasında gerçek export bileşeni ve gruplama yardımcısı örnek verilerle Chrome’da etkileşimli doğrulandı: ülkeyi topluca dışarıda bırakma, tek kişi/kısmi seçim, Discord ID’si olmayan kişinin seçilememesi, tümünü seçme ve boş seçimde Kopyala’nın kapanması. Kontrol sayfası kaldırıldı.
+- **Kalan iş:** Canlı oturumdaki Firestore verileri, pano erişimi, gerçek mobil tarayıcı ve üretim dağıtımı bu kontrolde doğrulanmadı.
+
 ## 2026-10-06 — Video detayında mobil taşma düzeltmesi
 
 - **Değişiklik ve neden:** Bağlı mod satırları ve erişim özetindeki tek satırlı flex düzenleri dar ekranda yatay taşmaya neden oluyordu. Mod/depo/kişi adları ve rozetler satır kırar; mobil işlem düğmeleri alt satıra geçer. Modal body portalına taşındı, arka sayfa kaydırması açıkken kilitlenir ve kapanınca geri yüklenir. Başlık kaydırma alanından ayrıldı; içerik dinamik ekran yüksekliğine uyar ve yalnızca dikey kaydırılır. Mod bağlama menüsü mobil genişliğe uyar; arama yazısı 16px oldu.
