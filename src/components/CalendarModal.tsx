@@ -10,6 +10,7 @@ import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { useAuth } from '@/lib/auth-context';
 import MinecraftPlayersTab from './MinecraftPlayersTab';
 import DiscordContactEditor from './DiscordContactEditor';
+import CustomerVideoLink from './CustomerVideoLink';
 
 interface CalendarModalProps {
     isOpen: boolean;
@@ -36,6 +37,7 @@ interface AssignmentData {
     note: string;
     createdAt?: number;
     source?: string;
+    customerVideoUrl?: string;
 }
 
 interface VideoData {
@@ -284,6 +286,7 @@ export default function CalendarModal({
                                                     Not: {assignment.note}
                                                 </div>
                                             )}
+                                            <CustomerVideoLink assignmentId={assignment.id} url={assignment.customerVideoUrl} />
                                         </div>
                                     );
                                 });

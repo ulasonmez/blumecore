@@ -31,6 +31,7 @@ interface YoutuberAssignment {
     delivered: boolean;
     note: string;
     videoId: string;
+    customerVideoUrl?: string;
 }
 
 export default function VideosPage() {

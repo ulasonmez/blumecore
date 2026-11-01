@@ -25,6 +25,7 @@ import { authenticatedFetch } from '@/lib/api-client';
 import { ModProject, YoutuberModAccess } from '@/lib/mods/types';
 import ModModal from './ModModal';
 import YoutuberModAccessModal from './YoutuberModAccessModal';
+import CustomerVideoLink from './CustomerVideoLink';
 
 interface YoutuberAssignment {
     id: string;
@@ -35,6 +36,7 @@ interface YoutuberAssignment {
     videoId: string;
     createdAt?: number;
     brokerId?: string;
+    customerVideoUrl?: string;
 }
 
 interface VideoDetailModalProps {
@@ -493,6 +495,8 @@ export default function VideoDetailModal({
                                                 <span className={styles.noteText}>{a.note}</span>
                                             </div>
                                         ) : null}
+
+                                        <CustomerVideoLink assignmentId={a.id} url={a.customerVideoUrl} />
 
                                         {/* Minecraft Mod Access Summary */}
                                         {linkedMods.length > 0 && (

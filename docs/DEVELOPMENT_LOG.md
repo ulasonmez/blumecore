@@ -4,6 +4,13 @@ Yeni sohbetlerde önce [AGENTS.md](../AGENTS.md) ve [proje haritasını](PROJECT
 
 Her görev için kısa kayıt tut: ne/neden değişti, ilgili dosyalar, gerçekten yapılan doğrulama ve varsa kalan iş. Kod/konfigürasyon değiştiğinde haritayı kontrol et; etkilenen bilgiyi haritada da yerinde güncelle. Secret, kişisel veri veya tam araç çıktısı ekleme. Salt okunur soru/yanıtları kaydetme.
 
+## 2026-11-01 — Müşteri videosu bağlantısı
+
+- **Değişiklik:** Her video atamasına opsiyonel müşteri YouTube bağlantısı eklendi; YouTuber ve video detayları aynı kaydı görüntüler, düzenler, açar ve kopyalar. Boş kaydetme bağlantıyı kaldırır; katalog video bağlantısı korunur.
+- **Dosyalar:** `src/components/CustomerVideoLink.tsx`, `CustomerVideoLink.module.css`, `CalendarModal.tsx`, `VideoDetailModal.tsx`, `src/app/(protected)/videos/page.tsx`, `src/lib/customer-video-url.ts`, `tests/customer-video-url.test.ts` ve hafıza belgeleri.
+- **Harita:** Ortak alan, doğrulama ve ekran akışı eklendi.
+- **Doğrulama ve kalan iş:** İki hedefli URL testi, ilgili ESLint kontrolü (video sayfasında dört mevcut uyarı), kaynak ve testler için tip kontrolü ve `git diff --check` geçti. Varsayılan tip kontrolü `.next/dev/types` altındaki eski geçici sayfa referansı nedeniyle başarısız; ikinci kontrol üretilmiş dosyaları dışladı. Canlı Firestore, pano ve oturum gerektiren ekranlarda etkileşim doğrulanmadı; dağıtım yapılmadı.
+
 ## 2026-10-13 — Ana sayfa Discord export’unda ülke seçimi
 
 - **Değişiklik ve neden:** Export penceresi takip aşamaları yerine ülkelerle gruplandı; istenmeyen bir ülkenin tüm kişileri tek kutuyla dışarıda bırakılabilir. Ülkeler ve altlarındaki kişiler Türkçe alfabetik sıralanır. Güncel katalog grubu esas alınır; grup bulunamazsa filtredeki en yeni takip ülkesine dönülür, eksik ülke en sondaki “Ülke belirtilmedi” grubuna alınır. Aynı kişi farklı takiplerde bulunsa da bir kez görünür. Mevcut arama/statü kapsamı, tekil seçim ve kopyalanabilir metin biçimi korunur.
