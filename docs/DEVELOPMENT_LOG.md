@@ -4,6 +4,13 @@ Yeni sohbetlerde önce [AGENTS.md](../AGENTS.md) ve [proje haritasını](PROJECT
 
 Her görev için kısa kayıt tut: ne/neden değişti, ilgili dosyalar, gerçekten yapılan doğrulama ve varsa kalan iş. Kod/konfigürasyon değiştiğinde haritayı kontrol et; etkilenen bilgiyi haritada da yerinde güncelle. Secret, kişisel veri veya tam araç çıktısı ekleme. Salt okunur soru/yanıtları kaydetme.
 
+## 2026-11-01 — YouTuber video kartlarının düzeni
+
+- **Değişiklik:** YouTuber detayındaki video atamaları belirgin kartlara alındı; müşteri bağlantısı kartın içinde gösterildi ve katalog bağlantısı “Orijinal videoyu izle” olarak açıklandı. Dar ekranlarda başlık ve tarih satır kırabilir.
+- **Dosyalar:** `src/components/CalendarModal.tsx`, `src/components/CalendarModal.module.css` ve hafıza belgeleri.
+- **Harita:** Video kartı ve bağlantıların görsel ayrımı eklendi; veri akışı değişmedi.
+- **Doğrulama:** İlgili ESLint, üretilmiş `.next` türlerini dışlayan kaynak/test tip kontrolü ve `git diff --check` geçti. Gerçek tarayıcıda görsel ve etkileşim kontrolü yapılmadı.
+
 ## 2026-11-01 — Müşteri videosu bağlantısı
 
 - **Değişiklik:** Her video atamasına opsiyonel müşteri YouTube bağlantısı eklendi; YouTuber ve video detayları aynı kaydı görüntüler, düzenler, açar ve kopyalar. Boş kaydetme bağlantıyı kaldırır; katalog video bağlantısı korunur.

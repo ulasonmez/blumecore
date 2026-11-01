@@ -163,3 +163,28 @@
     background-color: var(--accent-blue);
     border-radius: 50%;
 }
+
+.videoCard {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    padding: 14px;
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    min-width: 0;
+}
+
+.videoHeader { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.videoHeading { display: flex; align-items: flex-start; gap: 9px; min-width: 0; }
+.videoIcon { display: flex; flex: 0 0 30px; height: 30px; align-items: center; justify-content: center; border-radius: 8px; background: var(--accent-primary-soft); color: var(--accent-primary); }
+.videoTitle { color: var(--text-primary); font-weight: 600; font-size: 14px; line-height: 1.4; overflow-wrap: anywhere; }
+.videoDate { color: var(--text-secondary); font-size: 11px; white-space: nowrap; padding-top: 3px; }
+.sourceLink { align-self: flex-start; color: var(--accent-blue); font-size: 12px; margin-left: 39px; }
+.videoNote { color: var(--text-secondary); font-size: 12px; margin-left: 39px; overflow-wrap: anywhere; }
+.customerVideo { margin-top: 2px; padding: 10px 12px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; min-width: 0; }
+.customerVideo > div { margin: 0; padding: 0; border: 0; }
+@media (max-width: 380px) {
+    .videoHeader { flex-wrap: wrap; }
+    .videoDate { margin-left: 39px; }
+}

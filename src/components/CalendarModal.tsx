@@ -1,6 +1,6 @@
 'use client';
 
-import { X, Gamepad2 } from 'lucide-react';
+import { X, Gamepad2, Video } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
@@ -265,28 +265,29 @@ export default function CalendarModal({
                                     const videoInfo = videos.find(v => v.id === assignment.videoId);
 
                                     return (
-                                        <div key={assignment.id} style={{ display: 'flex', flexDirection: 'column', gap: '6px', backgroundColor: 'var(--bg-card)', padding: '12px', borderRadius: '8px' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                                <div style={{ color: 'var(--text-primary)', fontWeight: 500, fontSize: '14px', lineHeight: '1.4' }}>
-                                                    {videoInfo ? videoInfo.title : 'Bilinmeyen Video'}
+                                        <div key={assignment.id} className={styles.videoCard}>
+                                            <div className={styles.videoHeader}>
+                                                <div className={styles.videoHeading}>
+                                                    <span className={styles.videoIcon}><Video size={16} aria-hidden="true" /></span>
+                                                    <div className={styles.videoTitle}>{videoInfo ? videoInfo.title : 'Bilinmeyen Video'}</div>
                                                 </div>
                                                 {assignment.createdAt && (
-                                                    <span style={{ color: 'var(--text-secondary)', fontSize: '12px', whiteSpace: 'nowrap', marginLeft: '12px' }}>
+                                                    <span className={styles.videoDate}>
                                                         {format(new Date(assignment.createdAt), 'd MMM yyyy', { locale: tr })}
                                                     </span>
                                                 )}
                                             </div>
                                             {videoInfo && (
-                                                <a href={videoInfo.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: '12px', color: 'var(--accent-blue)' }}>
-                                                    Kanalda İzle
+                                                <a href={videoInfo.url} target="_blank" rel="noopener noreferrer" className={styles.sourceLink}>
+                                                    Orijinal videoyu izle ↗
                                                 </a>
                                             )}
                                             {assignment.note && (
-                                                <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px', fontStyle: 'italic' }}>
+                                                <div className={styles.videoNote}>
                                                     Not: {assignment.note}
                                                 </div>
                                             )}
-                                            <CustomerVideoLink assignmentId={assignment.id} url={assignment.customerVideoUrl} />
+                                            <div className={styles.customerVideo}><CustomerVideoLink assignmentId={assignment.id} url={assignment.customerVideoUrl} /></div>
                                         </div>
                                     );
                                 });
