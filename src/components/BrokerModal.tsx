@@ -52,6 +52,7 @@ export default function BrokerModal({
     const [records, setRecords] = useState<RecordData[]>([]);
     const [assignments, setAssignments] = useState<AssignmentData[]>([]);
     const [videos, setVideos] = useState<VideoData[]>([]);
+    const [youtubers, setYoutubers] = useState<{ id: string; name: string }[]>([]);
     const [activeTab, setActiveTab] = useState<'money' | 'videos'>('money');
 
     useEffect(() => {
@@ -111,7 +112,12 @@ export default function BrokerModal({
             setVideos(vids);
         });
 
-        return () => { unsubRecords(); unsubAssignments(); unsubVideos(); };
+        const qYoutubers = query(collection(db, "youtubers"), where("userId", "==", user.uid));
+        const unsubYoutubers = onSnapshot(qYoutubers, (snapshot) => {
+            setYoutubers(snapshot.docs.map(doc => ({ id: doc.id, name: doc.data().name })));
+        });
+
+        return () => { unsubRecords(); unsubAssignments(); unsubVideos(); unsubYoutubers(); };
     }, [isOpen, user, brokerId]);
 
     if (!isOpen) return null;
@@ -168,7 +174,7 @@ export default function BrokerModal({
                             flex: 1
                         }}
                     >
-                        Videolar ({assignments.filter(a => videos.some(v => v.id === a.videoId)).length})
+                        Videolar ({assignments.length})
                     </button>
                 </div>
 
@@ -207,13 +213,13 @@ export default function BrokerModal({
                     {activeTab === 'videos' && (
                         <>
                             {(() => {
-                                const validAssignments = assignments.filter(a => videos.some(v => v.id === a.videoId));
-                                if (validAssignments.length === 0) {
+                                if (assignments.length === 0) {
                                     return <p style={{ fontSize: '13px', color: 'var(--text-secondary)', textAlign: 'center', padding: '20px 0' }}>Aracı olunan video bulunmuyor.</p>;
                                 }
 
-                                return validAssignments.map(assignment => {
+                                return assignments.map(assignment => {
                                     const videoInfo = videos.find(v => v.id === assignment.videoId);
+                                    const youtuberName = youtubers.find(y => y.id === assignment.youtuberId)?.name || assignment.name || 'Bilinmeyen YouTuber';
 
                                     return (
                                         <div key={assignment.id} style={{ display: 'flex', flexDirection: 'column', gap: '6px', backgroundColor: 'var(--bg-card)', padding: '12px', borderRadius: '8px' }}>
@@ -227,7 +233,10 @@ export default function BrokerModal({
                                                     </span>
                                                 )}
                                             </div>
-                                            {videoInfo && (
+                                            <div style={{ fontSize: '13px', color: 'var(--text-secondary)', overflowWrap: 'anywhere' }}>
+                                                YouTuber: {youtuberName}
+                                            </div>
+                                            {videoInfo?.url && (
                                                 <a href={videoInfo.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: '12px', color: 'var(--accent-blue)' }}>
                                                     Kanalda İzle
                                                 </a>

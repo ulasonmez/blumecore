@@ -4,6 +4,12 @@ Yeni sohbetlerde önce [AGENTS.md](../AGENTS.md) ve [proje haritasını](PROJECT
 
 Her görev için kısa kayıt tut: ne/neden değişti, ilgili dosyalar, gerçekten yapılan doğrulama ve varsa kalan iş. Kod/konfigürasyon değiştiğinde haritayı kontrol et; etkilenen bilgiyi haritada da yerinde güncelle. Secret, kişisel veri veya tam araç çıktısı ekleme. Salt okunur soru/yanıtları kaydetme.
 
+## 2026-11-02 — Aracı video satışları
+
+- **Değişiklik:** Aracı detayında her video ataması ayrı sayılır ve ilgili YouTuber adı gösterilir; katalog kaydı eksik videolar da listede kalır. Güncel kişi adı bulunamazsa atamada kayıtlı ad kullanılır.
+- **Dosyalar ve harita:** `src/components/BrokerModal.tsx`, `docs/PROJECT_MAP.md` ve bu kayıt güncellendi.
+- **Doğrulama ve kalan iş:** İlgili ESLint, kaynak/test tip kontrolü ve `git diff --check` geçti. Varsayılan tip kontrolü `.next/dev/types` içindeki eski geçici sayfa referansı nedeniyle başarısız; alternatif kontrolde üretilmiş dosyalar dışlandı. Canlı Firestore ve oturumlu tarayıcı doğrulanmadı.
+
 ## 2026-11-01 — YouTuber video kartlarının düzeni
 
 - **Değişiklik:** YouTuber detayındaki video atamaları belirgin kartlara alındı; müşteri bağlantısı kartın içinde gösterildi ve katalog bağlantısı “Orijinal videoyu izle” olarak açıklandı. Dar ekranlarda başlık ve tarih satır kırabilir.

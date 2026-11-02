@@ -39,6 +39,8 @@ Tablodaki yollar depo köküne göredir. Sayfa klasörlerindeki `*.module.css` d
 | Ayarlar, çıkış | `src/app/(protected)/settings/page.tsx` | Takvim gelir/gider toplamlarının kalıcı görünürlük ayarı (`user_settings`), Firebase sign-out + `DELETE /api/auth/session` |
 | Alt menü, ortak görünüm, tema | `src/components/BottomNav.tsx`, `src/components/ClientLayout.tsx`, `src/app/layout.tsx`, `src/app/globals.css` | `src/components/BottomNav.module.css`; sayfa/bileşen CSS Modules dosyaları, modallardaki satır içi stiller ve aşama renkleri için `src/lib/statuses.ts` |
 
+Aracı detayının Videolar sekmesi, `brokerId` ile ilişkili her `assignments` belgesini ayrı satır ve sayıda gösterir; aynı video birden fazla satışta tekrar görünür. YouTuber adı canlı `youtubers` kaydından, kayıt bulunamazsa atamadaki kaydedilmiş addan alınır. Video kataloğu kaydı eksikse atama gizlenmez, bilinmeyen video olarak gösterilir. Bu görünüm mevcut Firestore dinleyicilerini kullanır ve veri yazmaz.
+
 `src/app/page.tsx`, `/home` adresine yönlendirir. Korumalı URL'ler `/home`, `/videos`, `/calendar`, `/catalog`, `/team`, `/settings` şeklindedir; `(protected)` yalnızca dosya sistemindeki route grubudur.
 
 ### YouTuber Discord bilgisi ve export
