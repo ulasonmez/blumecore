@@ -194,6 +194,9 @@ export default function BrokerModal({
                                             </span>
                                             <span style={{ color: 'var(--accent-primary)', fontWeight: 700 }}>${record.amount}</span>
                                         </div>
+                                        <div style={{ fontSize: '13px', color: 'var(--text-secondary)', overflowWrap: 'anywhere' }}>
+                                            YouTuber: {youtubers.find(y => y.id === record.youtuberId)?.name || 'Bilinmeyen YouTuber'}
+                                        </div>
                                         {record.description && (
                                             <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
                                                 {record.description}
