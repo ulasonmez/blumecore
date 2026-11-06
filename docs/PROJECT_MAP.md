@@ -61,6 +61,15 @@ Follow Ups export’u, takip aşamaları yerine **ülkelere göre** açılıp ka
 
 YouTuber detayının Videolar sekmesi ve video detayının Atanan YouTuberlar bölümü, her `assignments` belgesindeki opsiyonel `customerVideoUrl` alanını ortak `CustomerVideoLink` bileşeniyle gösterir ve düzenler. Bu alan katalogdaki `youtube_videos.url` bağlantısından ayrıdır; değişiklik doğrudan ilgili atamaya yazılır ve iki ekranın mevcut Firestore dinleyicileriyle güncellenir. Boş kaydetmek alanı kaldırır; eski atamalarda alan olmayabilir. `src/lib/customer-video-url.ts` HTTPS YouTube video bağlantılarını doğrular. Kayıtlı geçerli bağlantı açılabilir veya panoya kopyalanabilir; pano başarısızlığında metin elle seçilebilir. Mevcut atama silme akışı bağlantıyı da siler; migration gerekmez.
 
+**Apps Script otomatik eşleştirme:** Harici Apps Script (`integrations/apps-script/CustomerVideoSync.gs`, outreach Apps Script projesine ayrı dosya olarak eklenir) sahip oturumu veya Firestore erişimi olmadan yalnızca üç uçla çalışır; hepsi `Authorization: Bearer <CUSTOMER_VIDEO_SYNC_SECRET>` ister (`requireCustomerVideoSyncSecret`, `src/lib/server-auth.ts`). Anahtar tanımsız veya 32 karakterden kısaysa uçlar 503 döndürür; `CRON_SECRET` veya sahip token'ı bu uçlara erişim vermez.
+
+- `GET /api/integrations/customer-videos/pending` salt okunur iş listesidir: sahibin `customerVideoUrl` alanı boş ve **kontrol zamanı gelmiş** atamalarını YouTuber adı/`channelUrl`, katalog videosunun başlık/bağlantısı, bekleyen öneri, reddedilen video kimlikleri ve son kontrol bilgisiyle, en yeni atama önce olacak şekilde döner. `claimedVideoIdsByYoutuber` aynı YouTuber'ın başka atamalarına zaten bağlı videoları verir; `notDueCount` takvim gereği bekleyenleri sayar. `?all=1` takvimi yok sayar, `?youtuberId=` filtreler.
+- Kontrol takvimi `getCheckSchedule` içindedir ve satış tarihi (`createdAt`) ile `customerVideoLastCheckedAt` alanına bakar: satıştan sonraki ilk 30 gün her gün, 30–90 gün 7 günde bir, 90–365 gün 30 günde bir; 1 yıldan eski satış yalnızca hiç kontrol edilmemişse bir kez. Satış tarihi bilinmiyorsa 30 gün. Günlük tetikleyici kaymasına 3 saat tolerans vardır.
+- `POST /api/integrations/customer-videos/checked` gövdesi `{ assignmentIds: string[] }` (en fazla 200); sahibe ait atamalara `customerVideoLastCheckedAt` yazar, diğerlerini atlar. Script yalnızca kanalı başarıyla taradığı atamaları işaretler; kanal linki olmayan veya hata alan atamalar ertesi gün yeniden denenir.
+- `POST /api/integrations/customer-videos` gövdesi `{ assignmentId, customerVideoUrl, confidence (0–1), matchedTitle?, reason? }`. Karar `src/lib/customer-video-sync.ts` içindeki `decideCustomerVideoUpdate` ile transaction içinde verilir: dolu `customerVideoUrl` asla değiştirilmez (`ALREADY_SET`); `customerVideoRejectedIds` içindeki video kabul edilmez (`PREVIOUSLY_REJECTED`); güven `CUSTOMER_VIDEO_AUTO_THRESHOLD` (varsayılan 0,85) ve üstündeyse bağlantı kanonik `watch?v=` biçiminde yazılır, `customerVideoSource: 'auto'` ve `customerVideoMatch` eklenir, bekleyen öneri silinir (`AUTO_SET`); eşik altındaysa `customerVideoSuggestion` kaydedilir (`SUGGESTED`), mevcut öneri yalnızca daha yüksek güvenli bir öneriyle değişir (`DUPLICATE_SUGGESTION`). Video karşılaştırması YouTube video kimliğiyle yapılır. Yazmalar `audit_logs` içine `CUSTOMER_VIDEO_AUTO_SET` / `CUSTOMER_VIDEO_SUGGESTED` olarak kaydedilir.
+- Apps Script akışı: iş listesini alır, YouTuber'a göre gruplar, kanal yükleme listesini satıştan 2 gün öncesine kadar okur (YouTuber başına en fazla 200 yükleme, `channelUrl` → uploads playlist eşlemesi Script Properties'te önbelleklenir), reddedilen/başka atamaya bağlı videoları eler, aynı YouTuber'a satılan videoları tek OpenAI çağrısında eşleştirir; 0,5 altındaki güvenleri göndermez, satıştan önce yüklenen videoyu kabul etmez ve bir videoyu tek atamaya bağlar. `cvsDryRun` yazma yapmadan kararları loglar; `cvsInstallDailyTrigger` günlük tetikleyiciyi kurar. Gerekli Script Properties: `CUSTOMER_VIDEO_SYNC_SECRET`, `OPENAI_API_KEY`; opsiyonel `OPENAI_MODEL`, `YOUTUBE_API_KEY` (yoksa YouTube gelişmiş hizmeti), `BLUMECORE_BASE_URL`.
+- Henüz yapılmadı: panelde öneriyi onaylama/reddetme ve “Otomatik” rozeti (`customerVideoRejectedIds` şu an yalnızca okunur; bu alanı yazan arayüz yoktur), elle kayıtta `customerVideoSource: 'manual'` yazılması. `CustomerVideoLink` elle kayıtta yalnızca `customerVideoUrl` alanını değiştirir.
+
 YouTuber detayında her atama, başlık ve tarihiyle sınırları belirgin bir kartta gösterilir; müşteri bağlantısı kartın içindeki ayrı yüzeyde bulunur. Katalog bağlantısı “Orijinal videoyu izle” olarak adlandırılır ve müşteri videosundan ayrılır. Dar ekranda tarih gerektiğinde alt satıra geçer.
 
 ### Görsel tema
@@ -82,7 +91,7 @@ Sayfaların önemli bir kısmı `onSnapshot` ile Firestore'dan canlı veri dinle
 | `pendingPayments` | Bekleyen ödemeler; `PendingPaymentsModal` |
 | `user_settings` | Sahip UID'siyle anahtarlanan `showIncomeTotals` ayarı; mevcut alan adı korunur ve takvimdeki bu ay/genel gelir ile gider toplamları yalnızca değer `true` ise gösterilir |
 | `team`, `records` | Ekip/aracı bilgileri ve gelir/gider kayıtları; ekip/takvim sayfaları, `RecordModal` |
-| `youtube_videos`, `assignments` | Videolar ve YouTuber video atamaları; video/takvim sayfaları |
+| `youtube_videos`, `assignments` | Videolar ve YouTuber video atamaları; video/takvim sayfaları. `assignments` opsiyonel müşteri videosu alanları: `customerVideoUrl`, `customerVideoSource`, `customerVideoMatch`, `customerVideoSuggestion`, `customerVideoRejectedIds`, `customerVideoLastCheckedAt` (bkz. Müşteri videosu bağlantısı) |
 | `minecraft_players`, `youtuber_minecraft_players` | Ortak oyuncu kimliği ve YouTuber ile ilişkisi; `src/lib/minecraft-players.ts` ve oyuncu API'leri |
 | `globalMinecraftPlayers` | Aktif global oyuncular; `src/lib/global-players.ts`; yerleşik gerekli oyuncularla birleştirilir |
 | `mod_projects`, `video_mod_projects` | Mod yapılandırması ve video–mod bağlantıları; `src/lib/mods/types.ts` |
@@ -151,6 +160,7 @@ Route dosyalarında dışa aktarılan HTTP fonksiyonları gerçek sözleşmedir;
 | `src/app/api/lifecycle/cascade-sync/route.ts` | Bağlı erişimleri yeniden hesaplama |
 | `src/app/api/jobs` | `process` (sahip veya cron), `retry` (sahip) |
 | `src/app/api/cron/github-sync/route.ts` | GET; yalnızca cron secret ile kuyruk işleme |
+| `src/app/api/integrations/customer-videos` | Apps Script müşteri videosu entegrasyonu: `pending` (GET iş listesi), kök route (POST eşleşme bildirimi), `checked` (POST kontrol zamanı); yalnızca `CUSTOMER_VIDEO_SYNC_SECRET` ile |
 | `src/app/api/account/delete/route.ts`, `src/app/api/user/delete/route.ts` | Hesap silme devre dışı; tanımlı metotlar 405 döndürür |
 
 ## 6. Çalıştırma ve doğrulama
@@ -181,6 +191,7 @@ Emülatör testleri `127.0.0.1:8080` açık değilse atlanır. `npm test` sonucu
 | Kalıcı silme / arşiv temizleme | `mod-delete-and-cleanup.test.ts` |
 | UI olayları / yanlışlıkla backfill tetikleme | `ui-event-regression.test.ts` (simülasyon) |
 | Discord export, ülke gruplaması/seçimi, tekilleştirme, uzun kimlikler | `discord-contacts.test.ts` (metin üretimi; React/Firestore/clipboard etkileşimi çalıştırmaz) |
+| Müşteri videosu bağlantısı / Apps Script entegrasyonu | `customer-video-url.test.ts`, `customer-video-sync.test.ts` (karar mantığı, kontrol takvimi, anahtar doğrulama ve route ön kontrolleri; gerçek Firestore transaction'ını ve Apps Script'i çalıştırmaz) |
 | Beklenen ödeme grubu sırası / tekil silme | `pending-payments.test.ts` (gruplama fonksiyonu) |
 | Gerçek Firestore kuralları / transaction | `emulator-firestore-rules-and-outbox.test.ts` |
 
@@ -193,6 +204,7 @@ Değerleri buraya kopyalama. Kaynak kodun kullandığı değişkenler:
 - Tarayıcı Firebase: `NEXT_PUBLIC_FIREBASE_API_KEY`, `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`, `NEXT_PUBLIC_FIREBASE_PROJECT_ID`, `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`, `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`, `NEXT_PUBLIC_FIREBASE_APP_ID`.
 - Sunucu Firebase: `FIREBASE_ADMIN_PROJECT_ID`, `FIREBASE_ADMIN_CLIENT_EMAIL`, `FIREBASE_ADMIN_PRIVATE_KEY`; project ID için kodda `NEXT_PUBLIC_FIREBASE_PROJECT_ID` / `FIREBASE_PROJECT_ID` fallback'leri de vardır.
 - Sahip ve görev doğrulaması: `ADMIN_FIREBASE_UID`, `CRON_SECRET`.
+- Apps Script müşteri videosu entegrasyonu: `CUSTOMER_VIDEO_SYNC_SECRET` (en az 32 karakter; yoksa uçlar kapalı), opsiyonel `CUSTOMER_VIDEO_AUTO_THRESHOLD` (0 < değer ≤ 1, varsayılan 0,85).
 - GitHub: `GITHUB_TOKEN`, `GITHUB_ALLOWED_OWNER`, `GITHUB_API_VERSION`; varsayılanlar `src/lib/github/client.ts` içindedir.
 - `MOCK_AUTH` ve `NODE_ENV === 'test'` test doğrulama yollarını açar; üretim kurulumunun parçası değildir.
 

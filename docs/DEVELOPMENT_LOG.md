@@ -4,6 +4,14 @@ Yeni sohbetlerde önce [AGENTS.md](../AGENTS.md) ve [proje haritasını](PROJECT
 
 Her görev için kısa kayıt tut: ne/neden değişti, ilgili dosyalar, gerçekten yapılan doğrulama ve varsa kalan iş. Kod/konfigürasyon değiştiğinde haritayı kontrol et; etkilenen bilgiyi haritada da yerinde güncelle. Secret, kişisel veri veya tam araç çıktısı ekleme. Salt okunur soru/yanıtları kaydetme.
 
+## 2026-11-07 — Apps Script müşteri videosu entegrasyonu
+
+- **Değişiklik ve neden:** YouTuber'ların sattığımız videoların kendi versiyonlarını Apps Script + OpenAI ile bulup atamaya bağlaması için dar kapsamlı üç uç eklendi: iş listesi (`GET .../pending`), eşleşme bildirimi (`POST`) ve kontrol zamanı (`POST .../checked`). Ayrı `CUSTOMER_VIDEO_SYNC_SECRET` anahtarı kullanılır; Firestore kuralları ve sahip oturumu değişmedi. Eşik üstü güven doğrudan yazılır, eşik altı öneri olarak saklanır; dolu bağlantının üzerine yazılmaz, reddedilen video tekrar kabul edilmez. Eski satışların sürekli aranmaması için satış yaşına göre kontrol takvimi eklendi (ilk 30 gün günlük, 90 güne kadar haftalık, 1 yıla kadar aylık). Outreach projesine eklenecek Apps Script dosyası depoya konuldu.
+- **Dosyalar:** `src/lib/customer-video-sync.ts`, `src/lib/server-auth.ts` (`requireCustomerVideoSyncSecret`), `src/lib/audit-log.ts`, `src/app/api/integrations/customer-videos/route.ts`, `.../pending/route.ts`, `.../checked/route.ts`, `tests/customer-video-sync.test.ts`, `integrations/apps-script/CustomerVideoSync.gs`.
+- **Harita:** Müşteri videosu bölümü (uçlar, takvim, Apps Script akışı), `assignments` alanları, API tablosu, ortam değişkenleri ve test eşleşmesi güncellendi.
+- **Doğrulama:** Bağımlılıkları Linux için ayrıca kurulmuş geçici bir kopyada `npx tsc --noEmit --incremental false`, yeni/değişen dosyaların ESLint kontrolü ve `npm test` geçti (yeni dosyada 24 senaryo). Apps Script dosyası Node'da sahte YouTube/OpenAI/BlumeCore yanıtlarıyla normal ve dry-run modunda çalıştırıldı: gruplama, reddedilen/başka atamaya bağlı videoların elenmesi, satış öncesi videonun reddi, sayfalamanın durması, kanalsız YouTuber'ın işaretlenmemesi ve dry-run'ın yazma yapmaması doğrulandı. Gerçek Firestore transaction'ı, gerçek Google Apps Script/YouTube/OpenAI çağrıları ve canlı Vercel ortamı doğrulanmadı.
+- **Kalan iş:** Vercel'e `CUSTOMER_VIDEO_SYNC_SECRET` eklenmeli, Apps Script dosyası outreach projesine eklenip Script Properties ayarlanmalı. Panelde öneri onay/ret, “Otomatik” rozeti ve elle kayıtta `customerVideoSource: 'manual'` sonraki adımdır.
+
 ## 2026-11-02 — Aracı ödemelerinde YouTuber
 
 - **Değişiklik:** Aracı detayındaki her ödeme, ilişkili güncel YouTuber adını gösterir; kişi kaydı yoksa bilinmeyen olarak belirtilir. Ödeme verisi değiştirilmez.

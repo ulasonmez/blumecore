@@ -16,7 +16,9 @@ export type AuditEventType =
     | 'MOD_ARCHIVED'
     | 'MOD_RESTORED'
     | 'MOD_DELETED'
-    | 'DATA_CONFLICT_DETECTED';
+    | 'DATA_CONFLICT_DETECTED'
+    | 'CUSTOMER_VIDEO_AUTO_SET'
+    | 'CUSTOMER_VIDEO_SUGGESTED';
 
 export interface AuditLogEntry {
     eventType: AuditEventType;

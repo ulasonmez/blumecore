@@ -1,3 +1,4 @@
+import { timingSafeEqual } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { adminAuth } from './firebase-admin';
 
@@ -171,6 +172,42 @@ export function requireCronSecret(request: NextRequest): { ok: true } | { ok: fa
                 { error: 'Yetkilendirme başarısız (Geçersiz veya eksik CRON_SECRET).' },
                 { status: 401 }
             )
+        };
+    }
+
+    return { ok: true };
+}
+
+function secretsMatch(received: string, expected: string): boolean {
+    const a = Buffer.from(received);
+    const b = Buffer.from(expected);
+    return a.length === b.length && timingSafeEqual(a, b);
+}
+
+/**
+ * Apps Script müşteri videosu entegrasyonu için ayrı, dar kapsamlı anahtar:
+ * Authorization: Bearer ${CUSTOMER_VIDEO_SYNC_SECRET}
+ * CRON_SECRET veya sahip oturumu bu uçlara erişim vermez; anahtar da başka uçlara erişim vermez.
+ * Anahtar tanımlı değilse veya 32 karakterden kısaysa erişim reddedilir (fail-closed).
+ */
+export function requireCustomerVideoSyncSecret(request: NextRequest): { ok: true } | { ok: false; response: NextResponse } {
+    const secret = process.env.CUSTOMER_VIDEO_SYNC_SECRET?.trim();
+    if (!secret || secret.length < 32) {
+        return {
+            ok: false,
+            response: NextResponse.json(
+                { error: 'Entegrasyon devre dışı: CUSTOMER_VIDEO_SYNC_SECRET tanımlanmamış veya çok kısa.' },
+                { status: 503 }
+            )
+        };
+    }
+
+    const authHeader = request.headers.get('authorization') || '';
+    const received = authHeader.startsWith('Bearer ') ? authHeader.substring(7).trim() : '';
+    if (!received || !secretsMatch(received, secret)) {
+        return {
+            ok: false,
+            response: NextResponse.json({ error: 'Yetkilendirme başarısız.' }, { status: 401 })
         };
     }
 
