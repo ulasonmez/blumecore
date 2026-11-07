@@ -4,6 +4,14 @@ Yeni sohbetlerde önce [AGENTS.md](../AGENTS.md) ve [proje haritasını](PROJECT
 
 Her görev için kısa kayıt tut: ne/neden değişti, ilgili dosyalar, gerçekten yapılan doğrulama ve varsa kalan iş. Kod/konfigürasyon değiştiğinde haritayı kontrol et; etkilenen bilgiyi haritada da yerinde güncelle. Secret, kişisel veri veya tam araç çıktısı ekleme. Salt okunur soru/yanıtları kaydetme.
 
+## 2026-11-07 — Müşteri videosu entegrasyonu canlıya alındı
+
+- **Değişiklik ve neden:** Vercel Production'a `CUSTOMER_VIDEO_SYNC_SECRET` eklendi ve yeniden deploy edildi. Apps Script dosyası outreach projesine eklendi; OpenAI çağrısı projedeki çalışan AI incelemesiyle aynı biçime (Responses API, katı JSON şeması, `gpt-6-luna`) çevrildi, YouTube anahtarı outreach `CONFIG` değerinden alınır. Ortak `LockService` kilidi outreach işleriyle çakıştığı (ilk dry run “başka bir çalışma sürüyor” diyerek atlandı) için Script Property tabanlı kiralamaya geçildi.
+- **Dosyalar:** `integrations/apps-script/CustomerVideoSync.gs`, `docs/PROJECT_MAP.md`.
+- **Harita:** Apps Script akışı, kilit ve canlı kurulum yeri güncellendi.
+- **Doğrulama:** Node simülasyonu (normal, dry-run, kiralamanın bırakılması) geçti. Canlı ortamda `cvsTestConnection` başarılı (linki boş 130 atama, kanal linki olmayan 1 YouTuber). `cvsDryRun` 26 YouTuber'ı ~2,5 dakikada hatasız taradı, 19 eşleşme buldu (13'ü 0,85 ve üstü); BlumeCore'a yazma yapılmadı. `cvsInstallDailyTrigger` çalıştırıldı. Editördeki dosyanın içeriği depodakiyle SHA-256 ile eşleştirildi.
+- **Kalan iş:** İlk gerçek yazma günlük tetikleyiciyle olacak. Öneriler panelde henüz görünmüyor (onay/ret arayüzü sonraki adım).
+
 ## 2026-11-07 — Apps Script müşteri videosu entegrasyonu
 
 - **Değişiklik ve neden:** YouTuber'ların sattığımız videoların kendi versiyonlarını Apps Script + OpenAI ile bulup atamaya bağlaması için dar kapsamlı üç uç eklendi: iş listesi (`GET .../pending`), eşleşme bildirimi (`POST`) ve kontrol zamanı (`POST .../checked`). Ayrı `CUSTOMER_VIDEO_SYNC_SECRET` anahtarı kullanılır; Firestore kuralları ve sahip oturumu değişmedi. Eşik üstü güven doğrudan yazılır, eşik altı öneri olarak saklanır; dolu bağlantının üzerine yazılmaz, reddedilen video tekrar kabul edilmez. Eski satışların sürekli aranmaması için satış yaşına göre kontrol takvimi eklendi (ilk 30 gün günlük, 90 güne kadar haftalık, 1 yıla kadar aylık). Outreach projesine eklenecek Apps Script dosyası depoya konuldu.
