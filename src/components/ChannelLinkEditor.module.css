@@ -1,0 +1,19 @@
+.wrapper { margin-bottom: 16px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-color); }
+.toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 44px; padding: 10px 12px; text-align: left; color: var(--text-primary); font-size: 13px; font-weight: 500; }
+.toggle:focus-visible { outline: 2px solid var(--accent-primary); outline-offset: 2px; }
+.toggleText { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.status { font-size: 12px; font-weight: 400; color: var(--text-secondary); overflow-wrap: anywhere; }
+.toggle svg { flex-shrink: 0; color: var(--text-secondary); }
+.panel { padding: 0 12px 12px; }
+.inputRow { display: flex; gap: 8px; }
+.inputRow input { flex: 1; min-width: 0; width: 100%; }
+.inputRow button { flex-shrink: 0; padding: 10px 14px; }
+.hint { color: var(--text-secondary); font-size: 12px; margin-top: 8px; line-height: 1.5; }
+.feedback { color: var(--accent-primary); font-size: 12px; margin-top: 4px; }
+.feedback:empty { display: none; }
+.error { color: var(--action-red, #ef4444); }
+@media (max-width: 480px) {
+    .inputRow { flex-wrap: wrap; }
+    .inputRow input { flex-basis: 100%; }
+    .inputRow button { width: 100%; }
+}

@@ -4,6 +4,14 @@ Yeni sohbetlerde önce [AGENTS.md](../AGENTS.md) ve [proje haritasını](PROJECT
 
 Her görev için kısa kayıt tut: ne/neden değişti, ilgili dosyalar, gerçekten yapılan doğrulama ve varsa kalan iş. Kod/konfigürasyon değiştiğinde haritayı kontrol et; etkilenen bilgiyi haritada da yerinde güncelle. Secret, kişisel veri veya tam araç çıktısı ekleme. Salt okunur soru/yanıtları kaydetme.
 
+## 2026-11-07 — YouTuber kanal linkini sonradan düzenleme
+
+- **Değişiklik ve neden:** YouTuber eklenirken kanal linki girilmezse sonradan eklenemiyordu. YouTuber detayına (`CalendarModal`) açılıp kapanan “Kanal linki” bölümü eklendi: link eklenebilir, değiştirilebilir, boş kaydederek kaldırılabilir. Doğrulama `normalizeChannelUrl` ile yapılır (protokol yoksa `https://`, yalnızca http/https). Modal başlığındaki “Kanalı Ziyaret Et” bağlantısı artık canlı kayıttan gelir.
+- **Dosyalar:** `src/components/ChannelLinkEditor.tsx`, `src/components/ChannelLinkEditor.module.css`, `src/lib/channel-url.ts`, `src/components/CalendarModal.tsx`, `src/app/(protected)/catalog/page.tsx`, `tests/channel-url.test.ts`.
+- **Harita:** Özellik tablosu ve “YouTuber kanal linki düzenleme” bölümü eklendi.
+- **Doğrulama:** `npx tsc --noEmit` (yalnızca `.next/dev/types` içindeki eski geçici sayfa referansı hatası var), yeni/değişen dosyalarda ESLint temiz, `channel-url.test.ts` 3 senaryo Node 22 ile geçti (VM'de macOS `esbuild` olduğundan `tsx` çalışmadı; dosya geçici dizine kopyalanarak çalıştırıldı). Gerçek tarayıcıda/Firestore'da etkileşim doğrulanmadı.
+- **Kalan iş:** Canlı oturumda açma/kaydetme elle denenmeli.
+
 ## 2026-11-07 — Müşteri videosu entegrasyonu canlıya alındı
 
 - **Değişiklik ve neden:** Vercel Production'a `CUSTOMER_VIDEO_SYNC_SECRET` eklendi ve yeniden deploy edildi. Apps Script dosyası outreach projesine eklendi; OpenAI çağrısı projedeki çalışan AI incelemesiyle aynı biçime (Responses API, katı JSON şeması, `gpt-6-luna`) çevrildi, YouTube anahtarı outreach `CONFIG` değerinden alınır. Ortak `LockService` kilidi outreach işleriyle çakıştığı (ilk dry run “başka bir çalışma sürüyor” diyerek atlandı) için Script Property tabanlı kiralamaya geçildi.

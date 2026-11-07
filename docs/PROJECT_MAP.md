@@ -23,6 +23,7 @@ Tablodaki yollar depo köküne göredir. Sayfa klasörlerindeki `*.module.css` d
 | Ana sayfa, Follow Ups, takip, notlar, aşamalar | `src/app/(protected)/home/page.tsx`, `src/components/StatusesModal.tsx` | `src/lib/statuses.ts`; `followups`, `statuses`, `youtubers`, `groups` |
 | Bekleyen ödeme, tahsilat | `src/components/PendingPaymentsModal.tsx`, `src/components/PendingPaymentsModal.module.css` | Ana sayfadan açılır; `pendingPayments`, `youtubers`; gruplama ve sabit YouTuber sırası `src/lib/pending-payments.ts` içindedir; toplu silme iki onay ister; dar ekran grup başlığı iki satırlıdır |
 | YouTuber listesi, katalog, ülke/grup, kanal | `src/app/(protected)/catalog/page.tsx`, `src/components/GroupModal.tsx` | `youtubers`, `groups`; silme: `src/app/api/youtubers/[youtuberId]/route.ts` |
+| YouTuber kanal linki düzenleme | `src/components/ChannelLinkEditor.tsx`, `src/components/ChannelLinkEditor.module.css`, `src/lib/channel-url.ts` | `youtubers.channelUrl`; `CalendarModal` içinde açılıp kapanan bölüm; `tests/channel-url.test.ts` |
 | YouTuber detayındaki takvim ve oyuncular | `src/components/CalendarModal.tsx`, `src/components/MinecraftPlayersTab.tsx` | `assignments`, `records`, `youtube_videos`; oyuncu API'leri |
 | Takvim, video atama, gelir/gider, kayıt düzenleme | `src/app/(protected)/calendar/page.tsx`, `src/components/RecordModal.tsx` | `records`, `assignments`, `team`, `youtube_videos`; gelir/gider toplamlarının görünürlüğü `src/lib/income-visibility.ts`; atama silme API'si |
 | Ekip, aracı, broker, komisyon | `src/app/(protected)/team/page.tsx`, `src/components/BrokerModal.tsx` | `team` içindeki `member` / `broker` rolleri; `records`, `assignments` |
@@ -42,6 +43,10 @@ Tablodaki yollar depo köküne göredir. Sayfa klasörlerindeki `*.module.css` d
 Aracı detayının Para sekmesi, `brokerId` ile ilişkili her `records` ödemesinde `youtuberId` üzerinden güncel YouTuber adını gösterir; kişi bulunamazsa bilinmeyen olarak belirtir. Videolar sekmesi, `brokerId` ile ilişkili her `assignments` belgesini ayrı satır ve sayıda gösterir; aynı video birden fazla satışta tekrar görünür. YouTuber adı canlı `youtubers` kaydından, kayıt bulunamazsa atamadaki kaydedilmiş addan alınır. Video kataloğu kaydı eksikse atama gizlenmez, bilinmeyen video olarak gösterilir. Bu görünüm mevcut Firestore dinleyicilerini kullanır ve veri yazmaz.
 
 `src/app/page.tsx`, `/home` adresine yönlendirir. Korumalı URL'ler `/home`, `/videos`, `/calendar`, `/catalog`, `/team`, `/settings` şeklindedir; `(protected)` yalnızca dosya sistemindeki route grubudur.
+
+### YouTuber kanal linki düzenleme
+
+Katalogda bir kişiye tıklanınca açılan `CalendarModal` içinde, Discord ID alanının üstünde açılıp kapanan “Kanal linki” bölümü (`src/components/ChannelLinkEditor.tsx`) bulunur. Başlıkta kayıtlı link (yoksa “Henüz eklenmedi”) görünür; açılınca metin alanı ve Kaydet düğmesi gelir. Bileşen aynı `youtubers` belgesini canlı dinler ve `updateDoc` ile doğrudan istemci Firestore SDK’sıyla yazar (yeni API/migration yok; mevcut sahip kuralları geçerli). `src/lib/channel-url.ts` değeri kırpar, protokol yoksa `https://` ekler, yalnızca http(s) kabul eder; geçersiz değer kaydedilmez. Boş kaydetmek `channelUrl` alanını `deleteField()` ile kaldırır (YouTuber eklerken boş link `null` yazılır; iki durum da “link yok” sayılır). Katalog sayfası modalın başlığındaki “Kanalı Ziyaret Et” bağlantısını canlı `youtubers` listesinden besler, böylece düzenleme hemen yansır. Apps Script müşteri videosu akışı `channelUrl` alanını bu değerden okur.
 
 ### YouTuber Discord bilgisi ve export
 

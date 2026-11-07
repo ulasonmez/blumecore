@@ -40,6 +40,8 @@ export default function CatalogPage() {
     const [selectedItem, setSelectedItem] = useState<{ id: string, name: string, channelUrl?: string } | null>(null);
 
     const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
+    // Kanal linki düzenlenince modal başlığındaki bağlantı canlı kayıttan güncellensin
+    const liveSelectedItem = selectedItem ? items.find(item => item.id === selectedItem.id) : undefined;
 
     useEffect(() => {
         if (!user) return;
@@ -258,8 +260,8 @@ export default function CatalogPage() {
                     isOpen={!!selectedItem}
                     onClose={() => setSelectedItem(null)}
                     youtuberId={selectedItem.id}
-                    title={selectedItem.name}
-                    channelUrl={selectedItem.channelUrl}
+                    title={liveSelectedItem?.name ?? selectedItem.name}
+                    channelUrl={liveSelectedItem ? liveSelectedItem.channelUrl : selectedItem.channelUrl}
                 />
             )}
 
