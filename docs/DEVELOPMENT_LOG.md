@@ -4,6 +4,18 @@ Yeni sohbetlerde önce [AGENTS.md](../AGENTS.md) ve [proje haritasını](PROJECT
 
 Her görev için kısa kayıt tut: ne/neden değişti, ilgili dosyalar, gerçekten yapılan doğrulama ve varsa kalan iş. Kod/konfigürasyon değiştiğinde haritayı kontrol et; etkilenen bilgiyi haritada da yerinde güncelle. Secret, kişisel veri veya tam araç çıktısı ekleme. Salt okunur soru/yanıtları kaydetme.
 
+## 2026-11-16 — Discord export yeniden Follow Ups ile sınırlı
+
+- **Değişiklik:** Ana sayfadaki export, mesaj gönderilecek kişiler Follow Ups’a eklenerek seçilebilsin diye önceki kapsamına döndürüldü. Ülke gruplaması mevcut arama/statü kapsamındaki takiplerin bağlı YouTuber kayıtlarını alır. Home, `DiscordExport.tsx`, `discord-contacts.ts`, ilgili testler ve proje haritasındaki export açıklaması önceki sürüme döndürüldü.
+- **Doğrulama:** Beş Discord testi ve `git diff --check` geçti. Örnek Firestore yayınlarıyla Chrome’da katalogda olup takibi bulunmayan bir kişinin export dışında kaldığı, takip eklendikten sonra export’a girdiği, ülke seçimi ve aramanın çalıştığı doğrulandı. Canlı Firestore doğrulaması ve dağıtım yapılmadı.
+
+## 2026-11-16 — Takvim noktaları, Discord export kapsamı ve ülke sırası
+
+- **Değişiklik:** Takvimde gün numarası altında gelir yeşil, gider kırmızı ve video ataması mavi noktayla gösterilir. Aynı günde üç nokta yan yana sığar. Ana sayfadaki export, Tümü görünümünde takip kaydı olmayan katalog kişilerini de kapsar. Varsayılan seçim açıkken yeni Discord ID’leri export’a anında girer. YouTubers sayfasındaki ülke başlıkları ve filtreler Türkçe alfabetik sıradadır.
+- **Dosyalar ve harita:** Takvim sayfası ve CSS modülü, Home ve katalog sayfaları, `DiscordExport.tsx`, `discord-contacts.ts`, `tests/discord-contacts.test.ts` ve ilgili proje haritası bölümleri güncellendi.
+- **Doğrulama:** `node --import tsx --test tests/*.test.ts` ile 209 test geçti ve 8 emülatör testi atlandı. Örnek Firestore yayınlarıyla gerçek React ekranları Chrome’da 375 ve 1280 pikselde çalıştırıldı. Tekli ve üçlü takvim noktaları, gün seçimi, ülke sırası, yeni Discord ID’sinin açık export’a girmesi, ülke seçimi ve katalog kişisi araması doğrulandı. Eski `.next/dev/types` çıktısı hariç TypeScript kontrolü ve `git diff --check` geçti. Home ve takvimdeki mevcut ESLint hataları HEAD ile karşılaştırıldı ve yeni ihlal görülmedi.
+- **Kalan iş:** Canlı Firestore oturumunda doğrulama ve üretim dağıtımı yapılmadı.
+
 ## 2026-11-07 — YouTuber kanal linkini sonradan düzenleme
 
 - **Değişiklik ve neden:** YouTuber eklenirken kanal linki girilmezse sonradan eklenemiyordu. YouTuber detayına (`CalendarModal`) açılıp kapanan “Kanal linki” bölümü eklendi: link eklenebilir, değiştirilebilir, boş kaydederek kaldırılabilir. Doğrulama `normalizeChannelUrl` ile yapılır (protokol yoksa `https://`, yalnızca http/https). Modal başlığındaki “Kanalı Ziyaret Et” bağlantısı artık canlı kayıttan gelir.

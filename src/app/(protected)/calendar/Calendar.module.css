@@ -91,6 +91,31 @@
     opacity: 0.3;
 }
 
+.dayIndicators {
+    display: flex;
+    gap: 2px;
+    margin-top: 4px;
+    justify-content: center;
+}
+
+.dayIndicators > span {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+}
+
+.incomeDot {
+    background-color: var(--accent-green);
+}
+
+.expenseDot {
+    background-color: var(--accent-red);
+}
+
+.videoDot {
+    background-color: var(--accent-blue);
+}
+
 .dateDetailsHeader {
     display: flex;
     justify-content: space-between;

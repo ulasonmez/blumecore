@@ -50,6 +50,7 @@ export default function CatalogPage() {
         const unsubGroups = onSnapshot(qGroups, (snapshot) => {
             const grps: Group[] = [];
             snapshot.forEach(doc => grps.push({ id: doc.id, ...doc.data() } as Group));
+            grps.sort((a, b) => a.name.localeCompare(b.name, 'tr') || a.id.localeCompare(b.id));
             setGroups(grps);
         });
 

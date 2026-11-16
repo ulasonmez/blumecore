@@ -218,7 +218,8 @@ export default function CalendarPage() {
                         const isCurrentMonth = isSameMonth(day, currentDate);
                         const isDayToday = isToday(day);
                         const isSelected = isSameDay(day, selectedDate);
-                        const hasRecord = records.some(r => isSameDay(r.date, day));
+                        const hasIncome = incomeRecords.some(r => isSameDay(r.date, day));
+                        const hasExpense = expenseRecords.some(r => isSameDay(r.date, day));
                         const hasAssignment = assignments.some(a => a.createdAt && isSameDay(new Date(a.createdAt), day));
 
                         return (
@@ -230,13 +231,10 @@ export default function CalendarPage() {
                                 <span className={`${styles.dayNumber} ${isDayToday ? styles.today : ''} ${isSelected && !isDayToday ? styles.selected : ''}`}>
                                     {format(day, 'd')}
                                 </span>
-                                <div style={{ display: 'flex', gap: '2px', marginTop: '4px', justifyContent: 'center' }}>
-                                    {hasRecord && (
-                                        <div style={{ width: '4px', height: '4px', borderRadius: '50%', backgroundColor: 'var(--accent-primary)' }}></div>
-                                    )}
-                                    {hasAssignment && (
-                                        <div style={{ width: '4px', height: '4px', borderRadius: '50%', backgroundColor: 'var(--accent-blue)' }}></div>
-                                    )}
+                                <div className={styles.dayIndicators}>
+                                    {hasIncome && <span className={styles.incomeDot} role="img" aria-label="Gelir" title="Gelir" />}
+                                    {hasExpense && <span className={styles.expenseDot} role="img" aria-label="Gider" title="Gider" />}
+                                    {hasAssignment && <span className={styles.videoDot} role="img" aria-label="Video ataması" title="Video ataması" />}
                                 </div>
                             </div>
                         );
