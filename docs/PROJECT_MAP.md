@@ -60,7 +60,7 @@ Follow Ups export’u, takip aşamaları yerine **ülkelere göre** açılıp ka
 
 ### Takvim gün göstergeleri
 
-`src/app/(protected)/calendar/page.tsx` gün numarası altında gelir için yeşil, gider için kırmızı, video ataması için mavi nokta gösterir. Aynı gün bir türden birden fazla kayıt olsa da o tür için tek nokta oluşur. Üç tür aynı günde yan yana gösterilebilir. Gelir ve gider `records.date` ile, video ataması `assignments.createdAt` ile güne bağlanır. Video noktası takvimin mevcut video atama kapsamını kullanır.
+`src/app/(protected)/calendar/page.tsx` gün numarası altında gelir için yeşil, gider için kırmızı, video ataması için mavi nokta gösterir. `Calendar.module.css` bu noktaları 8 piksel çapında, 4 piksel aralıklı ve takvime özel canlı renklerle biçimlendirir. Aynı gün bir türden birden fazla kayıt olsa da o tür için tek nokta oluşur. Üç tür aynı günde yan yana gösterilebilir. Gelir ve gider `records.date` ile, video ataması `assignments.createdAt` ile güne bağlanır. Video noktası takvimin mevcut video atama kapsamını kullanır.
 
 ### Video detayı mobil yerleşimi
 

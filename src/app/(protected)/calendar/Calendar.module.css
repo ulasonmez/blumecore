@@ -93,27 +93,27 @@
 
 .dayIndicators {
     display: flex;
-    gap: 2px;
+    gap: 4px;
     margin-top: 4px;
     justify-content: center;
 }
 
 .dayIndicators > span {
-    width: 4px;
-    height: 4px;
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
 }
 
 .incomeDot {
-    background-color: var(--accent-green);
+    background-color: #4ade80;
 }
 
 .expenseDot {
-    background-color: var(--accent-red);
+    background-color: #ff5964;
 }
 
 .videoDot {
-    background-color: var(--accent-blue);
+    background-color: #55aaff;
 }
 
 .dateDetailsHeader {

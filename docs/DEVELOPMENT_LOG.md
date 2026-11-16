@@ -4,6 +4,11 @@ Yeni sohbetlerde önce [AGENTS.md](../AGENTS.md) ve [proje haritasını](PROJECT
 
 Her görev için kısa kayıt tut: ne/neden değişti, ilgili dosyalar, gerçekten yapılan doğrulama ve varsa kalan iş. Kod/konfigürasyon değiştiğinde haritayı kontrol et; etkilenen bilgiyi haritada da yerinde güncelle. Secret, kişisel veri veya tam araç çıktısı ekleme. Salt okunur soru/yanıtları kaydetme.
 
+## 2026-11-16 — Takvim noktalarının görünürlüğü
+
+- **Değişiklik:** Gelir, gider ve video noktalarının çapı 4 pikselden 8 piksele, aralarındaki boşluk 2 pikselden 4 piksele çıkarıldı. `src/app/(protected)/calendar/Calendar.module.css` içinde takvime özel daha doygun yeşil, kırmızı ve mavi tonlar kullanıldı. Proje haritasındaki takvim açıklaması güncellendi.
+- **Doğrulama:** Örnek verilerle Chrome’da 320 ve 1280 piksel genişlikte üç noktanın beklenen renk, boyut ve aralıklarla tek gün hücresine sığdığı ve gün seçiminin çalıştığı doğrulandı. `git diff --check` geçti.
+
 ## 2026-11-16 — Discord export yeniden Follow Ups ile sınırlı
 
 - **Değişiklik:** Ana sayfadaki export, mesaj gönderilecek kişiler Follow Ups’a eklenerek seçilebilsin diye önceki kapsamına döndürüldü. Ülke gruplaması mevcut arama/statü kapsamındaki takiplerin bağlı YouTuber kayıtlarını alır. Home, `DiscordExport.tsx`, `discord-contacts.ts`, ilgili testler ve proje haritasındaki export açıklaması önceki sürüme döndürüldü.
