@@ -38,7 +38,7 @@ Tablodaki yollar depo köküne göredir. Sayfa klasörlerindeki `*.module.css` d
 | Mod arşivleme, geri getirme, kalıcı silme, eski kayıt temizleme | `src/lib/mods/mod-service.ts` | `archiveModProject`, `restoreModProject`, `deleteModProject`, `previewArchivedModsCleanup`, `executeArchivedModsCleanup` |
 | Bekleyen/başarısız senkronizasyon, retry, cron | `src/lib/mods/mod-service.ts`, `src/app/api/jobs` | `createOrCoalesceSyncJob`, `processSyncJob`, `processPendingJobs`; `src/app/api/cron/github-sync/route.ts` |
 | Ayarlar, çıkış | `src/app/(protected)/settings/page.tsx` | Takvim gelir/gider toplamlarının kalıcı görünürlük ayarı (`user_settings`), Firebase sign-out + `DELETE /api/auth/session` |
-| Alt menü, ortak görünüm, tema | `src/components/BottomNav.tsx`, `src/components/ClientLayout.tsx`, `src/app/layout.tsx`, `src/app/globals.css` | `src/components/BottomNav.module.css`; sayfa/bileşen CSS Modules dosyaları, modallardaki satır içi stiller ve aşama renkleri için `src/lib/statuses.ts` |
+| Alt menü, ortak görünüm, tema, sekme ikonu | `src/components/BottomNav.tsx`, `src/components/ClientLayout.tsx`, `src/app/layout.tsx`, `src/app/globals.css`, `src/app/icon.png` | `src/components/BottomNav.module.css`; sayfa/bileşen CSS Modules dosyaları, modallardaki satır içi stiller ve aşama renkleri için `src/lib/statuses.ts` |
 
 Aracı detayının Para sekmesi, `brokerId` ile ilişkili her `records` ödemesinde `youtuberId` üzerinden güncel YouTuber adını gösterir; kişi bulunamazsa bilinmeyen olarak belirtir. Videolar sekmesi, `brokerId` ile ilişkili her `assignments` belgesini ayrı satır ve sayıda gösterir; aynı video birden fazla satışta tekrar görünür. YouTuber adı canlı `youtubers` kaydından, kayıt bulunamazsa atamadaki kaydedilmiş addan alınır. Video kataloğu kaydı eksikse atama gizlenmez, bilinmeyen video olarak gösterilir. Bu görünüm mevcut Firestore dinleyicilerini kullanır ve veri yazmaz.
 
@@ -82,6 +82,8 @@ YouTuber detayının Videolar sekmesi ve video detayının Atanan YouTuberlar b�
 YouTuber detayında her atama, başlık ve tarihiyle sınırları belirgin bir kartta gösterilir; müşteri bağlantısı kartın içindeki ayrı yüzeyde bulunur. Katalog bağlantısı “Orijinal videoyu izle” olarak adlandırılır ve müşteri videosundan ayrılır. Dar ekranda tarih gerektiğinde alt satıra geçer.
 
 ### Görsel tema
+
+Tarayıcı sekmesi ikonu `src/app/icon.png` dosyasıdır (Blume Plugins sitesindeki 128×128 PNG logo); Next.js bunu `<link rel="icon">` olarak otomatik ekler. Varsayılan Next/Vercel `favicon.ico` kaldırıldı.
 
 Arayüz sabit koyu temayı kullanır (`src/app/globals.css` içinde `color-scheme: dark`). Ortak renk rolleri CSS değişkenleriyle tanımlıdır: antrasit zemin `--bg-color` (`#1E1E24`), koyu gri kart `--bg-card` (`#282D2D`), açık metin `--text-primary`, ikincil açık gri metin `--text-secondary` ve başlık/seçim vurgusu için nane yeşili `--accent-primary` (`#B5E4D0`). Beyaz yazılı birincil düğmeler `--action-green` (`#3A805F`), yıkıcı düğmeler `--action-red` kullanır; açık vurgu rengini bu düğmelerin zemininde kullanma. `--accent-primary-soft` koyu yeşil vurgu yüzeyidir. Hata, bilgi ve uyarı metinleri için ayrı açık renk rolleri vardır. Sayfa/modalların CSS Modules dosyaları ile bazı TSX satır içi stillerinde bu tokenlar kullanılır; yalnızca `globals.css` değiştirilerek bütün ekranın rengi doğrulanmış sayılmaz.
 

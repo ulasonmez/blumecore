@@ -4,6 +4,11 @@ Yeni sohbetlerde önce [AGENTS.md](../AGENTS.md) ve [proje haritasını](PROJECT
 
 Her görev için kısa kayıt tut: ne/neden değişti, ilgili dosyalar, gerçekten yapılan doğrulama ve varsa kalan iş. Kod/konfigürasyon değiştiğinde haritayı kontrol et; etkilenen bilgiyi haritada da yerinde güncelle. Secret, kişisel veri veya tam araç çıktısı ekleme. Salt okunur soru/yanıtları kaydetme.
 
+## 2026-11-20 — Sekme ikonu Blume logosu oldu
+
+- **Değişiklik:** Chrome sekmesinde görünen varsayılan Next/Vercel `src/app/favicon.ico` kaldırıldı; yerine blumeplugins.vercel.app'in kullandığı 128×128 PNG logo `src/app/icon.png` olarak eklendi. Proje haritasındaki ortak görünüm satırı ve tema bölümü güncellendi.
+- **Doğrulama:** `npm run build` geçti; derlenen giriş sayfasında `<link rel="icon" href="/icon.png?..." type="image/png">` üretildiği ve dosya hash'inin Blume Plugins'teki ikonla aynı olduğu görüldü. Canlı sitede sekme ikonu, Vercel dağıtımından sonra kontrol edilmeli (tarayıcı eski favicon'u önbellekte tutabilir).
+
 ## 2026-11-16 — Takvim noktalarının görünürlüğü
 
 - **Değişiklik:** Gelir, gider ve video noktalarının çapı 4 pikselden 8 piksele, aralarındaki boşluk 2 pikselden 4 piksele çıkarıldı. `src/app/(protected)/calendar/Calendar.module.css` içinde takvime özel daha doygun yeşil, kırmızı ve mavi tonlar kullanıldı. Proje haritasındaki takvim açıklaması güncellendi.
