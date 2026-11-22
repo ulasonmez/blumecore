@@ -228,6 +228,79 @@ export function decideCustomerVideoUpdate(
     return { outcome: 'SUGGESTED', set: { customerVideoSuggestion: suggestion }, remove: [] };
 }
 
+/** Bir atamada saklanan en fazla reddedilmiş video sayısı (belge büyümesin). */
+export const MAX_REJECTED_VIDEO_IDS = 100;
+
+export interface CustomerVideoRejection {
+    assignmentId: string;
+    videoId: string;
+}
+
+export type RejectionParseResult =
+    | { ok: true; rejection: CustomerVideoRejection }
+    | { ok: false; error: string };
+
+export function parseCustomerVideoRejection(body: unknown): RejectionParseResult {
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+        return { ok: false, error: 'İstek gövdesi JSON nesnesi olmalıdır.' };
+    }
+    const input = body as Record<string, unknown>;
+    const assignmentId = typeof input.assignmentId === 'string' ? input.assignmentId.trim() : '';
+    if (!assignmentId || assignmentId.length > 128 || assignmentId.includes('/')) {
+        return { ok: false, error: 'Geçerli bir assignmentId gereklidir.' };
+    }
+    const videoId = typeof input.videoId === 'string' ? input.videoId.trim() : '';
+    if (!/^[A-Za-z0-9_-]{6,20}$/.test(videoId)) {
+        return { ok: false, error: 'Geçerli bir YouTube videoId gereklidir.' };
+    }
+    return { ok: true, rejection: { assignmentId, videoId } };
+}
+
+/**
+ * REMOVED: atamadaki bağlantı bu videoydu ve kaldırıldı.
+ * REJECTED: bağlantı bu video değildi (ör. sonradan elle değiştirildi); yalnızca video engellendi.
+ * ALREADY_REJECTED: video zaten engelliydi ve kaldırılacak bir şey yoktu.
+ */
+export type CustomerVideoRejectOutcome = 'REMOVED' | 'REJECTED' | 'ALREADY_REJECTED';
+
+export interface CustomerVideoRejectDecision {
+    outcome: CustomerVideoRejectOutcome;
+    set: Record<string, unknown> | null;
+    remove: string[];
+    /** Kaldırılan otomatik eşleşmenin başlığı (bildirim için). */
+    removedTitle: string | null;
+}
+
+/**
+ * Sahibin "bu video yanlış" kararı. Video atamanın ret listesine eklenir; böylece
+ * `decideCustomerVideoUpdate` aynı videoyu bu atamaya bir daha yazmaz/önermez.
+ * Atamadaki bağlantı tam olarak bu videoysa bağlantı ve otomatik eşleşme bilgisi silinir;
+ * farklı bir bağlantıya (ör. sahibin elle girdiği) dokunulmaz. Aynı videonun bekleyen önerisi de silinir.
+ */
+export function decideCustomerVideoRejection(state: CustomerVideoAssignmentState & { customerVideoMatch?: unknown }, videoId: string): CustomerVideoRejectDecision {
+    const rejected = readRejectedIds(state);
+    const currentId = hasCustomerVideoUrl(state) ? extractYoutubeVideoId(String(state.customerVideoUrl)) : null;
+    const linked = currentId === videoId;
+    const remove: string[] = [];
+    if (linked) remove.push('customerVideoUrl', 'customerVideoSource', 'customerVideoMatch');
+    if (readSuggestion(state)?.videoId === videoId) remove.push('customerVideoSuggestion');
+
+    const match = state.customerVideoMatch && typeof state.customerVideoMatch === 'object'
+        ? state.customerVideoMatch as Partial<CustomerVideoMatch> : null;
+    const removedTitle = linked && match && match.videoId === videoId && typeof match.title === 'string' ? match.title : null;
+
+    const already = rejected.includes(videoId);
+    if (already && remove.length === 0) {
+        return { outcome: 'ALREADY_REJECTED', set: null, remove: [], removedTitle: null };
+    }
+    return {
+        outcome: linked ? 'REMOVED' : already ? 'ALREADY_REJECTED' : 'REJECTED',
+        set: already ? null : { customerVideoRejectedIds: [...rejected, videoId].slice(-MAX_REJECTED_VIDEO_IDS) },
+        remove,
+        removedTitle
+    };
+}
+
 export interface CheckSchedule {
     due: boolean;
     /** null: bu atama artık periyodik olarak kontrol edilmez. */

@@ -57,7 +57,12 @@ const CVS_DAY_MS = 24 * 60 * 60 * 1000;
 /* ======================= Çalıştırılacak fonksiyonlar ======================= */
 
 function cvsRunDailyCheck() {
-  cvsRun_({ dryRun: false });
+  try {
+    cvsRun_({ dryRun: false });
+  } catch (e) {
+    cvsNotifyFailure_(e);
+    throw e;
+  }
 }
 
 function cvsDryRun() {
@@ -123,11 +128,13 @@ function cvsRun_(opts) {
     cvsReleaseLease_();
   }
 
+  if (!opts.dryRun) cvsNotifyTelegram_(stats);
   console.log('Özet — otomatik yazılan: ' + stats.autoSet + ', öneri: ' + stats.suggested +
     ', eşleşme yok: ' + stats.noMatch + ', sunucunun atladığı: ' + stats.skipped +
     ', süre nedeniyle yarına kalan: ' + stats.deferred);
   if (stats.noChannel.length) console.log('Kanal linki yok: ' + cvsUnique_(stats.noChannel).join(', '));
   if (stats.unresolved.length) console.log('Kanal çözümlenemedi: ' + stats.unresolved.join(' | '));
+  if ((stats.blocked || []).length) console.warn('OpenAI kontrol edemedi (manuel bak):\n' + stats.blocked.map(function (b) { return b.name + ': ' + b.original + ' — ' + b.channelUrl; }).join('\n'));
   if (stats.errors.length) console.warn('Hatalar (bu atamalar yarın tekrar denenecek):\n' + stats.errors.join('\n'));
 }
 
@@ -168,7 +175,20 @@ function cvsProcessGroup_(cfg, group, claimedIds, opts, stats) {
     return;
   }
 
-  const matches = cvsAskOpenAi_(cfg, group, candidates);
+  let matches;
+  try {
+    matches = cvsAskOpenAi_(cfg, group, candidates);
+  } catch (e) {
+    if (!/invalid_prompt/.test(String(e && e.message))) throw e;
+    matches = cvsRetryBlockedPrompt_(cfg, group, candidates);
+    if (!matches) {
+      // Not marked checked: comes back on the next scheduled check. Owner gets the titles to look at manually.
+      group.items.forEach(function (i) {
+        (stats.blocked = stats.blocked || []).push({ name: name, original: i.originalVideo.title || '(başlık bilinmiyor)', channelUrl: channelUrl });
+      });
+      return;
+    }
+  }
   const itemsById = {};
   group.items.forEach(function (i) { itemsById[i.assignmentId] = i; });
   const videosById = {};
@@ -211,6 +231,8 @@ function cvsProcessGroup_(cfg, group, claimedIds, opts, stats) {
       if (res.outcome === 'AUTO_SET') stats.autoSet++;
       else if (res.outcome === 'SUGGESTED') stats.suggested++;
       else stats.skipped++;
+      (stats.matches = stats.matches || []).push({ outcome: res.outcome, name: name, original: item.originalVideo.title || '',
+        matched: video.title, videoId: video.videoId, confidence: confidence, assignmentId: item.assignmentId });
       console.log(res.outcome + ' | ' + name + ' | "' + (item.originalVideo.title || '?') + '" → "' + video.title + '" (' + confidence.toFixed(2) + ')');
     });
 
@@ -304,16 +326,46 @@ function cvsAskOpenAi_(cfg, group, candidates) {
     });
   });
   if (!parts.length) throw new Error('OpenAI yanıtında çıktı yok.');
-  const parsed = JSON.parse(parts.join(''));
-  return Array.isArray(parsed.matches) ? parsed.matches : [];
+  const parsed = baiJson_(parts);
+  const matches = parsed && parsed.matches;
+  const expected = group.items.map(function (i) { return i.assignmentId; });
+  if (!Array.isArray(matches) || matches.length !== expected.length ||
+      expected.some(function (id) { return matches.filter(function (m) { return m && m.assignmentId === id; }).length !== 1; })) {
+    throw new Error('OpenAI yanıtında atama sonuçları eksik veya tekrarlı.');
+  }
+  return matches;
+}
+
+// OpenAI rejects the whole request (invalid_prompt) when a title/description looks unsafe.
+// Retry without descriptions, then without moderation-flagged titles. null = still blocked.
+function cvsRetryBlockedPrompt_(cfg, group, candidates) {
+  const isBlocked = function (e) { return /invalid_prompt/.test(String(e && e.message)); };
+  const noDesc = candidates.map(function (v) { return Object.assign({}, v, { description: '' }); });
+  try { return cvsAskOpenAi_(cfg, group, noDesc); } catch (e) { if (!isBlocked(e)) throw e; }
+  try {
+    const r = UrlFetchApp.fetch('https://api.openai.com/v1/moderations', { method: 'post', contentType: 'application/json',
+      headers: { Authorization: 'Bearer ' + cfg.openAiKey }, muteHttpExceptions: true, followRedirects: false,
+      payload: JSON.stringify({ model: 'omni-moderation-latest', input: noDesc.map(function (v) { return String(v.title || ''); }) }) });
+    if (r.getResponseCode() !== 200) return null;
+    const results = JSON.parse(r.getContentText()).results || [];
+    let drop = results.map(function (x, i) { return x && x.flagged ? i : -1; }).filter(function (i) { return i >= 0; });
+    if (!drop.length) drop = results.map(function (x, i) {
+      const s = Object.values(x && x.category_scores || {}).map(Number).filter(isFinite);
+      return { i: i, s: s.length ? Math.max.apply(null, s) : 0 };
+    }).sort(function (a, b) { return b.s - a.s; }).slice(0, 3).map(function (x) { return x.i; });
+    const kept = noDesc.filter(function (v, i) { return drop.indexOf(i) < 0; });
+    if (!kept.length) return null;
+    return cvsAskOpenAi_(cfg, group, kept);
+  } catch (e) { if (isBlocked(e)) return null; throw e; }
 }
 
 /* ============================== YouTube ============================== */
 
 function cvsResolveUploadsPlaylist_(cfg, channelUrl) {
-  const props = PropertiesService.getScriptProperties();
+  // 6 saatlik önbellek: Script Properties'te kalıcı kayıt birikmesin.
+  const cache = CacheService.getScriptCache();
   const cacheKey = 'cvs_up_' + cvsHash_(channelUrl.trim().toLowerCase());
-  const cached = props.getProperty(cacheKey);
+  const cached = cache.get(cacheKey);
   if (cached) return cached;
 
   // Apps Script V8'de URL sınıfı yok; yol kısmı elle ayrılır.
@@ -329,7 +381,7 @@ function cvsResolveUploadsPlaylist_(cfg, channelUrl) {
   let m;
   if ((m = path.match(/^\/channel\/(UC[\w-]{22})/))) {
     const uploads = 'UU' + m[1].slice(2);
-    props.setProperty(cacheKey, uploads);
+    cache.put(cacheKey, uploads, 21600);
     return uploads;
   } else if ((m = path.match(/^\/(@[^/]+)/))) {
     params = { forHandle: m[1] };
@@ -344,7 +396,7 @@ function cvsResolveUploadsPlaylist_(cfg, channelUrl) {
   const data = cvsYouTube_(cfg, 'channels', params);
   const item = data.items && data.items[0];
   const uploads = item && item.contentDetails && item.contentDetails.relatedPlaylists && item.contentDetails.relatedPlaylists.uploads;
-  if (uploads) props.setProperty(cacheKey, uploads);
+  if (uploads) cache.put(cacheKey, uploads, 21600);
   return uploads || null;
 }
 
@@ -480,4 +532,103 @@ function cvsHash_(text) {
 
 function cvsUnique_(arr) {
   return arr.filter(function (v, i) { return arr.indexOf(v) === i; });
+}
+
+
+/* ── Telegram bildirimi: her günlük kontrolden sonra ne bulunduğunu özetler ── */
+function cvsNotifyTelegram_(stats) {
+  try {
+    if (typeof baiTelegram_ !== 'function') return;
+    const list = stats.matches || [];
+    const line = function (m, n) {
+      return '  ' + (n ? n + '.' : '•') + ' ' + m.name + ': "' + String(m.original).slice(0, 60) + '" → "' + String(m.matched).slice(0, 70) + '" (' +
+        Math.round(m.confidence * 100) + '%)\n    youtu.be/' + m.videoId;
+    };
+    const auto = list.filter(function (m) { return m.outcome === 'AUTO_SET'; });
+    const sug = list.filter(function (m) { return m.outcome === 'SUGGESTED'; });
+    const lines = ['🎬 BlumeCore müşteri videosu kontrolü', 'Kontrol edilen: ' + stats.groups + ' YouTuber, ' + stats.assignments + ' atama'];
+    lines.push('✅ Linki otomatik yazılan: ' + auto.length);
+    auto.slice(0, 15).forEach(function (m, i) { lines.push(line(m, i + 1)); });
+    if (auto.length) lines.push('  Yanlış olanı aşağıdaki ❌ butonuyla kaldırabilirsin; o video bu satışa bir daha yazılmaz.');
+    lines.push('💡 BlumeCore panelinde onay bekleyen öneri: ' + sug.length);
+    sug.slice(0, 15).forEach(function (m) { lines.push(line(m)); });
+    lines.push('Henüz yüklenmemiş / eşleşme yok: ' + stats.noMatch + (stats.deferred ? ' · süre nedeniyle yarına kalan: ' + stats.deferred : ''));
+    if (stats.noChannel.length) lines.push('⚠️ Kanal linki eksik: ' + cvsUnique_(stats.noChannel).slice(0, 10).join(', '));
+    if (stats.unresolved.length) lines.push('⚠️ Kanalı çözülemeyen YouTuber: ' + stats.unresolved.length);
+    const blocked = stats.blocked || [];
+    if (blocked.length) {
+      lines.push('🔎 OpenAI kontrol edemedi, manuel bak: ' + blocked.length);
+      blocked.slice(0, 15).forEach(function (b) {
+        lines.push('  • ' + b.name + ': "' + String(b.original).slice(0, 90) + '"\n    ' + String(b.channelUrl || '').replace(/^https?:\/\//, ''));
+      });
+    }
+    if (stats.errors.length) lines.push('❌ Hata: ' + stats.errors.slice(0, 3).map(function (e) { return String(e).slice(0, 150); }).join(' | '));
+    // Otomatik yazılan her link için bir "yanlış eşleşme" butonu (Telegram callback_data en fazla 64 bayt).
+    const buttons = [];
+    auto.slice(0, 15).forEach(function (m, i) {
+      const data = CVS_REJECT_PREFIX + m.assignmentId + ':' + m.videoId;
+      if (!m.assignmentId || Utilities.newBlob(data).getBytes().length > 64) return;
+      buttons.push([{ text: '❌ ' + (i + 1) + '. ' + String(m.name).slice(0, 30) + ' — yanlış, kaldır', callback_data: data }]);
+    });
+    const message = { chat_id: String(CONFIG.TELEGRAM_CHAT_ID), text: lines.join('\n').slice(0, 3900),
+      link_preview_options: { is_disabled: true } };
+    if (buttons.length) message.reply_markup = { inline_keyboard: buttons };
+    baiTelegram_('sendMessage', message);
+  } catch (e) {
+    console.log('Telegram özeti gönderilemedi: ' + (e && e.message ? e.message : e));
+  }
+}
+
+/* ── Telegram "yanlış eşleşme" butonu ──
+ * Telegram yoklaması (baiHandleTelegramUpdate_) "cvsx:" ile başlayan butonları buraya yollar.
+ * BlumeCore otomatik yazılan linki siler ve videoyu o atamanın ret listesine ekler; böylece
+ * aynı video bu satışa bir daha yazılmaz/önerilmez. Doğru linki sahibi panelden elle girebilir. */
+const CVS_REJECT_PREFIX = 'cvsx:';
+
+function cvsHandleRejectCallback_(callback) {
+  const answer = function (text) {
+    try { baiTelegram_('answerCallbackQuery', { callback_query_id: callback.id, text: text }); } catch (_) {}
+  };
+  const msg = callback.message;
+  if (!msg || !baiAuthorized_(msg.chat, callback.from)) { answer('Bu işlem için yetkin yok.'); return true; }
+  const parts = String(callback.data || '').slice(CVS_REJECT_PREFIX.length).split(':');
+  if (parts.length !== 2 || !parts[0] || !parts[1]) { answer('Buton bozuk.'); return true; }
+
+  const rows = (msg.reply_markup && msg.reply_markup.inline_keyboard) || [];
+  let label = '';
+  rows.forEach(function (row) { row.forEach(function (b) { if (b.callback_data === callback.data) label = b.text; }); });
+  const who = label.replace(/^❌\s*/, '').replace(/\s+—\s+yanlış, kaldır$/, '') || 'Atama';
+
+  let res;
+  try {
+    res = cvsApi_(cvsConfig_(), 'post', '/api/integrations/customer-videos/reject', { assignmentId: parts[0], videoId: parts[1] });
+  } catch (e) {
+    answer('Kaldırılamadı, tekrar dene.');
+    baiTelegram_('sendMessage', { chat_id: msg.chat.id, reply_to_message_id: msg.message_id,
+      text: '⚠️ ' + who + ': link kaldırılamadı.\n' + String(e && e.message ? e.message : e).slice(0, 300) });
+    return true;
+  }
+
+  answer(res.outcome === 'ALREADY_REJECTED' ? 'Zaten kaldırılmıştı.' : 'Kaldırıldı.');
+  const left = rows.map(function (row) { return row.filter(function (b) { return b.callback_data !== callback.data; }); })
+    .filter(function (row) { return row.length; });
+  try {
+    baiTelegram_('editMessageReplyMarkup', { chat_id: msg.chat.id, message_id: msg.message_id, reply_markup: { inline_keyboard: left } });
+  } catch (_) {}
+  const text = res.outcome === 'REMOVED'
+    ? '❌ ' + who + ': link kaldırıldı' + (res.removedTitle ? ' ("' + String(res.removedTitle).slice(0, 80) + '")' : '') +
+      '.\nBu video bu satışa bir daha yazılmayacak. Doğrusunu BlumeCore\'da elle girebilirsin.'
+    : res.outcome === 'REJECTED'
+      ? '❌ ' + who + ': atamadaki link artık farklı (elle değiştirilmiş), ona dokunulmadı. Bu video yalnızca engellendi.'
+      : 'ℹ️ ' + who + ': bu video zaten kaldırılmış ve engellenmişti.';
+  baiTelegram_('sendMessage', { chat_id: msg.chat.id, reply_to_message_id: msg.message_id, text: text,
+    link_preview_options: { is_disabled: true } });
+  return true;
+}
+function cvsNotifyFailure_(e) {
+  try {
+    if (typeof baiTelegram_ !== 'function') return;
+    baiTelegram_('sendMessage', { chat_id: String(CONFIG.TELEGRAM_CHAT_ID),
+      text: '🛑 BlumeCore müşteri videosu kontrolü çalışmadı\nHata: ' + String(e && e.message ? e.message : e).slice(0, 300) });
+  } catch (_) {}
 }

@@ -4,6 +4,13 @@ Yeni sohbetlerde önce [AGENTS.md](../AGENTS.md) ve [proje haritasını](PROJECT
 
 Her görev için kısa kayıt tut: ne/neden değişti, ilgili dosyalar, gerçekten yapılan doğrulama ve varsa kalan iş. Kod/konfigürasyon değiştiğinde haritayı kontrol et; etkilenen bilgiyi haritada da yerinde güncelle. Secret, kişisel veri veya tam araç çıktısı ekleme. Salt okunur soru/yanıtları kaydetme.
 
+## 2026-11-22 — Telegram'dan yanlış müşteri videosu eşleşmesini kaldırma
+
+- **Değişiklik ve neden:** Otomatik eşleştirme başlık benzerliği yüzünden bazen yanlış videoyu yüksek güvenle yazabiliyordu ve bunu geri almanın, aynı videonun tekrar yazılmasını engellemenin yolu yoktu. Yeni `POST /api/integrations/customer-videos/reject` ucu (`decideCustomerVideoRejection`) videoyu atamanın `customerVideoRejectedIds` listesine ekler ve bağlantı bu videoysa bağlantıyı ve otomatik eşleşme bilgisini siler. Apps Script'in günlük Telegram özetinde otomatik yazılan her link numaralandırıldı ve “❌ yanlış, kaldır” butonu eklendi; buton Telegram yoklamasından `cvsHandleRejectCallback_` ile işlenir. Repodaki `CustomerVideoSync.gs` canlıdaki sürümle eşitlendi (Telegram özeti, OpenAI `invalid_prompt` yeniden denemesi, `CacheService` önbelleği zaten canlıdaydı, repoda yoktu).
+- **Dosyalar:** `src/lib/customer-video-sync.ts`, `src/app/api/integrations/customer-videos/reject/route.ts`, `src/lib/audit-log.ts`, `tests/customer-video-sync.test.ts`, `integrations/apps-script/CustomerVideoSync.gs`; harita: müşteri videosu bölümü ve API tablosu güncellendi. Outreach projesindeki `AIChannelReview.gs` içinde `baiHandleTelegramUpdate_` `cvsx:` butonlarını yönlendirir (bu dosya bu repoda yok).
+- **Doğrulama:** `tests/customer-video-sync.test.ts` (31 test) geçti; yeni karar fonksiyonu, ret sonrası `PREVIOUSLY_REJECTED` davranışı ve reject route'unun yetki/gövde ön kontrolleri test edildi. Gerçek Firestore transaction'ı ve Telegram butonu bu ortamda çalıştırılmadı.
+- **Kalan iş:** Vercel'e dağıtım ve ilk gerçek Telegram özetinde butonun denenmesi.
+
 ## 2026-11-20 — Sekme ikonu Blume logosu oldu
 
 - **Değişiklik:** Chrome sekmesinde görünen varsayılan Next/Vercel `src/app/favicon.ico` kaldırıldı; yerine blumeplugins.vercel.app'in kullandığı 128×128 PNG logo `src/app/icon.png` olarak eklendi. Proje haritasındaki ortak görünüm satırı ve tema bölümü güncellendi.

@@ -18,7 +18,8 @@ export type AuditEventType =
     | 'MOD_DELETED'
     | 'DATA_CONFLICT_DETECTED'
     | 'CUSTOMER_VIDEO_AUTO_SET'
-    | 'CUSTOMER_VIDEO_SUGGESTED';
+    | 'CUSTOMER_VIDEO_SUGGESTED'
+    | 'CUSTOMER_VIDEO_REJECTED';
 
 export interface AuditLogEntry {
     eventType: AuditEventType;

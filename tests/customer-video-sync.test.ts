@@ -3,8 +3,11 @@ import { strict as assert } from 'node:assert';
 import { NextRequest } from 'next/server';
 import {
     buildPendingItem,
+    decideCustomerVideoRejection,
     decideCustomerVideoUpdate,
     extractYoutubeVideoId,
+    MAX_REJECTED_VIDEO_IDS,
+    parseCustomerVideoRejection,
     getCheckSchedule,
     parseCheckedAssignmentIds,
     parseCustomerVideoSubmission,
@@ -16,6 +19,7 @@ import { requireCustomerVideoSyncSecret } from '../src/lib/server-auth';
 import { POST } from '../src/app/api/integrations/customer-videos/route';
 import { GET } from '../src/app/api/integrations/customer-videos/pending/route';
 import { POST as POST_CHECKED } from '../src/app/api/integrations/customer-videos/checked/route';
+import { POST as POST_REJECT } from '../src/app/api/integrations/customer-videos/reject/route';
 
 const SECRET = 'a'.repeat(40);
 const NOW = 1_700_000_000_000;
@@ -127,6 +131,64 @@ describe('decideCustomerVideoUpdate', () => {
         assert.equal(decideCustomerVideoUpdate(state, submission({ confidence: 0.7 }), 0.85, NOW).outcome, 'DUPLICATE_SUGGESTION');
         assert.equal(decideCustomerVideoUpdate(state, submission({ confidence: 0.5 }), 0.85, NOW).outcome, 'DUPLICATE_SUGGESTION');
         assert.equal(decideCustomerVideoUpdate(state, submission({ confidence: 0.8 }), 0.85, NOW).outcome, 'SUGGESTED');
+    });
+});
+
+describe('decideCustomerVideoRejection', () => {
+    const auto = {
+        customerVideoUrl: 'https://www.youtube.com/watch?v=abcDEF12345',
+        customerVideoSource: 'auto',
+        customerVideoMatch: { videoId: 'abcDEF12345', title: 'Yanlış video', confidence: 0.99, reason: null, matchedAt: NOW }
+    };
+
+    it('otomatik yazılan bağlantıyı siler ve videoyu ret listesine ekler', () => {
+        const d = decideCustomerVideoRejection(auto, 'abcDEF12345');
+        assert.equal(d.outcome, 'REMOVED');
+        assert.deepEqual(d.set, { customerVideoRejectedIds: ['abcDEF12345'] });
+        assert.deepEqual(d.remove, ['customerVideoUrl', 'customerVideoSource', 'customerVideoMatch']);
+        assert.equal(d.removedTitle, 'Yanlış video');
+    });
+
+    it('reddedilen video aynı atamaya bir daha yazılmaz', () => {
+        const d = decideCustomerVideoRejection(auto, 'abcDEF12345');
+        const after = { customerVideoRejectedIds: (d.set as { customerVideoRejectedIds: string[] }).customerVideoRejectedIds };
+        assert.equal(decideCustomerVideoUpdate(after, submission({ confidence: 0.99 }), 0.85, NOW).outcome, 'PREVIOUSLY_REJECTED');
+    });
+
+    it('bağlantı farklı bir videoysa (elle değiştirilmiş) bağlantıya dokunmaz, yalnızca videoyu engeller', () => {
+        const d = decideCustomerVideoRejection({ customerVideoUrl: 'https://youtu.be/manual12345' }, 'abcDEF12345');
+        assert.equal(d.outcome, 'REJECTED');
+        assert.deepEqual(d.remove, []);
+        assert.deepEqual(d.set, { customerVideoRejectedIds: ['abcDEF12345'] });
+    });
+
+    it('aynı videonun bekleyen önerisini de siler', () => {
+        const d = decideCustomerVideoRejection({ customerVideoSuggestion: { url: 'x', videoId: 'abcDEF12345', confidence: 0.6 } }, 'abcDEF12345');
+        assert.equal(d.outcome, 'REJECTED');
+        assert.deepEqual(d.remove, ['customerVideoSuggestion']);
+    });
+
+    it('tekrar basılınca değişiklik yapmaz', () => {
+        const d = decideCustomerVideoRejection({ customerVideoRejectedIds: ['abcDEF12345'] }, 'abcDEF12345');
+        assert.equal(d.outcome, 'ALREADY_REJECTED');
+        assert.equal(d.set, null);
+        assert.deepEqual(d.remove, []);
+    });
+
+    it('ret listesini sınırlı tutar', () => {
+        const many = Array.from({ length: MAX_REJECTED_VIDEO_IDS }, (_, i) => `vid${String(i).padStart(5, '0')}`);
+        const d = decideCustomerVideoRejection({ customerVideoRejectedIds: many }, 'abcDEF12345');
+        const ids = (d.set as { customerVideoRejectedIds: string[] }).customerVideoRejectedIds;
+        assert.equal(ids.length, MAX_REJECTED_VIDEO_IDS);
+        assert.equal(ids[ids.length - 1], 'abcDEF12345');
+    });
+
+    it('parseCustomerVideoRejection gövdeyi doğrular', () => {
+        const ok = parseCustomerVideoRejection({ assignmentId: ' as1 ', videoId: 'abcDEF12345' });
+        assert.deepEqual(ok.ok && ok.rejection, { assignmentId: 'as1', videoId: 'abcDEF12345' });
+        assert.equal(parseCustomerVideoRejection({ assignmentId: 'a/b', videoId: 'abcDEF12345' }).ok, false);
+        assert.equal(parseCustomerVideoRejection({ assignmentId: 'as1', videoId: 'kötü id' }).ok, false);
+        assert.equal(parseCustomerVideoRejection(null).ok, false);
     });
 });
 
@@ -258,6 +320,8 @@ describe('Entegrasyon anahtarı ve route ön kontrolleri', () => {
         assert.equal((await POST(req('Bearer yanlis', { method: 'POST', body: '{}' }))).status, 401);
         assert.equal((await POST_CHECKED(req('Bearer yanlis', { method: 'POST', body: '{}' }))).status, 401);
         assert.equal((await POST_CHECKED(req(`Bearer ${SECRET}`, { method: 'POST', body: '{"assignmentIds":[]}' }))).status, 400);
+        assert.equal((await POST_REJECT(req('Bearer yanlis', { method: 'POST', body: '{}' }))).status, 401);
+        assert.equal((await POST_REJECT(req(`Bearer ${SECRET}`, { method: 'POST', body: '{"assignmentId":"as1"}' }))).status, 400);
     });
 
     it('POST hatalı gövdeyi veritabanına gitmeden 400 ile reddeder', async () => {
