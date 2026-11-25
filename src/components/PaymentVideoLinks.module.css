@@ -25,6 +25,37 @@
     white-space: nowrap;
 }
 
+.picker { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+
+.searchBox {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 12px;
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-secondary);
+}
+
+.searchBox input {
+    flex: 1;
+    min-width: 0;
+    padding: 12px 0;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    color: var(--text-primary);
+    font-size: 16px;
+}
+
+.selectedSummary {
+    font-size: 12px;
+    color: var(--accent-primary);
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+}
+
 .list {
     display: flex;
     flex-direction: column;

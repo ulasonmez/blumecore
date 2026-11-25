@@ -200,3 +200,13 @@
 @media (max-width: 380px) {
     .videoPayment { margin-left: 0; }
 }
+.noteEditor { margin-left: 39px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.noteEditor label { font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+.noteEditor textarea { width: 100%; min-width: 0; padding: 10px 12px; font-size: 16px; line-height: 1.4; resize: vertical; border-radius: 8px; }
+.noteActions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+.noteActions button { font-size: 12px; color: var(--accent-primary); }
+.noteActions button:global(.btn-primary) { color: #fff; }
+.noteError { font-size: 12px; color: var(--accent-red); }
+@media (max-width: 380px) {
+    .noteEditor { margin-left: 0; }
+}

@@ -22,7 +22,7 @@ import { collection, query, where, onSnapshot, deleteDoc, doc, updateDoc } from 
 import { useAuth } from '@/lib/auth-context';
 import { authenticatedFetch } from '@/lib/api-client';
 import { useIncomeVisibility } from '@/lib/income-visibility';
-import { readPaidAssignments } from '@/lib/payment-links';
+import { resolveRecordPaidVideos } from '@/lib/payment-links';
 
 export default function CalendarPage() {
     const { user } = useAuth();
@@ -128,6 +128,7 @@ export default function CalendarPage() {
 
     // Calculate assigned (sold) videos by filtering assignments that have a valid connected YouTube video
     const validAssignments = assignments.filter(a => videos.some(v => v.id === a.videoId));
+    const assignmentToVideo = new Map<string, string>(assignments.map(a => [a.id, a.videoId]));
     
     let monthlyAssignedVideos = 0;
     validAssignments.forEach(a => {
@@ -281,14 +282,11 @@ export default function CalendarPage() {
                                         </span>
                                     ) : null}
                                     {!isExpense && (() => {
-                                        const linkedTitles = readPaidAssignments(record.paidAssignments)
+                                        const linkedTitles = resolveRecordPaidVideos(record, assignmentToVideo)
                                             .map(link => {
-                                                const linked = assignments.find(a => a.id === link.assignmentId);
-                                                if (!linked) return null;
-                                                const title = videos.find(v => v.id === linked.videoId)?.title || 'Bilinmeyen Video';
+                                                const title = videos.find(v => v.id === link.videoId)?.title || 'Bilinmeyen Video';
                                                 return link.coverage === 'partial' ? `${title} (kısmi)` : title;
-                                            })
-                                            .filter(Boolean);
+                                            });
                                         return linkedTitles.length > 0 ? (
                                             <span style={{ fontSize: '11px', color: 'var(--accent-blue)', marginTop: '2px', overflowWrap: 'anywhere' }}>
                                                 Videolar: {linkedTitles.join(', ')}

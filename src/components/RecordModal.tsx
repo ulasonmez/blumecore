@@ -9,12 +9,15 @@ import { db } from '@/lib/firebase';
 import { collection, query, where, addDoc, onSnapshot, doc, updateDoc, getDocs, getDoc, deleteField } from 'firebase/firestore';
 import { useAuth } from '@/lib/auth-context';
 import { authenticatedFetch } from '@/lib/api-client';
-import PaymentVideoPicker, { type PayableAssignment } from './PaymentVideoLinks';
+import PaymentVideoPicker, { type PayableVideo } from './PaymentVideoLinks';
 import {
-    buildAssignmentPaymentMap,
-    filterLinksToAssignments,
-    readPaidAssignments,
-    type PaidAssignmentLink,
+    buildVideoPaymentMap,
+    convertLegacyLinks,
+    mergePaidVideos,
+    readLegacyPaidAssignments,
+    readPaidVideos,
+    type LegacyPaidAssignmentLink,
+    type PaidVideoLink,
     type PaymentRecordLike,
 } from '@/lib/payment-links';
 
@@ -28,6 +31,7 @@ export interface RecordEditData {
     amount?: number | string;
     description?: string;
     type?: 'income' | 'expense' | 'video';
+    paidVideos?: unknown;
     paidAssignments?: unknown;
     [key: string]: unknown;
 }
@@ -79,7 +83,9 @@ export default function RecordModal({ isOpen, onClose, initialDate = new Date(),
     const [autoGrantModAccess, setAutoGrantModAccess] = useState(true);
 
     // Ödemeye bağlı videolar (yalnızca gelir kayıtları)
-    const [paidLinks, setPaidLinks] = useState<PaidAssignmentLink[]>([]);
+    const [paidLinks, setPaidLinks] = useState<PaidVideoLink[]>([]);
+    // Eski atama bazlı bağlantılar; atamalar yüklenince videoya çevrilip seçime katılır, kayıtta paidVideos'a taşınır.
+    const [legacyLinks, setLegacyLinks] = useState<LegacyPaidAssignmentLink[]>([]);
     const [youtuberAssignments, setYoutuberAssignments] = useState<{ id: string; videoId: string; createdAt?: number }[]>([]);
     const [youtuberRecords, setYoutuberRecords] = useState<PaymentRecordLike[]>([]);
 
@@ -105,7 +111,7 @@ export default function RecordModal({ isOpen, onClose, initialDate = new Date(),
             query(collection(db, "records"), where("userId", "==", user.uid), where("youtuberId", "==", selectedId)),
             (snapshot) => {
                 const data: PaymentRecordLike[] = [];
-                snapshot.forEach(d => data.push({ id: d.id, type: d.data().type, paidAssignments: d.data().paidAssignments }));
+                snapshot.forEach(d => data.push({ id: d.id, type: d.data().type, paidVideos: d.data().paidVideos, paidAssignments: d.data().paidAssignments }));
                 setYoutuberRecords(data);
             }
         );
@@ -189,7 +195,8 @@ export default function RecordModal({ isOpen, onClose, initialDate = new Date(),
                 setSelectedBrokerId(editData.brokerId || '');
                 setAmount(editData.amount?.toString() || '');
                 setDescription(editData.description || '');
-                setPaidLinks(readPaidAssignments(editData.paidAssignments));
+                setPaidLinks(readPaidVideos(editData.paidVideos));
+                setLegacyLinks(readLegacyPaidAssignments(editData.paidAssignments));
             }
         } else {
             setAmount('');
@@ -201,6 +208,7 @@ export default function RecordModal({ isOpen, onClose, initialDate = new Date(),
             setVideoSearchTerm('');
             setIsVideoDropdownOpen(false);
             setPaidLinks([]);
+            setLegacyLinks([]);
         }
     }, [editData, editType, isOpen]);
 
@@ -215,6 +223,7 @@ export default function RecordModal({ isOpen, onClose, initialDate = new Date(),
             setPersonSearchTerm('');
             setIsPersonDropdownOpen(false);
             setPaidLinks([]);
+            setLegacyLinks([]);
         }
     }, [recordType, editData]);
 
@@ -222,12 +231,20 @@ export default function RecordModal({ isOpen, onClose, initialDate = new Date(),
 
     const currentOptions = (recordType === 'income' || recordType === 'video') ? youtubers : teamMembers;
     const categoryLabel = (recordType === 'income' || recordType === 'video') ? 'YouTuber' : 'Ekip Üyesi';
-    const payableAssignments: PayableAssignment[] = youtuberAssignments.map(a => ({
-        id: a.id,
-        title: videos.find(v => v.id === a.videoId)?.title || 'Bilinmeyen Video',
-        createdAt: a.createdAt,
-    }));
-    const otherPayments = buildAssignmentPaymentMap(youtuberRecords, editType === 'record' ? editData?.id : undefined);
+    const assignmentToVideo = new Map(youtuberAssignments.map(a => [a.id, a.videoId]));
+    const effectivePaidLinks = mergePaidVideos(paidLinks, convertLegacyLinks(legacyLinks, assignmentToVideo));
+    const latestAssignedAt = new Map<string, number | null>();
+    for (const a of youtuberAssignments) {
+        const previous = latestAssignedAt.get(a.videoId);
+        const at = a.createdAt ?? null;
+        if (previous === undefined || (at !== null && (previous === null || at > previous))) latestAssignedAt.set(a.videoId, at);
+    }
+    const payableVideos: PayableVideo[] = [
+        ...videos.filter(v => latestAssignedAt.has(v.id))
+            .sort((a, b) => (latestAssignedAt.get(b.id) || 0) - (latestAssignedAt.get(a.id) || 0)),
+        ...videos.filter(v => !latestAssignedAt.has(v.id)),
+    ].map(v => ({ id: v.id, title: v.title || 'İsimsiz video', assignedAt: latestAssignedAt.get(v.id) }));
+    const otherPayments = buildVideoPaymentMap(youtuberRecords, assignmentToVideo, editType === 'record' ? editData?.id : undefined);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -293,12 +310,17 @@ export default function RecordModal({ isOpen, onClose, initialDate = new Date(),
                     recordData.youtuberId = selectedId;
                     recordData.brokerId = selectedBrokerId || null;
                     recordData.teamMemberId = null; // Clear if switching
-                    recordData.paidAssignments = filterLinksToAssignments(paidLinks, youtuberAssignments.map(a => a.id));
+                    const catalogIds = new Set(videos.map(v => v.id));
+                    recordData.paidVideos = effectivePaidLinks.filter(link => catalogIds.has(link.videoId));
+                    if (isUpdate) recordData.paidAssignments = deleteField();
                 } else {
                     recordData.teamMemberId = selectedId;
                     recordData.youtuberId = null; // Clear if switching
                     recordData.brokerId = null; // Clear if switching
-                    if (isUpdate) recordData.paidAssignments = deleteField();
+                    if (isUpdate) {
+                        recordData.paidVideos = deleteField();
+                        recordData.paidAssignments = deleteField();
+                    }
                 }
 
                 if (isUpdate && editData?.id) {
@@ -431,6 +453,7 @@ export default function RecordModal({ isOpen, onClose, initialDate = new Date(),
                                         if (!e.target.value) {
                                             setSelectedId('');
                                             setPaidLinks([]);
+                                            setLegacyLinks([]);
                                         }
                                     }}
                                     onFocus={() => setIsPersonDropdownOpen(true)}
@@ -478,7 +501,7 @@ export default function RecordModal({ isOpen, onClose, initialDate = new Date(),
                                                     <div
                                                         key={opt.id}
                                                         onClick={() => {
-                                                            if (opt.id !== selectedId) setPaidLinks([]);
+                                                            if (opt.id !== selectedId) { setPaidLinks([]); setLegacyLinks([]); }
                                                             setSelectedId(opt.id);
                                                             setIsPersonDropdownOpen(false);
                                                             setPersonSearchTerm('');
@@ -680,10 +703,10 @@ export default function RecordModal({ isOpen, onClose, initialDate = new Date(),
                                 Bu ödemenin kapsadığı videolar <span style={{ color: 'var(--text-secondary)', fontStyle: 'italic', fontSize: '11px' }}>(isteğe bağlı, birden fazla seçilebilir)</span>
                             </label>
                             <PaymentVideoPicker
-                                assignments={payableAssignments}
+                                videos={payableVideos}
                                 otherPayments={otherPayments}
-                                value={paidLinks}
-                                onChange={setPaidLinks}
+                                value={effectivePaidLinks}
+                                onChange={(links) => { setPaidLinks(links); setLegacyLinks([]); }}
                                 disabled={isSaving}
                             />
                         </div>

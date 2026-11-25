@@ -1,110 +1,146 @@
 'use client';
 
-import { CheckCircle2, CircleDashed, XCircle } from 'lucide-react';
+import { useState } from 'react';
+import { CheckCircle2, CircleDashed, Search, XCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import styles from './PaymentVideoLinks.module.css';
 import {
     PAYMENT_STATUS_LABELS,
-    getAssignmentPaymentStatus,
-    type AssignmentPaymentStatus,
-    type AssignmentPaymentSummary,
-    type PaidAssignmentLink,
+    getVideoPaymentStatus,
+    matchesVideoSearch,
+    type PaidVideoLink,
     type PaymentCoverage,
+    type VideoPaymentStatus,
+    type VideoPaymentSummary,
 } from '@/lib/payment-links';
 
-export function PaymentStatusBadge({ status, compact = false }: { status: AssignmentPaymentStatus; compact?: boolean }) {
+export function PaymentStatusBadge({ status, compact = false }: { status: VideoPaymentStatus; compact?: boolean }) {
     const Icon = status === 'paid' ? CheckCircle2 : status === 'partial' ? CircleDashed : XCircle;
     return (
         <span className={`${styles.badge} ${styles[status]}`} title={PAYMENT_STATUS_LABELS[status]}>
             <Icon size={compact ? 13 : 14} aria-hidden="true" />
-            {compact ? null : PAYMENT_STATUS_LABELS[status]}
-            {compact ? <span className={styles.srOnly}>{PAYMENT_STATUS_LABELS[status]}</span> : null}
+            {compact ? <span className={styles.srOnly}>{PAYMENT_STATUS_LABELS[status]}</span> : PAYMENT_STATUS_LABELS[status]}
         </span>
     );
 }
 
-export interface PayableAssignment {
+export interface PayableVideo {
     id: string;
     title: string;
-    createdAt?: number;
+    /** Bu YouTuber'a atandığı tarih; atanmamışsa yok. */
+    assignedAt?: number | null;
 }
 
 interface PaymentVideoPickerProps {
-    assignments: PayableAssignment[];
-    /** Bu kayıt dışındaki ödemelerden gelen durum. */
-    otherPayments: Map<string, AssignmentPaymentSummary>;
-    value: PaidAssignmentLink[];
-    onChange: (links: PaidAssignmentLink[]) => void;
+    /** Katalogdaki tüm videolar; YouTuber'a atananlar önce gelecek şekilde sıralı verilir. */
+    videos: PayableVideo[];
+    /** Bu kayıt dışındaki ödemelerden gelen durum (video kimliğine göre). */
+    otherPayments: Map<string, VideoPaymentSummary>;
+    value: PaidVideoLink[];
+    onChange: (links: PaidVideoLink[]) => void;
     disabled?: boolean;
 }
 
-export default function PaymentVideoPicker({ assignments, otherPayments, value, onChange, disabled }: PaymentVideoPickerProps) {
-    const selected = new Map(value.map(link => [link.assignmentId, link.coverage]));
+export default function PaymentVideoPicker({ videos, otherPayments, value, onChange, disabled }: PaymentVideoPickerProps) {
+    const [search, setSearch] = useState('');
+    const selected = new Map(value.map(link => [link.videoId, link.coverage]));
+    const visible = videos.filter(video => matchesVideoSearch(video.title, search));
 
-    const toggle = (assignmentId: string) => {
-        if (selected.has(assignmentId)) {
-            onChange(value.filter(link => link.assignmentId !== assignmentId));
+    const toggle = (videoId: string) => {
+        if (selected.has(videoId)) {
+            onChange(value.filter(link => link.videoId !== videoId));
         } else {
-            onChange([...value, { assignmentId, coverage: 'full' }]);
+            onChange([...value, { videoId, coverage: 'full' }]);
         }
     };
 
-    const setCoverage = (assignmentId: string, coverage: PaymentCoverage) => {
-        onChange(value.map(link => link.assignmentId === assignmentId ? { ...link, coverage } : link));
+    const setCoverage = (videoId: string, coverage: PaymentCoverage) => {
+        onChange(value.map(link => link.videoId === videoId ? { ...link, coverage } : link));
     };
 
-    if (assignments.length === 0) {
-        return <p className={styles.empty}>Bu YouTuber’a atanmış video yok.</p>;
-    }
+    const selectedTitles = value
+        .map(link => videos.find(video => video.id === link.videoId))
+        .filter((video): video is PayableVideo => Boolean(video));
 
     return (
-        <div className={styles.list}>
-            {assignments.map(assignment => {
-                const coverage = selected.get(assignment.id);
-                const otherStatus = getAssignmentPaymentStatus(otherPayments, assignment.id);
-                return (
-                    <div key={assignment.id} className={`${styles.row} ${coverage ? styles.rowSelected : ''}`}>
-                        <label className={styles.rowMain}>
-                            <input
-                                type="checkbox"
-                                checked={Boolean(coverage)}
-                                onChange={() => toggle(assignment.id)}
-                                disabled={disabled}
-                            />
-                            <span className={styles.rowText}>
-                                <span className={styles.rowTitle}>{assignment.title}</span>
-                                <span className={styles.rowMeta}>
-                                    {assignment.createdAt ? format(new Date(assignment.createdAt), 'd MMM yyyy', { locale: tr }) : 'Tarih yok'}
-                                    {otherStatus !== 'unpaid' && (
-                                        <> · başka ödemede: <PaymentStatusBadge status={otherStatus} /></>
-                                    )}
-                                </span>
-                            </span>
-                        </label>
-                        {coverage && (
-                            <div className={styles.coverage} role="group" aria-label="Ödeme kapsamı">
-                                <button
-                                    type="button"
-                                    className={coverage === 'full' ? styles.coverageFullActive : ''}
-                                    onClick={() => setCoverage(assignment.id, 'full')}
-                                    disabled={disabled}
-                                >
-                                    Tam
-                                </button>
-                                <button
-                                    type="button"
-                                    className={coverage === 'partial' ? styles.coveragePartialActive : ''}
-                                    onClick={() => setCoverage(assignment.id, 'partial')}
-                                    disabled={disabled}
-                                >
-                                    Kısmi
-                                </button>
+        <div className={styles.picker}>
+            <div className={styles.searchBox}>
+                <Search size={16} aria-hidden="true" />
+                <input
+                    type="text"
+                    placeholder="Video ara..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    disabled={disabled}
+                    aria-label="Video ara"
+                />
+            </div>
+
+            {selectedTitles.length > 0 && (
+                <div className={styles.selectedSummary}>
+                    {selectedTitles.length} video seçildi: {selectedTitles.map(video => video.title).join(', ')}
+                </div>
+            )}
+
+            {videos.length === 0 ? (
+                <p className={styles.empty}>Katalogda video yok.</p>
+            ) : visible.length === 0 ? (
+                <p className={styles.empty}>Aramanıza uygun video bulunamadı.</p>
+            ) : (
+                <div className={styles.list}>
+                    {visible.map(video => {
+                        const coverage = selected.get(video.id);
+                        const otherStatus = getVideoPaymentStatus(otherPayments, video.id);
+                        return (
+                            <div key={video.id} className={`${styles.row} ${coverage ? styles.rowSelected : ''}`}>
+                                <label className={styles.rowMain}>
+                                    <input
+                                        type="checkbox"
+                                        checked={Boolean(coverage)}
+                                        onChange={() => toggle(video.id)}
+                                        disabled={disabled}
+                                    />
+                                    <span className={styles.rowText}>
+                                        <span className={styles.rowTitle}>{video.title}</span>
+                                        {(video.assignedAt !== undefined || otherStatus !== 'unpaid') && (
+                                            <span className={styles.rowMeta}>
+                                                {video.assignedAt !== undefined && (
+                                                    <>Atandı{video.assignedAt ? ` · ${format(new Date(video.assignedAt), 'd MMM yyyy', { locale: tr })}` : ''}</>
+                                                )}
+                                                {video.assignedAt !== undefined && otherStatus !== 'unpaid' && ' · '}
+                                                {otherStatus !== 'unpaid' && (
+                                                    <>başka ödemede: <PaymentStatusBadge status={otherStatus} /></>
+                                                )}
+                                            </span>
+                                        )}
+                                    </span>
+                                </label>
+                                {coverage && (
+                                    <div className={styles.coverage} role="group" aria-label="Ödeme kapsamı">
+                                        <button
+                                            type="button"
+                                            className={coverage === 'full' ? styles.coverageFullActive : ''}
+                                            onClick={() => setCoverage(video.id, 'full')}
+                                            disabled={disabled}
+                                        >
+                                            Tam
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className={coverage === 'partial' ? styles.coveragePartialActive : ''}
+                                            onClick={() => setCoverage(video.id, 'partial')}
+                                            disabled={disabled}
+                                        >
+                                            Kısmi
+                                        </button>
+                                    </div>
+                                )}
                             </div>
-                        )}
-                    </div>
-                );
-            })}
+                        );
+                    })}
+                </div>
+            )}
         </div>
     );
 }

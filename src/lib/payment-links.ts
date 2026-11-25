@@ -1,77 +1,116 @@
-// Gelir kayıtlarını (records, type: 'income') YouTuber video atamalarına (assignments) bağlar.
-// Bir ödeme birden fazla atamayı kapsayabilir; her bağlantı tam veya kısmi ödeme olarak işaretlenir.
+// Gelir kayıtlarını (records, type: 'income') katalog videolarına (youtube_videos) bağlar.
+// Bir ödeme birden fazla videoyu kapsayabilir; her bağlantı tam veya kısmi ödeme olarak işaretlenir.
+// Durum, ödemenin YouTuber'ı ile videoya göre hesaplanır; aynı YouTuber'ın o videoya ait atamaları bu durumu gösterir.
 
 export type PaymentCoverage = 'full' | 'partial';
 
-export interface PaidAssignmentLink {
+export interface PaidVideoLink {
+    videoId: string;
+    coverage: PaymentCoverage;
+}
+
+/** Eski biçim (kısa süre kullanıldı): atama kimliğiyle bağlantı. Okunur, yeni kayıtta `paidVideos`'a çevrilir. */
+export interface LegacyPaidAssignmentLink {
     assignmentId: string;
     coverage: PaymentCoverage;
 }
 
-export type AssignmentPaymentStatus = 'paid' | 'partial' | 'unpaid';
+export type VideoPaymentStatus = 'paid' | 'partial' | 'unpaid';
 
 export interface PaymentRecordLike {
     id: string;
     type?: unknown;
+    paidVideos?: unknown;
     paidAssignments?: unknown;
 }
 
-export interface AssignmentPaymentSummary {
-    status: AssignmentPaymentStatus;
+export interface VideoPaymentSummary {
+    status: VideoPaymentStatus;
     recordIds: string[];
 }
 
-/** Firestore'dan gelen değeri doğrular; geçersiz girdileri atar, aynı atamayı bir kez tutar (tam ödeme kısmiye üstün gelir). */
-export function readPaidAssignments(value: unknown): PaidAssignmentLink[] {
+function readLinks<K extends string>(value: unknown, key: K): Array<Record<K, string> & { coverage: PaymentCoverage }> {
     if (!Array.isArray(value)) return [];
-    const byId = new Map<string, PaidAssignmentLink>();
+    const byId = new Map<string, PaymentCoverage>();
     for (const item of value) {
         if (!item || typeof item !== 'object') continue;
-        const { assignmentId, coverage } = item as { assignmentId?: unknown; coverage?: unknown };
-        if (typeof assignmentId !== 'string' || !assignmentId.trim()) continue;
-        const normalized: PaymentCoverage = coverage === 'partial' ? 'partial' : 'full';
-        const existing = byId.get(assignmentId);
-        if (!existing || (existing.coverage === 'partial' && normalized === 'full')) {
-            byId.set(assignmentId, { assignmentId, coverage: normalized });
-        }
+        const id = (item as Record<string, unknown>)[key];
+        if (typeof id !== 'string' || !id.trim()) continue;
+        const coverage: PaymentCoverage = (item as { coverage?: unknown }).coverage === 'partial' ? 'partial' : 'full';
+        const existing = byId.get(id);
+        if (!existing || (existing === 'partial' && coverage === 'full')) byId.set(id, coverage);
     }
-    return [...byId.values()];
+    return [...byId].map(([id, coverage]) => ({ [key]: id, coverage }) as Record<K, string> & { coverage: PaymentCoverage });
 }
 
-/** Yalnızca verilen (ör. seçili YouTuber'a ait) atamalara ait bağlantıları bırakır. */
-export function filterLinksToAssignments(links: PaidAssignmentLink[], assignmentIds: Iterable<string>): PaidAssignmentLink[] {
-    const allowed = new Set(assignmentIds);
-    return readPaidAssignments(links).filter(link => allowed.has(link.assignmentId));
+/** Firestore'dan gelen `paidVideos` değerini doğrular; geçersizleri atar, tekrarları birleştirir (tam kısmiye üstün gelir). */
+export function readPaidVideos(value: unknown): PaidVideoLink[] {
+    return readLinks(value, 'videoId');
+}
+
+export function readLegacyPaidAssignments(value: unknown): LegacyPaidAssignmentLink[] {
+    return readLinks(value, 'assignmentId');
+}
+
+/** Tekrarları birleştirerek bağlantı listelerini birleştirir. */
+export function mergePaidVideos(...lists: PaidVideoLink[][]): PaidVideoLink[] {
+    return readPaidVideos(lists.flat());
+}
+
+/** Eski atama bağlantılarını, atama → video eşlemesiyle video bağlantısına çevirir; çözülemeyenleri atar. */
+export function convertLegacyLinks(legacy: LegacyPaidAssignmentLink[], assignmentToVideo: Map<string, string>): PaidVideoLink[] {
+    const converted: PaidVideoLink[] = [];
+    for (const link of legacy) {
+        const videoId = assignmentToVideo.get(link.assignmentId);
+        if (videoId) converted.push({ videoId, coverage: link.coverage });
+    }
+    return readPaidVideos(converted);
+}
+
+/** Bir kaydın etkin video bağlantıları: `paidVideos` + çevrilebilen eski `paidAssignments`. */
+export function resolveRecordPaidVideos(record: PaymentRecordLike, assignmentToVideo: Map<string, string>): PaidVideoLink[] {
+    return mergePaidVideos(
+        readPaidVideos(record.paidVideos),
+        convertLegacyLinks(readLegacyPaidAssignments(record.paidAssignments), assignmentToVideo),
+    );
 }
 
 /**
- * Her atamanın ödeme durumunu gelir kayıtlarından hesaplar.
- * Herhangi bir ödemede tam → ödendi; yalnızca kısmi bağlantılar → kısmi; hiç bağlantı yok → haritada yer almaz (ödenmedi).
+ * Videoların ödeme durumunu gelir kayıtlarından hesaplar (kayıtlar aynı YouTuber'a ait olmalıdır).
+ * Herhangi bir ödemede tam → ödendi; yalnızca kısmi → kısmi; hiç bağlantı yok → haritada yok (ödenmedi).
  * `excludeRecordId`, düzenlenen kaydın kendi bağlantılarını diğer ödemelerden ayırmak içindir.
  */
-export function buildAssignmentPaymentMap(
+export function buildVideoPaymentMap(
     records: PaymentRecordLike[],
+    assignmentToVideo: Map<string, string> = new Map(),
     excludeRecordId?: string,
-): Map<string, AssignmentPaymentSummary> {
-    const map = new Map<string, AssignmentPaymentSummary>();
+): Map<string, VideoPaymentSummary> {
+    const map = new Map<string, VideoPaymentSummary>();
     for (const record of records) {
         if (record.type === 'expense') continue;
         if (excludeRecordId && record.id === excludeRecordId) continue;
-        for (const link of readPaidAssignments(record.paidAssignments)) {
-            const current = map.get(link.assignmentId) ?? { status: 'partial' as AssignmentPaymentStatus, recordIds: [] };
+        for (const link of resolveRecordPaidVideos(record, assignmentToVideo)) {
+            const current = map.get(link.videoId) ?? { status: 'partial' as VideoPaymentStatus, recordIds: [] };
             if (link.coverage === 'full') current.status = 'paid';
             if (!current.recordIds.includes(record.id)) current.recordIds.push(record.id);
-            map.set(link.assignmentId, current);
+            map.set(link.videoId, current);
         }
     }
     return map;
 }
 
-export function getAssignmentPaymentStatus(map: Map<string, AssignmentPaymentSummary>, assignmentId: string): AssignmentPaymentStatus {
-    return map.get(assignmentId)?.status ?? 'unpaid';
+export function getVideoPaymentStatus(map: Map<string, VideoPaymentSummary>, videoId: string): VideoPaymentStatus {
+    return map.get(videoId)?.status ?? 'unpaid';
 }
 
-export const PAYMENT_STATUS_LABELS: Record<AssignmentPaymentStatus, string> = {
+/** Arama için Türkçe duyarlı, küçük harfe çevrilmiş karşılaştırma. */
+export function matchesVideoSearch(title: string, term: string): boolean {
+    const needle = term.trim().toLocaleLowerCase('tr');
+    if (!needle) return true;
+    return title.toLocaleLowerCase('tr').includes(needle);
+}
+
+export const PAYMENT_STATUS_LABELS: Record<VideoPaymentStatus, string> = {
     paid: 'Ödendi',
     partial: 'Kısmi ödendi',
     unpaid: 'Ödenmedi',

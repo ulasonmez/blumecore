@@ -1,58 +1,70 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
-    buildAssignmentPaymentMap,
-    filterLinksToAssignments,
-    getAssignmentPaymentStatus,
-    readPaidAssignments,
+    buildVideoPaymentMap,
+    convertLegacyLinks,
+    getVideoPaymentStatus,
+    matchesVideoSearch,
+    readPaidVideos,
+    resolveRecordPaidVideos,
 } from '../src/lib/payment-links';
 
-test('readPaidAssignments geçersiz girdileri atar ve tekrarları birleştirir', () => {
-    assert.deepEqual(readPaidAssignments(undefined), []);
-    assert.deepEqual(readPaidAssignments('x'), []);
+test('readPaidVideos geçersiz girdileri atar ve tekrarları birleştirir', () => {
+    assert.deepEqual(readPaidVideos(undefined), []);
+    assert.deepEqual(readPaidVideos('x'), []);
     assert.deepEqual(
-        readPaidAssignments([
-            { assignmentId: 'a', coverage: 'partial' },
-            { assignmentId: 'a', coverage: 'full' },
-            { assignmentId: '', coverage: 'full' },
-            { assignmentId: 'b' },
+        readPaidVideos([
+            { videoId: 'a', coverage: 'partial' },
+            { videoId: 'a', coverage: 'full' },
+            { videoId: '', coverage: 'full' },
+            { videoId: 'b' },
             null,
-            { assignmentId: 'c', coverage: 'partial' },
-            { assignmentId: 'c', coverage: 'weird' },
+            { videoId: 'c', coverage: 'partial' },
         ]),
         [
-            { assignmentId: 'a', coverage: 'full' },
-            { assignmentId: 'b', coverage: 'full' },
-            { assignmentId: 'c', coverage: 'full' },
+            { videoId: 'a', coverage: 'full' },
+            { videoId: 'b', coverage: 'full' },
+            { videoId: 'c', coverage: 'partial' },
         ],
     );
 });
 
 test('Bir ödeme birden fazla videoyu kapsar; tam > kısmi > ödenmedi', () => {
     const records = [
-        { id: 'r1', type: 'income', paidAssignments: [{ assignmentId: 'a1', coverage: 'full' }, { assignmentId: 'a2', coverage: 'partial' }] },
-        { id: 'r2', type: 'income', paidAssignments: [{ assignmentId: 'a3', coverage: 'partial' }] },
-        { id: 'r3', type: 'income', paidAssignments: [{ assignmentId: 'a3', coverage: 'full' }] },
-        { id: 'r4', type: 'expense', paidAssignments: [{ assignmentId: 'a4', coverage: 'full' }] },
+        { id: 'r1', type: 'income', paidVideos: [{ videoId: 'v1', coverage: 'full' }, { videoId: 'v2', coverage: 'partial' }] },
+        { id: 'r2', type: 'income', paidVideos: [{ videoId: 'v3', coverage: 'partial' }] },
+        { id: 'r3', type: 'income', paidVideos: [{ videoId: 'v3', coverage: 'full' }] },
+        { id: 'r4', type: 'expense', paidVideos: [{ videoId: 'v4', coverage: 'full' }] },
         { id: 'r5', type: 'income' },
     ];
-    const map = buildAssignmentPaymentMap(records);
-    assert.equal(getAssignmentPaymentStatus(map, 'a1'), 'paid');
-    assert.equal(getAssignmentPaymentStatus(map, 'a2'), 'partial');
-    assert.equal(getAssignmentPaymentStatus(map, 'a3'), 'paid');
-    assert.deepEqual(map.get('a3')?.recordIds, ['r2', 'r3']);
-    assert.equal(getAssignmentPaymentStatus(map, 'a4'), 'unpaid', 'gider kayıtları ödeme sayılmaz');
-    assert.equal(getAssignmentPaymentStatus(map, 'missing'), 'unpaid');
+    const map = buildVideoPaymentMap(records);
+    assert.equal(getVideoPaymentStatus(map, 'v1'), 'paid');
+    assert.equal(getVideoPaymentStatus(map, 'v2'), 'partial');
+    assert.equal(getVideoPaymentStatus(map, 'v3'), 'paid');
+    assert.deepEqual(map.get('v3')?.recordIds, ['r2', 'r3']);
+    assert.equal(getVideoPaymentStatus(map, 'v4'), 'unpaid', 'gider kayıtları ödeme sayılmaz');
+    assert.equal(getVideoPaymentStatus(map, 'missing'), 'unpaid');
 });
 
-test('Düzenlenen kayıt hariç tutulabilir ve bağlantılar YouTuber atamalarıyla sınırlanır', () => {
-    const records = [
-        { id: 'r1', type: 'income', paidAssignments: [{ assignmentId: 'a1', coverage: 'full' }] },
-        { id: 'r2', type: 'income', paidAssignments: [{ assignmentId: 'a1', coverage: 'partial' }] },
-    ];
-    assert.equal(getAssignmentPaymentStatus(buildAssignmentPaymentMap(records, 'r1'), 'a1'), 'partial');
+test('Eski atama bağlantıları videoya çevrilir; düzenlenen kayıt hariç tutulabilir', () => {
+    const assignmentToVideo = new Map([['as1', 'v1'], ['as2', 'v2']]);
     assert.deepEqual(
-        filterLinksToAssignments([{ assignmentId: 'a1', coverage: 'full' }, { assignmentId: 'other', coverage: 'partial' }], ['a1']),
-        [{ assignmentId: 'a1', coverage: 'full' }],
+        convertLegacyLinks([{ assignmentId: 'as1', coverage: 'partial' }, { assignmentId: 'gone', coverage: 'full' }], assignmentToVideo),
+        [{ videoId: 'v1', coverage: 'partial' }],
     );
+    const legacyRecord = { id: 'old', type: 'income', paidAssignments: [{ assignmentId: 'as2', coverage: 'full' }], paidVideos: [{ videoId: 'v1', coverage: 'partial' }] };
+    assert.deepEqual(resolveRecordPaidVideos(legacyRecord, assignmentToVideo), [
+        { videoId: 'v1', coverage: 'partial' },
+        { videoId: 'v2', coverage: 'full' },
+    ]);
+    const records = [legacyRecord, { id: 'r2', type: 'income', paidVideos: [{ videoId: 'v2', coverage: 'partial' }] }];
+    assert.equal(getVideoPaymentStatus(buildVideoPaymentMap(records, assignmentToVideo), 'v2'), 'paid');
+    assert.equal(getVideoPaymentStatus(buildVideoPaymentMap(records, assignmentToVideo, 'old'), 'v2'), 'partial');
+});
+
+test('Video araması Türkçe büyük/küçük harf duyarsızdır', () => {
+    assert.ok(matchesVideoSearch('Minecraft, But You Milk Any Mob', 'milk'));
+    assert.ok(matchesVideoSearch('İnek Sağma Modu', 'inek'));
+    assert.ok(matchesVideoSearch('Herhangi', '  '));
+    assert.ok(!matchesVideoSearch('Tsunami', 'dragon'));
 });
