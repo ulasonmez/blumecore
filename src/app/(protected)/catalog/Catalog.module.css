@@ -179,3 +179,18 @@
     .headerRow { flex-direction: column; align-items: stretch; gap: 12px; }
     .headerActions { justify-content: space-between; }
 }
+
+.unpaidBtn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    background-color: rgba(181, 228, 208, 0.15);
+    border: 1px solid var(--accent-primary);
+    color: var(--accent-primary);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+}

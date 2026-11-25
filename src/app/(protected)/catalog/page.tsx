@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Trash2, Calendar as CalendarIcon, Link as LinkIcon, Search, X } from 'lucide-react';
+import { Trash2, Calendar as CalendarIcon, Link as LinkIcon, Search, X, Clock } from 'lucide-react';
 import styles from './Catalog.module.css';
 import CalendarModal from '@/components/CalendarModal';
 import GroupModal from '@/components/GroupModal';
 import DiscordExport from '@/components/DiscordExport';
+import UnpaidVideosModal from '@/components/UnpaidVideosModal';
 import { db } from '@/lib/firebase';
 import { collection, query, where, addDoc, onSnapshot } from 'firebase/firestore';
 import { useAuth } from '@/lib/auth-context';
@@ -40,6 +41,7 @@ export default function CatalogPage() {
     const [selectedItem, setSelectedItem] = useState<{ id: string, name: string, channelUrl?: string } | null>(null);
 
     const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
+    const [isUnpaidOpen, setIsUnpaidOpen] = useState(false);
     // Kanal linki düzenlenince modal başlığındaki bağlantı canlı kayıttan güncellensin
     const liveSelectedItem = selectedItem ? items.find(item => item.id === selectedItem.id) : undefined;
 
@@ -133,6 +135,9 @@ export default function CatalogPage() {
                 </div>
                 <div className={styles.headerActions}>
                     <DiscordExport contacts={filteredItems} />
+                    <button type="button" className={styles.unpaidBtn} onClick={() => setIsUnpaidOpen(true)}>
+                        <Clock size={14} /> Beklenen Ödemeler
+                    </button>
                     <button className={styles.manageGroupsBtn} onClick={() => setIsGroupModalOpen(true)}>Grupları Yönet</button>
                 </div>
             </div>
@@ -265,6 +270,19 @@ export default function CatalogPage() {
                     channelUrl={liveSelectedItem ? liveSelectedItem.channelUrl : selectedItem.channelUrl}
                 />
             )}
+
+            {/* Yalnızca açıkken mount edilir; kapanınca dinleyiciler ve açık/kapalı grup durumu sıfırlanır. */}
+            {isUnpaidOpen && <UnpaidVideosModal
+                isOpen={isUnpaidOpen}
+                onClose={() => setIsUnpaidOpen(false)}
+                youtubers={items}
+                onOpenYoutuber={(youtuberId) => {
+                    const target = items.find(item => item.id === youtuberId);
+                    if (!target) return;
+                    setIsUnpaidOpen(false);
+                    setSelectedItem(target);
+                }}
+            />}
 
             <GroupModal
                 isOpen={isGroupModalOpen}

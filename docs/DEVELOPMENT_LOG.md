@@ -4,6 +4,13 @@ Yeni sohbetlerde önce [AGENTS.md](../AGENTS.md) ve [proje haritasını](PROJECT
 
 Her görev için kısa kayıt tut: ne/neden değişti, ilgili dosyalar, gerçekten yapılan doğrulama ve varsa kalan iş. Kod/konfigürasyon değiştiğinde haritayı kontrol et; etkilenen bilgiyi haritada da yerinde güncelle. Secret, kişisel veri veya tam araç çıktısı ekleme. Salt okunur soru/yanıtları kaydetme.
 
+## 2026-11-25 — YouTubers sayfasında otomatik Beklenen Ödemeler
+
+- **Değişiklik ve neden:** Follow Ups'taki beklenen ödemeler elle giriliyor. YouTubers sayfasına, ödeme durumu “Ödenmedi” olan video atamalarını manuel listedeki gibi YouTuber bazında gruplayan otomatik ve salt okunur bir “Beklenen Ödemeler” modalı eklendi. Durum, YouTuber detayındaki Videolar sekmesiyle aynı `buildVideoPaymentMap` kuralıyla hesaplanır; kısmi ödenenler gösterilmez. Grup başlığından kişinin detayı açılabilir. Manuel `pendingPayments` akışı değişmedi.
+- **Dosyalar:** `src/lib/unpaid-videos.ts`, `src/components/UnpaidVideosModal.tsx`, `src/components/UnpaidVideosModal.module.css`, `src/app/(protected)/catalog/page.tsx`, `src/app/(protected)/catalog/Catalog.module.css`, `tests/unpaid-videos.test.ts`; harita: giriş tablosu, “Ödemeye video bağlama ve ödeme durumu” bölümü ve test tablosu güncellendi.
+- **Doğrulama:** `npm test` (231 test; 223 geçti, 8 emülatör testi atlandı), değişen dosyalarda ESLint temiz, `npx tsc --noEmit` (yalnızca eski `.next` önbelleğindeki silinmiş `payment-check` sayfası hatası) ve `npm run build` geçti. Modal oturum gerektirdiği için tarayıcıda gerçek Firestore verisiyle denenmedi.
+- **Kalan iş:** Canlıda listeyi açıp sayıların YouTuber detaylarındaki “Ödenmedi” rozetleriyle örtüştüğünü kontrol etmek. Atamalarda fiyat alanı olmadığından tutar gösterilmiyor.
+
 ## 2026-11-25 — Ödeme video seçimi katalog bazlı, aranabilir; Videolar sekmesinde yalnızca not düzenleme
 
 - **Değişiklik ve neden:** Kullanıcı geri bildirimi: ödeme seçicisinde yalnızca YouTuber'ın atamaları (silinmiş katalog videoları “Bilinmeyen Video” olarak) çıkıyordu, arama yoktu; Videolar sekmesindeki Düzenle tüm atamayı açıyordu. Bağlantı modeli atama yerine videoya geçirildi (`records.paidVideos`); seçici tüm katalog videolarını, atananları üstte olacak şekilde ve arama kutusuyla gösteriyor. Önceki sürümün yazdığı `paidAssignments` okunuyor ve kayıt düzenlenince `paidVideos`'a taşınıyor. Videolar sekmesindeki kalem düğmesi artık yalnızca notu kart içinde düzenliyor; Para sekmesindeki ödeme düzenleme aynı kaldı.
