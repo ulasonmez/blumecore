@@ -6,11 +6,19 @@ import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import styles from './CalendarModal.module.css';
 import { db } from '@/lib/firebase';
-import { collection, query, where, addDoc, onSnapshot, doc, updateDoc, getDocs, getDoc } from 'firebase/firestore';
+import { collection, query, where, addDoc, onSnapshot, doc, updateDoc, getDocs, getDoc, deleteField } from 'firebase/firestore';
 import { useAuth } from '@/lib/auth-context';
 import { authenticatedFetch } from '@/lib/api-client';
+import PaymentVideoPicker, { type PayableAssignment } from './PaymentVideoLinks';
+import {
+    buildAssignmentPaymentMap,
+    filterLinksToAssignments,
+    readPaidAssignments,
+    type PaidAssignmentLink,
+    type PaymentRecordLike,
+} from '@/lib/payment-links';
 
-interface RecordEditData {
+export interface RecordEditData {
     id?: string;
     youtuberId?: string;
     videoId?: string;
@@ -20,6 +28,7 @@ interface RecordEditData {
     amount?: number | string;
     description?: string;
     type?: 'income' | 'expense' | 'video';
+    paidAssignments?: unknown;
     [key: string]: unknown;
 }
 
@@ -68,6 +77,40 @@ export default function RecordModal({ isOpen, onClose, initialDate = new Date(),
     // Connected mods state
     const [connectedMods, setConnectedMods] = useState<{ id: string; modKey: string; displayName: string }[]>([]);
     const [autoGrantModAccess, setAutoGrantModAccess] = useState(true);
+
+    // Ödemeye bağlı videolar (yalnızca gelir kayıtları)
+    const [paidLinks, setPaidLinks] = useState<PaidAssignmentLink[]>([]);
+    const [youtuberAssignments, setYoutuberAssignments] = useState<{ id: string; videoId: string; createdAt?: number }[]>([]);
+    const [youtuberRecords, setYoutuberRecords] = useState<PaymentRecordLike[]>([]);
+
+    useEffect(() => {
+        if (!isOpen || !user || recordType !== 'income' || !selectedId) {
+            setYoutuberAssignments([]);
+            setYoutuberRecords([]);
+            return;
+        }
+        const unsubAssignments = onSnapshot(
+            query(collection(db, "assignments"), where("userId", "==", user.uid), where("youtuberId", "==", selectedId)),
+            (snapshot) => {
+                const data: { id: string; videoId: string; createdAt?: number }[] = [];
+                snapshot.forEach(d => {
+                    const a = d.data();
+                    if (a.source !== 'mods' && a.videoId) data.push({ id: d.id, videoId: a.videoId, createdAt: a.createdAt });
+                });
+                data.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+                setYoutuberAssignments(data);
+            }
+        );
+        const unsubRecords = onSnapshot(
+            query(collection(db, "records"), where("userId", "==", user.uid), where("youtuberId", "==", selectedId)),
+            (snapshot) => {
+                const data: PaymentRecordLike[] = [];
+                snapshot.forEach(d => data.push({ id: d.id, type: d.data().type, paidAssignments: d.data().paidAssignments }));
+                setYoutuberRecords(data);
+            }
+        );
+        return () => { unsubAssignments(); unsubRecords(); };
+    }, [isOpen, user, recordType, selectedId]);
 
     useEffect(() => {
         if (!selectedVideoId || !user) {
@@ -146,6 +189,7 @@ export default function RecordModal({ isOpen, onClose, initialDate = new Date(),
                 setSelectedBrokerId(editData.brokerId || '');
                 setAmount(editData.amount?.toString() || '');
                 setDescription(editData.description || '');
+                setPaidLinks(readPaidAssignments(editData.paidAssignments));
             }
         } else {
             setAmount('');
@@ -156,6 +200,7 @@ export default function RecordModal({ isOpen, onClose, initialDate = new Date(),
             setSelectedBrokerId('');
             setVideoSearchTerm('');
             setIsVideoDropdownOpen(false);
+            setPaidLinks([]);
         }
     }, [editData, editType, isOpen]);
 
@@ -169,6 +214,7 @@ export default function RecordModal({ isOpen, onClose, initialDate = new Date(),
             setIsVideoDropdownOpen(false);
             setPersonSearchTerm('');
             setIsPersonDropdownOpen(false);
+            setPaidLinks([]);
         }
     }, [recordType, editData]);
 
@@ -176,6 +222,12 @@ export default function RecordModal({ isOpen, onClose, initialDate = new Date(),
 
     const currentOptions = (recordType === 'income' || recordType === 'video') ? youtubers : teamMembers;
     const categoryLabel = (recordType === 'income' || recordType === 'video') ? 'YouTuber' : 'Ekip Üyesi';
+    const payableAssignments: PayableAssignment[] = youtuberAssignments.map(a => ({
+        id: a.id,
+        title: videos.find(v => v.id === a.videoId)?.title || 'Bilinmeyen Video',
+        createdAt: a.createdAt,
+    }));
+    const otherPayments = buildAssignmentPaymentMap(youtuberRecords, editType === 'record' ? editData?.id : undefined);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -236,17 +288,20 @@ export default function RecordModal({ isOpen, onClose, initialDate = new Date(),
                     description: description.trim(),
                 };
 
+                const isUpdate = Boolean(editData?.id && editType === 'record');
                 if (recordType === 'income') {
                     recordData.youtuberId = selectedId;
                     recordData.brokerId = selectedBrokerId || null;
                     recordData.teamMemberId = null; // Clear if switching
+                    recordData.paidAssignments = filterLinksToAssignments(paidLinks, youtuberAssignments.map(a => a.id));
                 } else {
                     recordData.teamMemberId = selectedId;
                     recordData.youtuberId = null; // Clear if switching
                     recordData.brokerId = null; // Clear if switching
+                    if (isUpdate) recordData.paidAssignments = deleteField();
                 }
 
-                if (editData?.id && editType === 'record') {
+                if (isUpdate && editData?.id) {
                     await updateDoc(doc(db, "records", editData.id), recordData);
                 } else {
                     recordData.userId = user.uid;
@@ -375,6 +430,7 @@ export default function RecordModal({ isOpen, onClose, initialDate = new Date(),
                                         setIsPersonDropdownOpen(true);
                                         if (!e.target.value) {
                                             setSelectedId('');
+                                            setPaidLinks([]);
                                         }
                                     }}
                                     onFocus={() => setIsPersonDropdownOpen(true)}
@@ -422,6 +478,7 @@ export default function RecordModal({ isOpen, onClose, initialDate = new Date(),
                                                     <div
                                                         key={opt.id}
                                                         onClick={() => {
+                                                            if (opt.id !== selectedId) setPaidLinks([]);
                                                             setSelectedId(opt.id);
                                                             setIsPersonDropdownOpen(false);
                                                             setPersonSearchTerm('');
@@ -614,6 +671,21 @@ export default function RecordModal({ isOpen, onClose, initialDate = new Date(),
                                     step="0.01"
                                 />
                             </div>
+                        </div>
+                    )}
+
+                    {recordType === 'income' && selectedId && (
+                        <div>
+                            <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', color: 'var(--text-secondary)' }}>
+                                Bu ödemenin kapsadığı videolar <span style={{ color: 'var(--text-secondary)', fontStyle: 'italic', fontSize: '11px' }}>(isteğe bağlı, birden fazla seçilebilir)</span>
+                            </label>
+                            <PaymentVideoPicker
+                                assignments={payableAssignments}
+                                otherPayments={otherPayments}
+                                value={paidLinks}
+                                onChange={setPaidLinks}
+                                disabled={isSaving}
+                            />
                         </div>
                     )}
 

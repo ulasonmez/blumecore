@@ -188,3 +188,15 @@
     .videoHeader { flex-wrap: wrap; }
     .videoDate { margin-left: 39px; }
 }
+
+.videoMeta { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
+.videoMeta .videoDate { padding-top: 0; }
+.videoPayment { margin-left: 39px; display: flex; flex-wrap: wrap; gap: 6px; }
+.paymentSummary { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; font-size: 13px; color: var(--text-primary); padding: 4px 0 6px; }
+.paymentSummary strong { margin-right: 6px; }
+.paymentLinks { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
+.paymentLinkRow { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-primary); min-width: 0; overflow-wrap: anywhere; }
+.paymentLinkCoverage { color: var(--text-secondary); font-size: 11px; }
+@media (max-width: 380px) {
+    .videoPayment { margin-left: 0; }
+}

@@ -22,6 +22,7 @@ import { collection, query, where, onSnapshot, deleteDoc, doc, updateDoc } from 
 import { useAuth } from '@/lib/auth-context';
 import { authenticatedFetch } from '@/lib/api-client';
 import { useIncomeVisibility } from '@/lib/income-visibility';
+import { readPaidAssignments } from '@/lib/payment-links';
 
 export default function CalendarPage() {
     const { user } = useAuth();
@@ -279,6 +280,21 @@ export default function CalendarPage() {
                                             {record.description}
                                         </span>
                                     ) : null}
+                                    {!isExpense && (() => {
+                                        const linkedTitles = readPaidAssignments(record.paidAssignments)
+                                            .map(link => {
+                                                const linked = assignments.find(a => a.id === link.assignmentId);
+                                                if (!linked) return null;
+                                                const title = videos.find(v => v.id === linked.videoId)?.title || 'Bilinmeyen Video';
+                                                return link.coverage === 'partial' ? `${title} (kısmi)` : title;
+                                            })
+                                            .filter(Boolean);
+                                        return linkedTitles.length > 0 ? (
+                                            <span style={{ fontSize: '11px', color: 'var(--accent-blue)', marginTop: '2px', overflowWrap: 'anywhere' }}>
+                                                Videolar: {linkedTitles.join(', ')}
+                                            </span>
+                                        ) : null;
+                                    })()}
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                     <span style={{ fontWeight: 700, color: record.type === 'expense' ? 'var(--accent-red)' : 'var(--accent-green)' }}>

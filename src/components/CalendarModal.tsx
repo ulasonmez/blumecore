@@ -1,6 +1,6 @@
 'use client';
 
-import { X, Gamepad2, Video } from 'lucide-react';
+import { X, Gamepad2, Video, Edit2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
@@ -12,6 +12,14 @@ import MinecraftPlayersTab from './MinecraftPlayersTab';
 import DiscordContactEditor from './DiscordContactEditor';
 import ChannelLinkEditor from './ChannelLinkEditor';
 import CustomerVideoLink from './CustomerVideoLink';
+import RecordModal, { type RecordEditData } from './RecordModal';
+import { PaymentStatusBadge } from './PaymentVideoLinks';
+import {
+    buildAssignmentPaymentMap,
+    getAssignmentPaymentStatus,
+    readPaidAssignments,
+    type PaidAssignmentLink,
+} from '@/lib/payment-links';
 
 interface CalendarModalProps {
     isOpen: boolean;
@@ -23,11 +31,19 @@ interface CalendarModalProps {
 
 interface RecordData {
     id: string;
+    type?: 'income' | 'expense';
     amount: number;
     description?: string;
     date: Date;
     videoId?: string;
+    youtuberId?: string;
+    brokerId?: string;
+    paidAssignments: PaidAssignmentLink[];
 }
+
+type EditTarget =
+    | { kind: 'record'; data: RecordData; date: Date }
+    | { kind: 'assignment'; data: AssignmentData; date: Date };
 
 interface AssignmentData {
     id: string;
@@ -39,6 +55,7 @@ interface AssignmentData {
     createdAt?: number;
     source?: string;
     customerVideoUrl?: string;
+    brokerId?: string;
 }
 
 interface VideoData {
@@ -59,6 +76,7 @@ export default function CalendarModal({
     const [assignments, setAssignments] = useState<AssignmentData[]>([]);
     const [videos, setVideos] = useState<VideoData[]>([]);
     const [activeTab, setActiveTab] = useState<'money' | 'videos' | 'players'>('money');
+    const [editTarget, setEditTarget] = useState<EditTarget | null>(null);
 
     useEffect(() => {
         if (!isOpen || !user || !youtuberId) return;
@@ -77,10 +95,14 @@ export default function CalendarModal({
                 if (rec.date && typeof rec.date.toDate === 'function') {
                     data.push({
                         id: doc.id,
+                        type: rec.type === 'expense' ? 'expense' : 'income',
                         amount: Number(rec.amount) || 0,
                         description: rec.description || '',
                         date: rec.date.toDate(),
-                        videoId: rec.videoId
+                        videoId: rec.videoId,
+                        youtuberId: rec.youtuberId,
+                        brokerId: rec.brokerId || undefined,
+                        paidAssignments: readPaidAssignments(rec.paidAssignments),
                     });
                 }
             });
@@ -124,8 +146,21 @@ export default function CalendarModal({
     if (!isOpen) return null;
 
     const allTimeTotal = records.reduce((sum, r) => sum + r.amount, 0);
+    const paymentMap = buildAssignmentPaymentMap(records);
+    const validAssignments = assignments.filter(a => videos.some(v => v.id === a.videoId));
+    const assignmentTitle = (assignmentId: string) => {
+        const assignment = assignments.find(a => a.id === assignmentId);
+        if (!assignment) return null;
+        return videos.find(v => v.id === assignment.videoId)?.title || 'Bilinmeyen Video';
+    };
+    const statusCounts = validAssignments.reduce(
+        (acc, a) => { acc[getAssignmentPaymentStatus(paymentMap, a.id)] += 1; return acc; },
+        { paid: 0, partial: 0, unpaid: 0 }
+    );
+    const editButtonStyle = { background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px' } as const;
 
     return (
+        <>
         <div className={styles.overlay} onClick={onClose}>
             <div className={styles.modal} onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
                 <div className={styles.header}>
@@ -234,15 +269,35 @@ export default function CalendarModal({
                             ) : (
                                 records.map(record => (
                                     <div key={record.id} style={{ display: 'flex', flexDirection: 'column', gap: '4px', backgroundColor: 'var(--bg-card)', padding: '12px', borderRadius: '8px' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
                                             <span style={{ color: 'var(--text-primary)', fontWeight: 500, fontSize: '14px' }}>
                                                 {format(record.date, 'd MMMM yyyy', { locale: tr })}
                                             </span>
-                                            <span style={{ color: 'var(--accent-primary)', fontWeight: 700 }}>${record.amount}</span>
+                                            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                <span style={{ color: 'var(--accent-primary)', fontWeight: 700 }}>${record.amount}</span>
+                                                <button type="button" aria-label="Ödemeyi düzenle" title="Düzenle" style={editButtonStyle} onClick={() => setEditTarget({ kind: 'record', data: record, date: record.date })}>
+                                                    <Edit2 size={14} />
+                                                </button>
+                                            </span>
                                         </div>
                                         {record.description && (
                                             <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
                                                 {record.description}
+                                            </div>
+                                        )}
+                                        {record.paidAssignments.length > 0 && (
+                                            <div className={styles.paymentLinks}>
+                                                {record.paidAssignments.map(link => {
+                                                    const linkedTitle = assignmentTitle(link.assignmentId);
+                                                    if (!linkedTitle) return null;
+                                                    return (
+                                                        <div key={link.assignmentId} className={styles.paymentLinkRow}>
+                                                            <PaymentStatusBadge status={link.coverage === 'full' ? 'paid' : 'partial'} compact />
+                                                            <span>{linkedTitle}</span>
+                                                            <span className={styles.paymentLinkCoverage}>{link.coverage === 'full' ? 'tam' : 'kısmi'}</span>
+                                                        </div>
+                                                    );
+                                                })}
                                             </div>
                                         )}
                                         {record.videoId && (
@@ -258,14 +313,21 @@ export default function CalendarModal({
 
                     {activeTab === 'videos' && (
                         <>
+                            {validAssignments.length > 0 && (
+                                <div className={styles.paymentSummary}>
+                                    <PaymentStatusBadge status="paid" /> <strong>{statusCounts.paid}</strong>
+                                    <PaymentStatusBadge status="partial" /> <strong>{statusCounts.partial}</strong>
+                                    <PaymentStatusBadge status="unpaid" /> <strong>{statusCounts.unpaid}</strong>
+                                </div>
+                            )}
                             {(() => {
-                                const validAssignments = assignments.filter(a => videos.some(v => v.id === a.videoId));
                                 if (validAssignments.length === 0) {
                                     return <p style={{ fontSize: '13px', color: 'var(--text-secondary)', textAlign: 'center', padding: '20px 0' }}>Atanan video bulunmuyor.</p>;
                                 }
 
                                 return validAssignments.map(assignment => {
                                     const videoInfo = videos.find(v => v.id === assignment.videoId);
+                                    const paymentStatus = getAssignmentPaymentStatus(paymentMap, assignment.id);
 
                                     return (
                                         <div key={assignment.id} className={styles.videoCard}>
@@ -274,11 +336,19 @@ export default function CalendarModal({
                                                     <span className={styles.videoIcon}><Video size={16} aria-hidden="true" /></span>
                                                     <div className={styles.videoTitle}>{videoInfo ? videoInfo.title : 'Bilinmeyen Video'}</div>
                                                 </div>
-                                                {assignment.createdAt && (
-                                                    <span className={styles.videoDate}>
-                                                        {format(new Date(assignment.createdAt), 'd MMM yyyy', { locale: tr })}
-                                                    </span>
-                                                )}
+                                                <div className={styles.videoMeta}>
+                                                    {assignment.createdAt && (
+                                                        <span className={styles.videoDate}>
+                                                            {format(new Date(assignment.createdAt), 'd MMM yyyy', { locale: tr })}
+                                                        </span>
+                                                    )}
+                                                    <button type="button" aria-label="Video atamasını düzenle" title="Düzenle" style={editButtonStyle} onClick={() => setEditTarget({ kind: 'assignment', data: assignment, date: assignment.createdAt ? new Date(assignment.createdAt) : new Date() })}>
+                                                        <Edit2 size={14} />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div className={styles.videoPayment}>
+                                                <PaymentStatusBadge status={paymentStatus} />
                                             </div>
                                             {videoInfo && (
                                                 <a href={videoInfo.url} target="_blank" rel="noopener noreferrer" className={styles.sourceLink}>
@@ -308,5 +378,15 @@ export default function CalendarModal({
                 </div>
             </div>
         </div>
+        {editTarget && (
+            <RecordModal
+                isOpen={true}
+                onClose={() => setEditTarget(null)}
+                initialDate={editTarget.date}
+                editData={editTarget.data as unknown as RecordEditData}
+                editType={editTarget.kind}
+            />
+        )}
+        </>
     );
 }
