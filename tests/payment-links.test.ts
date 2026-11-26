@@ -1,9 +1,11 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
+    buildPaymentMapsByYoutuber,
     buildVideoPaymentMap,
     convertLegacyLinks,
     getVideoPaymentStatus,
+    getYoutuberVideoPaymentStatus,
     matchesVideoSearch,
     readPaidVideos,
     resolveRecordPaidVideos,
@@ -67,4 +69,24 @@ test('Video araması Türkçe büyük/küçük harf duyarsızdır', () => {
     assert.ok(matchesVideoSearch('İnek Sağma Modu', 'inek'));
     assert.ok(matchesVideoSearch('Herhangi', '  '));
     assert.ok(!matchesVideoSearch('Tsunami', 'dragon'));
+});
+
+test('Aracı görünümü: durum YouTuber bazında hesaplanır; ödeme başka YouTuber atamasını ödemez', () => {
+    const maps = buildPaymentMapsByYoutuber(
+        [
+            { id: 'r1', youtuberId: 'y1', type: 'income', paidVideos: [{ videoId: 'v1', coverage: 'full' }] },
+            { id: 'r2', youtuberId: 'y2', type: 'income', paidVideos: [{ videoId: 'v1', coverage: 'partial' }] },
+            { id: 'r3', youtuberId: 'y2', type: 'expense', paidVideos: [{ videoId: 'v2', coverage: 'full' }] },
+            { id: 'r4', youtuberId: 'y3', type: 'income', paidAssignments: [{ assignmentId: 'a9', coverage: 'full' }] },
+            { id: 'r5', type: 'income', paidVideos: [{ videoId: 'v1', coverage: 'full' }] },
+        ],
+        new Map([['a9', 'v3']]),
+    );
+
+    assert.equal(getYoutuberVideoPaymentStatus(maps, 'y1', 'v1'), 'paid');
+    assert.equal(getYoutuberVideoPaymentStatus(maps, 'y2', 'v1'), 'partial');
+    assert.equal(getYoutuberVideoPaymentStatus(maps, 'y2', 'v2'), 'unpaid');
+    assert.equal(getYoutuberVideoPaymentStatus(maps, 'y3', 'v3'), 'paid');
+    assert.equal(getYoutuberVideoPaymentStatus(maps, 'y4', 'v1'), 'unpaid');
+    assert.equal(getYoutuberVideoPaymentStatus(maps, undefined, 'v1'), 'unpaid');
 });

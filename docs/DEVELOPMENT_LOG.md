@@ -4,6 +4,13 @@ Yeni sohbetlerde önce [AGENTS.md](../AGENTS.md) ve [proje haritasını](PROJECT
 
 Her görev için kısa kayıt tut: ne/neden değişti, ilgili dosyalar, gerçekten yapılan doğrulama ve varsa kalan iş. Kod/konfigürasyon değiştiğinde haritayı kontrol et; etkilenen bilgiyi haritada da yerinde güncelle. Secret, kişisel veri veya tam araç çıktısı ekleme. Salt okunur soru/yanıtları kaydetme.
 
+## 2026-11-26 — Aracı detayında video ödeme durumu ve ödemelerin videoları
+
+- **Değişiklik ve neden:** Team sayfasında aracıya tıklanınca açılan `BrokerModal`'da da YouTuber detayındaki gibi ödeme takibi istendi. Videolar sekmesindeki her atamaya “Ödendi / Kısmi ödendi / Ödenmedi” rozeti ve üstte durum sayıları eklendi; Para sekmesindeki gelir kayıtlarında ödemenin bağlı olduğu videolar (tam/kısmi) gösteriliyor. Ödemede aracı seçilmemiş olabileceği için modal artık sahibin tüm `records`/`assignments` belgelerini dinleyip aracıya ait olanları istemcide `brokerId` ile süzüyor; durum, atamanın YouTuber'ının tüm gelir kayıtlarından hesaplanır. YouTuber bazında harita kurma `payment-links.ts` içine `buildPaymentMapsByYoutuber` / `getYoutuberVideoPaymentStatus` olarak alındı ve `unpaid-videos.ts` bunu kullanacak şekilde sadeleştirildi (davranış aynı).
+- **Dosyalar:** `src/components/BrokerModal.tsx`, `src/lib/payment-links.ts`, `src/lib/unpaid-videos.ts`, `tests/payment-links.test.ts`; harita: giriş tablosu, aracı detayı paragrafı ve “Ödemeye video bağlama ve ödeme durumu” bölümü güncellendi.
+- **Doğrulama:** `npm test` (232 test; 224 geçti, 8 emülatör testi atlandı), değişen kaynak dosyalarda ESLint temiz, `npx tsc --noEmit` (yalnızca eski `.next` önbelleğindeki silinmiş `payment-check` sayfası hatası), `npm run build` ve `git diff --check`. Modal oturum gerektirdiği için tarayıcıda gerçek Firestore verisiyle denenmedi.
+- **Kalan iş:** Canlıda bir aracının detayını açıp rozetlerin ilgili YouTuber detayındakilerle örtüştüğünü kontrol etmek.
+
 ## 2026-11-25 — YouTubers sayfasında otomatik Beklenen Ödemeler
 
 - **Değişiklik ve neden:** Follow Ups'taki beklenen ödemeler elle giriliyor. YouTubers sayfasına, ödeme durumu “Ödenmedi” olan video atamalarını manuel listedeki gibi YouTuber bazında gruplayan otomatik ve salt okunur bir “Beklenen Ödemeler” modalı eklendi. Durum, YouTuber detayındaki Videolar sekmesiyle aynı `buildVideoPaymentMap` kuralıyla hesaplanır; kısmi ödenenler gösterilmez. Grup başlığından kişinin detayı açılabilir. Manuel `pendingPayments` akışı değişmedi.

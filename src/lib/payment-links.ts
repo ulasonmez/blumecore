@@ -103,6 +103,37 @@ export function getVideoPaymentStatus(map: Map<string, VideoPaymentSummary>, vid
     return map.get(videoId)?.status ?? 'unpaid';
 }
 
+/**
+ * Birden fazla YouTuber'ın kayıtlarından YouTuber bazında ödeme haritaları kurar.
+ * Durum her YouTuber için `buildVideoPaymentMap` ile ayrı hesaplanır (bir ödeme yalnızca kendi YouTuber'ının atamalarını öder).
+ */
+export function buildPaymentMapsByYoutuber(
+    records: Array<PaymentRecordLike & { youtuberId?: unknown }>,
+    assignmentToVideo: Map<string, string> = new Map(),
+): Map<string, Map<string, VideoPaymentSummary>> {
+    const byYoutuber = new Map<string, PaymentRecordLike[]>();
+    for (const record of records) {
+        if (typeof record.youtuberId !== 'string' || !record.youtuberId) continue;
+        const list = byYoutuber.get(record.youtuberId) ?? [];
+        list.push(record);
+        byYoutuber.set(record.youtuberId, list);
+    }
+    const maps = new Map<string, Map<string, VideoPaymentSummary>>();
+    for (const [youtuberId, list] of byYoutuber) maps.set(youtuberId, buildVideoPaymentMap(list, assignmentToVideo));
+    return maps;
+}
+
+/** Bir YouTuber + video ikilisinin durumu; YouTuber'ın hiç ödemesi yoksa ödenmedi. */
+export function getYoutuberVideoPaymentStatus(
+    maps: Map<string, Map<string, VideoPaymentSummary>>,
+    youtuberId: unknown,
+    videoId: string,
+): VideoPaymentStatus {
+    if (typeof youtuberId !== 'string') return 'unpaid';
+    const map = maps.get(youtuberId);
+    return map ? getVideoPaymentStatus(map, videoId) : 'unpaid';
+}
+
 /** Arama için Türkçe duyarlı, küçük harfe çevrilmiş karşılaştırma. */
 export function matchesVideoSearch(title: string, term: string): boolean {
     const needle = term.trim().toLocaleLowerCase('tr');

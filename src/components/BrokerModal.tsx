@@ -8,6 +8,12 @@ import styles from './CalendarModal.module.css'; // Reusing CalendarModal styles
 import { db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { useAuth } from '@/lib/auth-context';
+import { PaymentStatusBadge } from './PaymentVideoLinks';
+import {
+    buildPaymentMapsByYoutuber,
+    getYoutuberVideoPaymentStatus,
+    resolveRecordPaidVideos,
+} from '@/lib/payment-links';
 
 interface BrokerModalProps {
     isOpen: boolean;
@@ -18,11 +24,15 @@ interface BrokerModalProps {
 
 interface RecordData {
     id: string;
+    type?: 'income' | 'expense';
     amount: number;
     description?: string;
     date: Date;
     videoId?: string;
     youtuberId?: string;
+    brokerId?: string;
+    paidVideos?: unknown;
+    paidAssignments?: unknown;
 }
 
 interface AssignmentData {
@@ -34,6 +44,7 @@ interface AssignmentData {
     note: string;
     createdAt?: number;
     source?: string;
+    brokerId?: string;
 }
 
 interface VideoData {
@@ -49,8 +60,10 @@ export default function BrokerModal({
     brokerName
 }: BrokerModalProps) {
     const { user } = useAuth();
-    const [records, setRecords] = useState<RecordData[]>([]);
-    const [assignments, setAssignments] = useState<AssignmentData[]>([]);
+    // Ödeme durumu, ödemede aracı seçilmemiş olsa da doğru hesaplansın diye sahibin tüm kayıtları/atamaları dinlenir;
+    // aracıya ait olanlar aşağıda brokerId ile süzülür.
+    const [allRecords, setAllRecords] = useState<RecordData[]>([]);
+    const [allAssignments, setAllAssignments] = useState<AssignmentData[]>([]);
     const [videos, setVideos] = useState<VideoData[]>([]);
     const [youtubers, setYoutubers] = useState<{ id: string; name: string }[]>([]);
     const [activeTab, setActiveTab] = useState<'money' | 'videos'>('money');
@@ -58,12 +71,7 @@ export default function BrokerModal({
     useEffect(() => {
         if (!isOpen || !user || !brokerId) return;
 
-        // Fetch Records that have this brokerId
-        const qRecords = query(
-            collection(db, "records"),
-            where("userId", "==", user.uid),
-            where("brokerId", "==", brokerId)
-        );
+        const qRecords = query(collection(db, "records"), where("userId", "==", user.uid));
 
         const unsubRecords = onSnapshot(qRecords, (snapshot) => {
             const data: RecordData[] = [];
@@ -72,25 +80,24 @@ export default function BrokerModal({
                 if (rec.date && typeof rec.date.toDate === 'function') {
                     data.push({
                         id: doc.id,
+                        type: rec.type === 'expense' ? 'expense' : 'income',
                         amount: Number(rec.amount) || 0,
                         description: rec.description || '',
                         date: rec.date.toDate(),
                         videoId: rec.videoId,
-                        youtuberId: rec.youtuberId
+                        youtuberId: rec.youtuberId,
+                        brokerId: rec.brokerId || undefined,
+                        paidVideos: rec.paidVideos,
+                        paidAssignments: rec.paidAssignments,
                     });
                 }
             });
             // Newest to Oldest -> descending
             data.sort((a, b) => b.date.getTime() - a.date.getTime());
-            setRecords(data);
+            setAllRecords(data);
         });
 
-        // Fetch Assignments that have this brokerId
-        const qAssignments = query(
-            collection(db, "assignments"),
-            where("userId", "==", user.uid),
-            where("brokerId", "==", brokerId)
-        );
+        const qAssignments = query(collection(db, "assignments"), where("userId", "==", user.uid));
 
         const unsubAssignments = onSnapshot(qAssignments, (snapshot) => {
             const data: AssignmentData[] = [];
@@ -99,7 +106,7 @@ export default function BrokerModal({
                 data.push({ id: doc.id, ...docData } as AssignmentData);
             });
             data.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-            setAssignments(data);
+            setAllAssignments(data);
         });
 
         // Fetch Videos
@@ -122,7 +129,23 @@ export default function BrokerModal({
 
     if (!isOpen) return null;
 
+    const records = allRecords.filter(r => r.brokerId === brokerId);
+    const assignments = allAssignments.filter(a => a.brokerId === brokerId);
     const allTimeTotal = records.reduce((sum, r) => sum + r.amount, 0);
+    // YouTuber detayındaki Videolar sekmesiyle aynı kural: durum, YouTuber'ın tüm gelir kayıtlarından hesaplanır.
+    const assignmentToVideo = new Map(allAssignments.filter(a => a.videoId).map(a => [a.id, a.videoId]));
+    const paymentMaps = buildPaymentMapsByYoutuber(allRecords, assignmentToVideo);
+    const videoTitle = (videoId: string) => videos.find(v => v.id === videoId)?.title || 'Bilinmeyen Video';
+    // Rozet yalnızca katalogda olan, mod kaynaklı olmayan video atamalarında gösterilir (ödemeye yalnızca bunlar bağlanabilir).
+    const paymentStatusOf = (assignment: AssignmentData) =>
+        assignment.source !== 'mods' && videos.some(v => v.id === assignment.videoId)
+            ? getYoutuberVideoPaymentStatus(paymentMaps, assignment.youtuberId, assignment.videoId)
+            : null;
+    const statusCounts = assignments.reduce(
+        (acc, a) => { const status = paymentStatusOf(a); if (status) acc[status] += 1; return acc; },
+        { paid: 0, partial: 0, unpaid: 0 }
+    );
+    const hasPaymentStatus = statusCounts.paid + statusCounts.partial + statusCounts.unpaid > 0;
 
     return (
         <div className={styles.overlay} onClick={onClose}>
@@ -202,6 +225,22 @@ export default function BrokerModal({
                                                 {record.description}
                                             </div>
                                         )}
+                                        {(() => {
+                                            if (record.type === 'expense') return null;
+                                            const links = resolveRecordPaidVideos(record, assignmentToVideo);
+                                            if (links.length === 0) return null;
+                                            return (
+                                                <div className={styles.paymentLinks}>
+                                                    {links.map(link => (
+                                                        <div key={link.videoId} className={styles.paymentLinkRow}>
+                                                            <PaymentStatusBadge status={link.coverage === 'full' ? 'paid' : 'partial'} compact />
+                                                            <span>{videoTitle(link.videoId)}</span>
+                                                            <span className={styles.paymentLinkCoverage}>{link.coverage === 'full' ? 'tam' : 'kısmi'}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            );
+                                        })()}
                                         {record.videoId && (
                                             <div style={{ fontSize: '12px', color: 'var(--accent-blue)', marginTop: '4px' }}>
                                                 Video Eklendi
@@ -215,6 +254,13 @@ export default function BrokerModal({
 
                     {activeTab === 'videos' && (
                         <>
+                            {hasPaymentStatus && (
+                                <div className={styles.paymentSummary}>
+                                    <PaymentStatusBadge status="paid" /> <strong>{statusCounts.paid}</strong>
+                                    <PaymentStatusBadge status="partial" /> <strong>{statusCounts.partial}</strong>
+                                    <PaymentStatusBadge status="unpaid" /> <strong>{statusCounts.unpaid}</strong>
+                                </div>
+                            )}
                             {(() => {
                                 if (assignments.length === 0) {
                                     return <p style={{ fontSize: '13px', color: 'var(--text-secondary)', textAlign: 'center', padding: '20px 0' }}>Aracı olunan video bulunmuyor.</p>;
@@ -223,6 +269,7 @@ export default function BrokerModal({
                                 return assignments.map(assignment => {
                                     const videoInfo = videos.find(v => v.id === assignment.videoId);
                                     const youtuberName = youtubers.find(y => y.id === assignment.youtuberId)?.name || assignment.name || 'Bilinmeyen YouTuber';
+                                    const paymentStatus = paymentStatusOf(assignment);
 
                                     return (
                                         <div key={assignment.id} style={{ display: 'flex', flexDirection: 'column', gap: '6px', backgroundColor: 'var(--bg-card)', padding: '12px', borderRadius: '8px' }}>
@@ -239,6 +286,11 @@ export default function BrokerModal({
                                             <div style={{ fontSize: '13px', color: 'var(--text-secondary)', overflowWrap: 'anywhere' }}>
                                                 YouTuber: {youtuberName}
                                             </div>
+                                            {paymentStatus && (
+                                                <div className={styles.videoPayment} style={{ marginLeft: 0 }}>
+                                                    <PaymentStatusBadge status={paymentStatus} />
+                                                </div>
+                                            )}
                                             {videoInfo?.url && (
                                                 <a href={videoInfo.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: '12px', color: 'var(--accent-blue)' }}>
                                                     Kanalda İzle

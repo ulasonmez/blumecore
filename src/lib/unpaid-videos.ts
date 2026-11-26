@@ -3,7 +3,7 @@
 // (`buildVideoPaymentMap`) kuralla hesaplanarak yalnızca "Ödenmedi" olanlarıyla gruplar.
 // Kısmi ödenenler ve katalogda olmayan videolar listeye girmez.
 
-import { buildVideoPaymentMap, getVideoPaymentStatus, type PaymentRecordLike } from './payment-links';
+import { buildPaymentMapsByYoutuber, getYoutuberVideoPaymentStatus, type PaymentRecordLike } from './payment-links';
 
 export interface UnpaidAssignmentInput {
     id: string;
@@ -55,26 +55,13 @@ export function buildUnpaidVideoGroups(
     );
     const assignmentToVideo = new Map(validAssignments.map(a => [a.id, a.videoId as string]));
 
-    const recordsByYoutuber = new Map<string, UnpaidRecordInput[]>();
-    for (const record of records) {
-        if (typeof record.youtuberId !== 'string' || !record.youtuberId) continue;
-        const list = recordsByYoutuber.get(record.youtuberId) ?? [];
-        list.push(record);
-        recordsByYoutuber.set(record.youtuberId, list);
-    }
-
-    const paymentMaps = new Map<string, ReturnType<typeof buildVideoPaymentMap>>();
+    const paymentMaps = buildPaymentMapsByYoutuber(records, assignmentToVideo);
     const groups = new Map<string, UnpaidVideoGroup>();
 
     for (const assignment of validAssignments) {
         const youtuberId = assignment.youtuberId as string;
         const videoId = assignment.videoId as string;
-        let paymentMap = paymentMaps.get(youtuberId);
-        if (!paymentMap) {
-            paymentMap = buildVideoPaymentMap(recordsByYoutuber.get(youtuberId) ?? [], assignmentToVideo);
-            paymentMaps.set(youtuberId, paymentMap);
-        }
-        if (getVideoPaymentStatus(paymentMap, videoId) !== 'unpaid') continue;
+        if (getYoutuberVideoPaymentStatus(paymentMaps, youtuberId, videoId) !== 'unpaid') continue;
 
         if (!groups.has(youtuberId)) {
             groups.set(youtuberId, {
