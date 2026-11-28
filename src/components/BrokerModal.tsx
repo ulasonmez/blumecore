@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import styles from './CalendarModal.module.css'; // Reusing CalendarModal styles
+import customerVideoStyles from './CustomerVideoLink.module.css';
 import { db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { useAuth } from '@/lib/auth-context';
@@ -52,7 +53,6 @@ interface AssignmentData {
 interface VideoData {
     id: string;
     title: string;
-    url: string;
 }
 
 export default function BrokerModal({
@@ -273,7 +273,6 @@ export default function BrokerModal({
                                     const customerVideoUrl = normalizeCustomerVideoUrl(
                                         typeof assignment.customerVideoUrl === 'string' ? assignment.customerVideoUrl : ''
                                     );
-                                    const videoUrl = customerVideoUrl || videoInfo?.url;
                                     const youtuberName = youtubers.find(y => y.id === assignment.youtuberId)?.name || assignment.name || 'Bilinmeyen YouTuber';
                                     const paymentStatus = paymentStatusOf(assignment);
 
@@ -297,14 +296,17 @@ export default function BrokerModal({
                                                     <PaymentStatusBadge status={paymentStatus} />
                                                 </div>
                                             )}
-                                            {videoUrl && (
-                                                <a href={videoUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: '12px', color: 'var(--accent-blue)' }}>
-                                                    {customerVideoUrl ? 'Videoya git' : 'Kanalda İzle'}
-                                                </a>
-                                            )}
                                             {assignment.note && (
                                                 <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px', fontStyle: 'italic' }}>
                                                     Not: {assignment.note}
+                                                </div>
+                                            )}
+                                            {customerVideoUrl && (
+                                                <div className={styles.customerVideo}>
+                                                    <span className={customerVideoStyles.label}>Müşteri videosu</span>
+                                                    <div className={customerVideoStyles.actions}>
+                                                        <a href={customerVideoUrl} target="_blank" rel="noopener noreferrer">Videoya git</a>
+                                                    </div>
                                                 </div>
                                             )}
                                         </div>

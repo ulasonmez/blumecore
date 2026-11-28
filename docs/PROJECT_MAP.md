@@ -96,7 +96,7 @@ YouTuber detayının Videolar sekmesi ve video detayının Atanan YouTuberlar b�
 
 YouTuber detayında her atama, başlık ve tarihiyle sınırları belirgin bir kartta gösterilir; müşteri bağlantısı kartın içindeki ayrı yüzeyde bulunur. Katalog bağlantısı “Orijinal videoyu izle” olarak adlandırılır ve müşteri videosundan ayrılır. Dar ekranda tarih gerektiğinde alt satıra geçer.
 
-Aracı detayının (`BrokerModal`) Videolar sekmesinde geçerli `assignments.customerVideoUrl` varsa “Videoya git” doğrudan YouTuber'ın videosunu açar. Bu bağlantı katalog kaydı silinmiş olsa da kullanılabilir. Müşteri bağlantısı boş veya geçersizse katalog bağlantısı varsa “Kanalda İzle” gösterilir. Atama değiştiğinde bağlantı mevcut Firestore dinleyicisinden güncellenir.
+Aracı detayının (`BrokerModal`) Videolar sekmesinde geçerli `assignments.customerVideoUrl` bulunan atamalarda “Müşteri videosu” bölümü ve YouTuber'ın videosunu açan “Videoya git” bağlantısı görünür. Bölüm katalog kaydı silinmiş olsa da gösterilir. Müşteri bağlantısı boş veya geçersizse atama kartı bağlantısız kalır. Atama değiştiğinde bağlantı mevcut Firestore dinleyicisinden güncellenir.
 
 ### Görsel tema
 

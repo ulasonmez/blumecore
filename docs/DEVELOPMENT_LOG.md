@@ -4,6 +4,11 @@ Yeni sohbetlerde önce [AGENTS.md](../AGENTS.md) ve [proje haritasını](PROJECT
 
 Her görev için kısa kayıt tut: ne/neden değişti, ilgili dosyalar, gerçekten yapılan doğrulama ve varsa kalan iş. Kod/konfigürasyon değiştiğinde haritayı kontrol et; etkilenen bilgiyi haritada da yerinde güncelle. Secret, kişisel veri veya tam araç çıktısı ekleme. Salt okunur soru/yanıtları kaydetme.
 
+## 2026-11-28 — Aracı videolarında müşteri bağlantısını ayırt etme
+
+- **Değişiklik:** `src/components/BrokerModal.tsx` içindeki Videolar sekmesinde yalnızca geçerli müşteri bağlantısı olan atamalarda “Müşteri videosu” ve “Videoya git” gösterilir. Katalog bağlantısı kaldırıldı. Müşteri videosu eklenmemiş atamaların kartları ve ödeme rozetleri görünür. Proje haritasının müşteri videosu bölümü güncellendi.
+- **Doğrulama:** Chrome'da Team → Aracılar → Videolar akışı örnek Firestore verileriyle denendi. Doğru bağlantı ve etiket, katalog linkinin gizlenmesi, eksik/geçersiz müşteri bağlantıları ve dinleyici üzerinden ekleme/kaldırma doğrulandı. ESLint, kaynak ve testlerin tip kontrolü (eski `.next` çıktısı hariç) ve `git diff --check` geçti. Test paketinde 224 test geçti, 8 Firestore emülatör testi atlandı. Canlı Firebase oturumu doğrulanmadı.
+
 ## 2026-11-28 — Takvim ay sınırları ve aracı video bağlantısı
 
 - **Takvim:** Güncel ayın ilerisine ve başlangıç ayının gerisine gidilemiyor. İlk girişin geçmiş tarihi tutulmadığından alt sınır Firebase hesap oluşturma ayından alınır. Tarih kullanılamazsa iki ok da güncel ayda kapanır. Ekran açık kaldığında ay değişimi gece yarısı veya pencere odağıyla yansır.
