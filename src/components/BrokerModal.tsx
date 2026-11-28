@@ -8,6 +8,7 @@ import styles from './CalendarModal.module.css'; // Reusing CalendarModal styles
 import { db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { useAuth } from '@/lib/auth-context';
+import { normalizeCustomerVideoUrl } from '@/lib/customer-video-url';
 import { PaymentStatusBadge } from './PaymentVideoLinks';
 import {
     buildPaymentMapsByYoutuber,
@@ -45,6 +46,7 @@ interface AssignmentData {
     createdAt?: number;
     source?: string;
     brokerId?: string;
+    customerVideoUrl?: string;
 }
 
 interface VideoData {
@@ -268,6 +270,10 @@ export default function BrokerModal({
 
                                 return assignments.map(assignment => {
                                     const videoInfo = videos.find(v => v.id === assignment.videoId);
+                                    const customerVideoUrl = normalizeCustomerVideoUrl(
+                                        typeof assignment.customerVideoUrl === 'string' ? assignment.customerVideoUrl : ''
+                                    );
+                                    const videoUrl = customerVideoUrl || videoInfo?.url;
                                     const youtuberName = youtubers.find(y => y.id === assignment.youtuberId)?.name || assignment.name || 'Bilinmeyen YouTuber';
                                     const paymentStatus = paymentStatusOf(assignment);
 
@@ -291,9 +297,9 @@ export default function BrokerModal({
                                                     <PaymentStatusBadge status={paymentStatus} />
                                                 </div>
                                             )}
-                                            {videoInfo?.url && (
-                                                <a href={videoInfo.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: '12px', color: 'var(--accent-blue)' }}>
-                                                    Kanalda İzle
+                                            {videoUrl && (
+                                                <a href={videoUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: '12px', color: 'var(--accent-blue)' }}>
+                                                    {customerVideoUrl ? 'Videoya git' : 'Kanalda İzle'}
                                                 </a>
                                             )}
                                             {assignment.note && (

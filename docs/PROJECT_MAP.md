@@ -27,7 +27,7 @@ Tablodaki yollar depo köküne göredir. Sayfa klasörlerindeki `*.module.css` d
 | YouTuber kanal linki düzenleme | `src/components/ChannelLinkEditor.tsx`, `src/components/ChannelLinkEditor.module.css`, `src/lib/channel-url.ts` | `youtubers.channelUrl`; `CalendarModal` içinde açılıp kapanan bölüm; `tests/channel-url.test.ts` |
 | YouTuber detayındaki takvim ve oyuncular | `src/components/CalendarModal.tsx`, `src/components/MinecraftPlayersTab.tsx` | `assignments`, `records`, `youtube_videos`; oyuncu API'leri; Para sekmesinden ödeme düzenleme `RecordModal` ile; Videolar sekmesinde yalnızca not satır içinde düzenlenir |
 | Ödemeye video bağlama, video ödeme durumu (ödendi/kısmi/ödenmedi) | `src/lib/payment-links.ts`, `src/components/PaymentVideoLinks.tsx` | `records.paidVideos` (eski `paidAssignments` okunur); seçim `RecordModal`, rozetler `CalendarModal` ve `BrokerModal`; `tests/payment-links.test.ts` |
-| Takvim, video atama, gelir/gider, kayıt düzenleme | `src/app/(protected)/calendar/page.tsx`, `src/components/RecordModal.tsx` | `records`, `assignments`, `team`, `youtube_videos`; gelir/gider toplamlarının görünürlüğü `src/lib/income-visibility.ts`; atama silme API'si |
+| Takvim, video atama, gelir/gider, kayıt düzenleme | `src/app/(protected)/calendar/page.tsx`, `src/components/RecordModal.tsx` | Ay gezinmesi Firebase hesap oluşturma ayından güncel aya kadardır; `records`, `assignments`, `team`, `youtube_videos`; gelir/gider toplamlarının görünürlüğü `src/lib/income-visibility.ts`; atama silme API'si |
 | Ekip, aracı, broker, komisyon | `src/app/(protected)/team/page.tsx`, `src/components/BrokerModal.tsx` | `team` içindeki `member` / `broker` rolleri; `records`, `assignments` |
 | Video listesi, video kartı, sıralama | `src/app/(protected)/videos/page.tsx`, `src/components/VideoGridItem.tsx` | `youtube_videos`, `assignments`; video silme API'si |
 | Video detayı, videoya mod bağlama, YouTuber erişimi | `src/components/VideoDetailModal.tsx`, `src/components/YoutuberModAccessModal.tsx` | `src/app/api/videos/[videoId]/mods/route.ts`, `src/app/api/mods/[modId]/access/route.ts` |
@@ -60,7 +60,9 @@ Follow Ups export’u, takip aşamaları yerine **ülkelere göre** açılıp ka
 
 `buildSelectedDiscordExport` kişi seçimini uygular; `buildDiscordExport`, kişileri belge kimliğiyle tekilleştirir, kopyalanabilir metni ada göre sıralar ve satır sonlarını temizler. Mobil export penceresinde içerik kaydırılır; başlık ve kopyalama alanı kaydırılan içerikten ayrıdır. Checkbox stilleri genel input padding’ini sıfırlar. Kopyala düğmesi Clipboard API kullanır; erişim başarısızsa metni seçip elle kopyalama açıklaması gösterir. Bu akış Discord’a mesaj göndermez; yeni API, Firestore yazma veya migration gerektirmez. Ortak görünüm `src/components/DiscordContacts.module.css` içindedir; dar ekranda düğmeler ve rozetler satır kırar, düzenleme düğmesi tam genişlik alır.
 
-### Takvim gün göstergeleri
+### Takvim ay gezinmesi ve gün göstergeleri
+
+Takvim güncel ayda açılır. İlk girişin geçmiş tarihi uygulamada tutulmadığı için alt sınır Firebase Auth `user.metadata.creationTime` alanındaki hesap oluşturma ayıdır. Tarih eksik, geçersiz veya ilerideyse yalnızca güncel ay açılır. Takvim iki sınır ayını da gösterir ve sınırdaki ilgili ok devre dışıdır. Tarih yerel gece yarısında ve pencere odağı geri geldiğinde yenilenir. Güncel ay görünümü yeni aya otomatik geçer, geçmişteki ay seçimi korunur.
 
 `src/app/(protected)/calendar/page.tsx` gün numarası altında gelir için yeşil, gider için kırmızı, video ataması için mavi nokta gösterir. `Calendar.module.css` bu noktaları 8 piksel çapında, 4 piksel aralıklı ve takvime özel canlı renklerle biçimlendirir. Aynı gün bir türden birden fazla kayıt olsa da o tür için tek nokta oluşur. Üç tür aynı günde yan yana gösterilebilir. Gelir ve gider `records.date` ile, video ataması `assignments.createdAt` ile güne bağlanır. Video noktası takvimin mevcut video atama kapsamını kullanır.
 
@@ -93,6 +95,8 @@ YouTuber detayının Videolar sekmesi ve video detayının Atanan YouTuberlar b�
 - Henüz yapılmadı: panelde öneriyi onaylama/reddetme ve “Otomatik” rozeti (`customerVideoRejectedIds` panelden yazılamaz; yalnızca Telegram butonu → reject ucu yazar), elle kayıtta `customerVideoSource: 'manual'` yazılması. `CustomerVideoLink` elle kayıtta yalnızca `customerVideoUrl` alanını değiştirir.
 
 YouTuber detayında her atama, başlık ve tarihiyle sınırları belirgin bir kartta gösterilir; müşteri bağlantısı kartın içindeki ayrı yüzeyde bulunur. Katalog bağlantısı “Orijinal videoyu izle” olarak adlandırılır ve müşteri videosundan ayrılır. Dar ekranda tarih gerektiğinde alt satıra geçer.
+
+Aracı detayının (`BrokerModal`) Videolar sekmesinde geçerli `assignments.customerVideoUrl` varsa “Videoya git” doğrudan YouTuber'ın videosunu açar. Bu bağlantı katalog kaydı silinmiş olsa da kullanılabilir. Müşteri bağlantısı boş veya geçersizse katalog bağlantısı varsa “Kanalda İzle” gösterilir. Atama değiştiğinde bağlantı mevcut Firestore dinleyicisinden güncellenir.
 
 ### Görsel tema
 

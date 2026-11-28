@@ -4,6 +4,13 @@ Yeni sohbetlerde önce [AGENTS.md](../AGENTS.md) ve [proje haritasını](PROJECT
 
 Her görev için kısa kayıt tut: ne/neden değişti, ilgili dosyalar, gerçekten yapılan doğrulama ve varsa kalan iş. Kod/konfigürasyon değiştiğinde haritayı kontrol et; etkilenen bilgiyi haritada da yerinde güncelle. Secret, kişisel veri veya tam araç çıktısı ekleme. Salt okunur soru/yanıtları kaydetme.
 
+## 2026-11-28 — Takvim ay sınırları ve aracı video bağlantısı
+
+- **Takvim:** Güncel ayın ilerisine ve başlangıç ayının gerisine gidilemiyor. İlk girişin geçmiş tarihi tutulmadığından alt sınır Firebase hesap oluşturma ayından alınır. Tarih kullanılamazsa iki ok da güncel ayda kapanır. Ekran açık kaldığında ay değişimi gece yarısı veya pencere odağıyla yansır.
+- **Aracılar:** Videolar sekmesinde geçerli müşteri bağlantısı varsa “Videoya git” YouTuber'ın videosunu açar. Bağlantı eksik veya geçersizse katalog bağlantısı kullanılır.
+- **Dosyalar:** `src/app/(protected)/calendar/page.tsx`, aynı dizindeki `Calendar.module.css`, `src/components/BrokerModal.tsx` ve proje haritasındaki ilgili bölümler.
+- **Doğrulama:** `node --import tsx --test tests/*.test.ts` ile 224 test geçti ve 8 Firestore emülatör testi atlandı. Kaynak ve testlerin tip kontrolü geçti, eski `.next` çıktısındaki silinmiş `payment-check` referansı kontrol dışında bırakıldı. ESLint'te takvimdeki mevcut ihlaller dışında yeni ihlal bulunmadı. Headless Chrome'da gerçek Takvim ve Team bileşenleri örnek Firebase verileriyle çalıştırıldı. Ay sınırları, odakla ay geçişi, müşteri bağlantısının önceliği, katalog geri dönüşü ve atama güncellemesi doğrulandı. `git diff --check` geçti. Canlı Firebase oturumu ve üretim dağıtımı doğrulanmadı.
+
 ## 2026-11-26 — Aracı detayında video ödeme durumu ve ödemelerin videoları
 
 - **Değişiklik ve neden:** Team sayfasında aracıya tıklanınca açılan `BrokerModal`'da da YouTuber detayındaki gibi ödeme takibi istendi. Videolar sekmesindeki her atamaya “Ödendi / Kısmi ödendi / Ödenmedi” rozeti ve üstte durum sayıları eklendi; Para sekmesindeki gelir kayıtlarında ödemenin bağlı olduğu videolar (tam/kısmi) gösteriliyor. Ödemede aracı seçilmemiş olabileceği için modal artık sahibin tüm `records`/`assignments` belgelerini dinleyip aracıya ait olanları istemcide `brokerId` ile süzüyor; durum, atamanın YouTuber'ının tüm gelir kayıtlarından hesaplanır. YouTuber bazında harita kurma `payment-links.ts` içine `buildPaymentMapsByYoutuber` / `getYoutuberVideoPaymentStatus` olarak alındı ve `unpaid-videos.ts` bunu kullanacak şekilde sadeleştirildi (davranış aynı).

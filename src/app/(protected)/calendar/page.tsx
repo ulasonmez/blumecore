@@ -4,13 +4,14 @@ import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Plus, Trash2, Edit2 } from 'lucide-react';
 import {
     format,
+    addDays,
     addMonths,
-    subMonths,
+    clamp,
+    startOfDay,
     startOfMonth,
     endOfMonth,
     eachDayOfInterval,
     isSameMonth,
-    isToday,
     isSameDay,
     getDay,
 } from 'date-fns';
@@ -27,8 +28,9 @@ import { resolveRecordPaidVideos } from '@/lib/payment-links';
 export default function CalendarPage() {
     const { user } = useAuth();
     const { showIncome } = useIncomeVisibility();
-    const [currentDate, setCurrentDate] = useState(new Date());
-    const [selectedDate, setSelectedDate] = useState(new Date());
+    const [today, setToday] = useState(() => new Date());
+    const [viewedMonth, setViewedMonth] = useState<Date | null>(null);
+    const [pickedDate, setPickedDate] = useState<Date | null>(null);
     const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
     const [editRecordData, setEditRecordData] = useState<any | null>(null);
     const [editRecordType, setEditRecordType] = useState<'record' | 'assignment' | null>(null);
@@ -38,6 +40,17 @@ export default function CalendarPage() {
     const [teamMembers, setTeamMembers] = useState<any[]>([]);
     const [assignments, setAssignments] = useState<any[]>([]);
     const [videos, setVideos] = useState<any[]>([]);
+
+    useEffect(() => {
+        const refreshToday = () => setToday(new Date());
+        const tomorrow = startOfDay(addDays(today, 1));
+        const timer = window.setTimeout(refreshToday, tomorrow.getTime() - Date.now());
+        window.addEventListener('focus', refreshToday);
+        return () => {
+            window.clearTimeout(timer);
+            window.removeEventListener('focus', refreshToday);
+        };
+    }, [today]);
 
     useEffect(() => {
         if (!user) return;
@@ -104,8 +117,17 @@ export default function CalendarPage() {
         return () => unsubscribe();
     }, [user]);
 
-    const nextMonth = () => setCurrentDate(addMonths(currentDate, 1));
-    const prevMonth = () => setCurrentDate(subMonths(currentDate, 1));
+    const latestMonth = startOfMonth(today);
+    const accountCreatedAt = new Date(user?.metadata.creationTime ?? '');
+    const firstMonth = accountCreatedAt <= today ? startOfMonth(accountCreatedAt) : latestMonth;
+    const currentDate = clamp(viewedMonth ?? latestMonth, { start: firstMonth, end: latestMonth });
+    const selectedDate = pickedDate ?? today;
+
+    function moveMonth(direction: -1 | 1) {
+        const nextMonth = addMonths(currentDate, direction);
+        if (nextMonth < firstMonth || nextMonth > latestMonth) return;
+        setViewedMonth(isSameMonth(nextMonth, latestMonth) ? null : nextMonth);
+    }
 
     const startDate = startOfMonth(currentDate);
     const endDate = endOfMonth(currentDate);
@@ -192,13 +214,13 @@ export default function CalendarPage() {
 
             <div className={styles.calendarCard}>
                 <div className={styles.monthSelector}>
-                    <button onClick={prevMonth} className={styles.navBtn}>
+                    <button type="button" aria-label="Önceki ay" onClick={() => moveMonth(-1)} className={styles.navBtn} disabled={isSameMonth(currentDate, firstMonth)}>
                         <ChevronLeft size={24} />
                     </button>
                     <div className={styles.currentMonth}>
                         {format(currentDate, 'MMMM yyyy', { locale: tr })}
                     </div>
-                    <button onClick={nextMonth} className={styles.navBtn}>
+                    <button type="button" aria-label="Sonraki ay" onClick={() => moveMonth(1)} className={styles.navBtn} disabled={isSameMonth(currentDate, latestMonth)}>
                         <ChevronRight size={24} />
                     </button>
                 </div>
@@ -218,7 +240,7 @@ export default function CalendarPage() {
 
                     {daysInMonth.map((day) => {
                         const isCurrentMonth = isSameMonth(day, currentDate);
-                        const isDayToday = isToday(day);
+                        const isDayToday = isSameDay(day, today);
                         const isSelected = isSameDay(day, selectedDate);
                         const hasIncome = incomeRecords.some(r => isSameDay(r.date, day));
                         const hasExpense = expenseRecords.some(r => isSameDay(r.date, day));
@@ -228,7 +250,7 @@ export default function CalendarPage() {
                             <div
                                 key={day.toString()}
                                 className={`${styles.dayCell} ${!isCurrentMonth ? styles.disabledDay : ''}`}
-                                onClick={() => setSelectedDate(day)}
+                                onClick={() => setPickedDate(day)}
                             >
                                 <span className={`${styles.dayNumber} ${isDayToday ? styles.today : ''} ${isSelected && !isDayToday ? styles.selected : ''}`}>
                                     {format(day, 'd')}
